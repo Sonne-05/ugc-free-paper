@@ -18,6 +18,7 @@ import ManageSet from './pages/ManageSet'
 import AdminNoteEditor from './pages/AdminNoteEditor'
 import Support from './pages/Support'
 import MockTest from './pages/MockTest'
+import { API_BASE_URL } from './services/api'
 import './App.css'
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
   const isFullPage = location.pathname === '/signin' || location.pathname === '/signup' || location.pathname === '/mocktest' || location.pathname.startsWith('/admin/edit-note')
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/analytics/hit', {
+    fetch(`${API_BASE_URL}/api/analytics/hit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
