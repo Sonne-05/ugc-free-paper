@@ -692,8 +692,8 @@ const MockTest = () => {
         <header className="mt-header">
           <div className="mt-header__left">
             <div className="mt-header__logo">
-              <span className="mt-header__logo-text-dark">UGC NET</span>
-              <span className="mt-header__logo-text-primary">Prep</span>
+              <span className="mt-header__logo-text-dark">UGC Free</span>
+              <span className="mt-header__logo-text-primary">Paper</span>
             </div>
             <div className="mt-header__title">
               {paperDetails.title} {paperDetails.subtitle && `- ${paperDetails.subtitle}`}
