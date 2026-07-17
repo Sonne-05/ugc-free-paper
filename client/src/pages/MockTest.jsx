@@ -976,13 +976,13 @@ const MockTest = () => {
             </div>
 
             {/* Question window */}
-            <div className={`mt-content ${(questionsState[activeQuestionIndex].type === 'comprehension' || questionsState[activeQuestionIndex].type === 'di') ? 'mt-content--comprehension' : ''}`}>
-              {/* 1. COMPREHENSION / DI TYPE */}
-              {(questionsState[activeQuestionIndex].type === 'comprehension' || questionsState[activeQuestionIndex].type === 'di') && (
+            <div className={`mt-content ${questionsState[activeQuestionIndex].type === 'comprehension' ? 'mt-content--comprehension' : ''}`}>
+              {/* 1. COMPREHENSION TYPE */}
+              {questionsState[activeQuestionIndex].type === 'comprehension' && (
                 <div className="comprehension-layout">
                   <div className="passage-pane">
                     <div className="passage-header">
-                      {questionsState[activeQuestionIndex].type === 'di' ? 'Data Interpretation / Table Data' : 'Comprehension / Reading Passage'}
+                      Comprehension / Reading Passage
                     </div>
                     <div className="passage-content">
                       {renderPassageWithTable(questionsState[activeQuestionIndex].passage)}
@@ -1019,6 +1019,64 @@ const MockTest = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 1b. DATA INTERPRETATION TYPE (rendered inline, like normal, not split screen) */}
+              {questionsState[activeQuestionIndex].type === 'di' && (
+                <div className="question-area">
+                  <div className="question-header">
+                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-meta">
+                      <span className="meta-badge meta-badge--positive">Marks +2</span>
+                      <span className="meta-badge meta-badge--negative">-0</span>
+                    </div>
+                  </div>
+
+                  <div className="question-body">
+                    {/* Render the DI passage/table inline first */}
+                    {questionsState[activeQuestionIndex].passage && (
+                      <div className="di-passage-inline" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                        <div style={{ 
+                          fontSize: '0.72rem',
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          color: '#64748b',
+                          letterSpacing: '0.05em',
+                          marginBottom: '10px',
+                          borderBottom: '2px solid #cbd5e1',
+                          paddingBottom: '8px'
+                        }}>
+                          Data Interpretation / Table Data
+                        </div>
+                        <div style={{ fontSize: '0.88rem', lineHeight: '1.7', color: '#334155' }}>
+                          {renderPassageWithTable(questionsState[activeQuestionIndex].passage)}
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ whiteSpace: 'pre-line', marginTop: '15px', fontWeight: '500' }}>
+                      {questionsState[activeQuestionIndex].question}
+                    </div>
+                  </div>
+
+                  <div className="options-list">
+                    {questionsState[activeQuestionIndex].options.map((option, idx) => (
+                      <div 
+                        key={idx}
+                        className={`option-item ${getOptionClassName(idx)}`}
+                        onClick={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`question-${activeQuestionIndex}`}
+                          checked={isReviewMode ? questionsState[activeQuestionIndex].userAnswer === idx + 1 : selectedOption === idx + 1}
+                          onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
+                          disabled={isReviewMode}
+                        />
+                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
