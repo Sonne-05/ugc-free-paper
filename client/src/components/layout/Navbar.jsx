@@ -57,79 +57,77 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar__container">
-        <div className="navbar__left-wrap">
-          {/* Brand Logo & Name */}
-          <Link to="/" className="navbar__brand" onClick={() => setMenuOpen(false)}>
-            <div className="navbar__logo-icon">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-              </svg>
-            </div>
-            <span className="navbar__logo-text">UGC Free Paper</span>
-          </Link>
+        {/* Brand Logo & Name */}
+        <Link to="/" className="navbar__brand" onClick={() => setMenuOpen(false)}>
+          <div className="navbar__logo-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          </div>
+          <span className="navbar__logo-text">UGC Free Paper</span>
+        </Link>
 
-          {/* Desktop Center Navigation Menus (ZeptoMail Dropdown Style) */}
-          <div className="navbar__center">
-            <div className="navbar__nav">
-              
-              {/* PYQ Practice Dropdown */}
-              <div className="navbar__nav-dropdown">
-                <button className="navbar__nav-item navbar__dropdown-trigger">
-                  <span>Practice (PYQ)</span>
-                  <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-                <div className="navbar__dropdown-menu">
-                  <Link to="/paper1" className={`navbar__dropdown-item ${isActive('/paper1') ? 'navbar__dropdown-item--active' : ''}`}>
-                    <div className="navbar__dropdown-icon">I</div>
-                    <div className="navbar__dropdown-content">
-                      <span className="navbar__dropdown-title">Paper I</span>
-                      <span className="navbar__dropdown-desc">General Aptitude & Teaching PYQs</span>
-                    </div>
-                  </Link>
-                  <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
-                    <div className="navbar__dropdown-icon">II</div>
-                    <div className="navbar__dropdown-content">
-                      <span className="navbar__dropdown-title">Paper II</span>
-                      <span className="navbar__dropdown-desc">Subject Specific Syllabus PYQs</span>
-                    </div>
-                  </Link>
-                </div>
+        {/* Desktop Center Navigation Menus (ZeptoMail Dropdown Style) */}
+        <div className="navbar__center">
+          <div className="navbar__nav">
+            
+            {/* PYQ Practice Dropdown */}
+            <div className="navbar__nav-dropdown">
+              <button className="navbar__nav-item navbar__dropdown-trigger">
+                <span>Practice (PYQ)</span>
+                <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <div className="navbar__dropdown-menu">
+                <Link to="/paper1" className={`navbar__dropdown-item ${isActive('/paper1') ? 'navbar__dropdown-item--active' : ''}`}>
+                  <div className="navbar__dropdown-icon">I</div>
+                  <div className="navbar__dropdown-content">
+                    <span className="navbar__dropdown-title">Paper I</span>
+                    <span className="navbar__dropdown-desc">General Aptitude & Teaching PYQs</span>
+                  </div>
+                </Link>
+                <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
+                  <div className="navbar__dropdown-icon">II</div>
+                  <div className="navbar__dropdown-content">
+                    <span className="navbar__dropdown-title">Paper II</span>
+                    <span className="navbar__dropdown-desc">Subject Specific Syllabus PYQs</span>
+                  </div>
+                </Link>
               </div>
-
-              {/* Study Material Dropdown */}
-              <div className="navbar__nav-dropdown">
-                <button className="navbar__nav-item navbar__dropdown-trigger">
-                  <span>Study Notes</span>
-                  <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-                <div className="navbar__dropdown-menu">
-                  <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
-                    <div className="navbar__dropdown-icon">N</div>
-                    <div className="navbar__dropdown-content">
-                      <span className="navbar__dropdown-title">Paper I Notes</span>
-                      <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Direct Links instead of Dropdown */}
-              <Link to="/about" className={`navbar__dropdown-trigger ${isActive('/about') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
-                About Us
-              </Link>
-              <Link to="/contact" className={`navbar__dropdown-trigger ${isActive('/contact') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
-                Contact Us
-              </Link>
-              <Link to="/support" className={`navbar__dropdown-trigger ${isActive('/support') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
-                Help & Support
-              </Link>
-
             </div>
+
+            {/* Study Material Dropdown */}
+            <div className="navbar__nav-dropdown">
+              <button className="navbar__nav-item navbar__dropdown-trigger">
+                <span>Study Notes</span>
+                <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <div className="navbar__dropdown-menu">
+                <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
+                  <div className="navbar__dropdown-icon">N</div>
+                  <div className="navbar__dropdown-content">
+                    <span className="navbar__dropdown-title">Paper I Notes</span>
+                    <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            {/* Direct Links instead of Dropdown */}
+            <Link to="/about" className={`navbar__dropdown-trigger ${isActive('/about') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              About Us
+            </Link>
+            <Link to="/contact" className={`navbar__dropdown-trigger ${isActive('/contact') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              Contact Us
+            </Link>
+            <Link to="/support" className={`navbar__dropdown-trigger ${isActive('/support') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              Help & Support
+            </Link>
+
           </div>
         </div>
 
