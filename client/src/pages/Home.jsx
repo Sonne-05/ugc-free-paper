@@ -33,10 +33,10 @@ const Home = () => {
               </Link>
             </div>
 
-            <div className="hero-sec__social-proof" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary-green)' }} />
-              <span className="hero-sec__social-text" style={{ margin: 0 }}>
-                Joined by <strong>100k+ aspirants</strong> this month
+            <div className="hero-sec__social-proof" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '20px' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
+              <span className="hero-sec__social-text" style={{ margin: 0, color: '#64748b', fontSize: '0.88rem', fontFamily: 'sans-serif' }}>
+                Joined by <strong style={{ color: '#0f172a', fontWeight: '600' }}>100k+ aspirants</strong> this month
               </span>
             </div>
           </div>
