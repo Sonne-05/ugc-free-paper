@@ -33,6 +33,12 @@ const Home = () => {
               </Link>
             </div>
 
+            <div className="hero-sec__social-proof" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary-green)' }} />
+              <span className="hero-sec__social-text" style={{ margin: 0 }}>
+                Joined by <strong>100k+ aspirants</strong> this month
+              </span>
+            </div>
           </div>
           
           <div className="hero-sec__visual">
