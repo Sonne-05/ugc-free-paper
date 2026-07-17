@@ -3,188 +3,262 @@ import './Home.css'
 
 const Home = () => {
   return (
-    <div className="home-container">
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero__bg">
-          <div className="hero__orb hero__orb--1" />
-          <div className="hero__orb hero__orb--2" />
-          <div className="hero__grid" />
-        </div>
-
-        <div className="hero__content">
-          <h1 className="hero__title">
-            Master UGC NET
-            <br />
-            <span className="hero__title--gradient">Prep Simplified.</span>
-          </h1>
-
-          <p className="hero__subtitle">
-            Get access to high-yield mock tests, expert study materials, and subject-specific core modules for Paper 1 (General Aptitude) and Paper 2. Designed to help you secure lectureship eligibility & JRF.
-          </p>
-
-          <div className="hero__actions">
-            <Link to="/paper1" className="hero__btn hero__btn--primary">
-              Start Paper 1 Prep
-              <span className="hero__btn-arrow">&rarr;</span>
-            </Link>
-            <Link to="/paper2" className="hero__btn hero__btn--secondary">
-              Browse Paper 2 Subjects
-            </Link>
+    <div className="home-page">
+      {/* 1. Hero Section */}
+      <section className="hero-sec">
+        <div className="hero-sec__container">
+          <div className="hero-sec__content">
+            <div className="hero-sec__badge">
+              <svg className="hero-sec__badge-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M9 11l2 2 4-4" />
+              </svg>
+              <span>NTA-PATTERN COMPLIANT</span>
+            </div>
+            
+            <h1 className="hero-sec__title">
+              Master Your UGC NET Preparation with <span className="hero-sec__title--green">Free Mock Tests</span>
+            </h1>
+            
+            <p className="hero-sec__subtitle">
+              Experience the real NTA interface, track your progress, and access 15,000+ practice questions for free. Empowering students with the tools to succeed.
+            </p>
+            
+            <div className="hero-sec__actions">
+              <Link to="/paper1" className="hero-sec__btn hero-sec__btn--primary">
+                Start Free Mock Test <span className="hero-sec__btn-arrow">&rarr;</span>
+              </Link>
+              <Link to="/paper2" className="hero-sec__btn hero-sec__btn--secondary">
+                Browse Papers
+              </Link>
+            </div>
+            
+            <div className="hero-sec__social-proof">
+              <div className="hero-sec__avatars">
+                <div className="hero-sec__avatar hero-sec__avatar--1">👩‍🎓</div>
+                <div className="hero-sec__avatar hero-sec__avatar--2">👨‍🎓</div>
+                <div className="hero-sec__avatar hero-sec__avatar--3">🧑‍💻</div>
+              </div>
+              <span className="hero-sec__social-text">
+                Joined by <strong>100k+ aspirants</strong> this month
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div className="hero__stats">
-          <div className="hero__stat">
-            <span className="hero__stat-number">50+</span>
-            <span className="hero__stat-label">Full Mock Tests</span>
-          </div>
-          <div className="hero__stat-divider" />
-          <div className="hero__stat">
-            <span className="hero__stat-number">15K+</span>
-            <span className="hero__stat-label">Practice Questions</span>
-          </div>
-          <div className="hero__stat-divider" />
-          <div className="hero__stat">
-            <span className="hero__stat-number">98.6%</span>
-            <span className="hero__stat-label">Qualifying Rate</span>
+          
+          <div className="hero-sec__visual">
+            <div className="hero-sec__mockup-wrapper">
+              <img src="/dashboard_mockup.png" alt="Dashboard Mockup" className="hero-sec__mockup-img" />
+              <div className="hero-sec__floating-badge">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.5" fill="none">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+                  <path d="M12 2a5 5 0 0 1 5 5v5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Curriculum & Prep Tracks Section */}
-      <section className="prep-tracks">
-        <div className="section-header">
-          <h2 className="section-title">Comprehensive UGC NET Exam Coverage</h2>
-          <p className="section-subtitle">Choose your track and start practicing with NTA-aligned mock tests and study guides.</p>
-        </div>
-
-        <div className="tracks-grid">
-          {/* Paper 1 Card */}
-          <div className="track-card track-card--paper1">
-            <h3 className="track-card__title">
-              <svg className="track-card__title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      {/* 2. Stats Section */}
+      <section className="stats-banner">
+        <div className="stats-banner__container">
+          <div className="stats-banner__item">
+            <div className="stats-banner__icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            </div>
+            <div className="stats-banner__info">
+              <span className="stats-banner__number">50+</span>
+              <span className="stats-banner__label">Full Mock Tests</span>
+            </div>
+          </div>
+          
+          <div className="stats-banner__divider" />
+          
+          <div className="stats-banner__item">
+            <div className="stats-banner__icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <div className="stats-banner__info">
+              <span className="stats-banner__number">15,000+</span>
+              <span className="stats-banner__label">Practice Questions</span>
+            </div>
+          </div>
+          
+          <div className="stats-banner__divider" />
+          
+          <div className="stats-banner__item">
+            <div className="stats-banner__icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
-              Paper 1: General Aptitude
-            </h3>
-            <p className="track-card__desc">Compulsory for all subjects. Tests teaching & research capabilities, reasoning, and awareness.</p>
-            <ul className="track-card__topics">
-              <li>Teaching & Research Aptitude</li>
-              <li>Mathematical & Logical Reasoning</li>
-              <li>Data Interpretation (DI)</li>
-              <li>Information & Comm. Technology (ICT)</li>
-              <li>People, Development & Environment</li>
-            </ul>
-            <Link to="/paper1" className="track-card__btn track-card__btn--p1">
-              Start Paper 1 Quiz
+            </div>
+            <div className="stats-banner__info">
+              <span className="stats-banner__number">100+</span>
+              <span className="stats-banner__label">Free Study Notes</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Features Section */}
+      <section className="features-sec">
+        <div className="features-sec__container">
+          <div className="features-sec__header">
+            <h2 className="features-sec__title">Designed for Peak Performance</h2>
+            <p className="features-sec__subtitle">
+              Experience a learning ecosystem that mimics the pressure and precision of the real UGC NET exam.
+            </p>
+          </div>
+          
+          <div className="features-sec__grid">
+            <div className="feature-card">
+              <div className="feature-card__icon-box">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+              </div>
+              <h3 className="feature-card__title">Realistic NTA Interface</h3>
+              <p className="feature-card__desc">
+                Practice in an environment that matches the actual exam. Master the navigation, timers, and question palette exactly like the real thing.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-card__icon-box">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                  <line x1="9" y1="18" x2="15" y2="18" />
+                  <line x1="10" y1="22" x2="14" y2="22" />
+                </svg>
+              </div>
+              <h3 className="feature-card__title">Instant Explanations</h3>
+              <p className="feature-card__desc">
+                Don't just get answers, get insights. Detailed solutions are provided immediately after each question to bridge your knowledge gaps.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-card__icon-box">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+              </div>
+              <h3 className="feature-card__title">Performance Tracking</h3>
+              <p className="feature-card__desc">
+                Analyze your accuracy and time management. Advanced dashboards show your strengths and weaknesses subject by subject.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Subjects Section */}
+      <section className="subjects-sec">
+        <div className="subjects-sec__container">
+          <div className="subjects-sec__header">
+            <div className="subjects-sec__header-left">
+              <h2 className="subjects-sec__title">Explore Subjects for Paper 1 & 2</h2>
+              <p className="subjects-sec__subtitle">Comprehensive material curated for all major disciplines.</p>
+            </div>
+            <Link to="/paper2" className="subjects-sec__view-all">
+              View All Subjects &rarr;
             </Link>
           </div>
+          
+          <div className="subjects-sec__grid">
+            <Link to="/paper1" className="subject-card">
+              <div className="subject-card__icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                  <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
+                </svg>
+              </div>
+              <h3 className="subject-card__title">Teaching Aptitude</h3>
+              <span className="subject-card__badge subject-card__badge--p1">Paper 1 Core</span>
+            </Link>
 
-          {/* Paper 2 Card */}
-          <div className="track-card track-card--paper2">
-            <h3 className="track-card__title">
-              <svg className="track-card__title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-              Paper 2: Core Subject
-            </h3>
-            <p className="track-card__desc">Choose your specific post-graduation subject. Tests depth of knowledge and research acumen.</p>
-            <ul className="track-card__topics">
-              <li>Sociology (Core Practice)</li>
-              <li>Computer Science & Applications (Coming Soon)</li>
-              <li>Commerce & Management (Coming Soon)</li>
-              <li>English & Hindi Literature (Coming Soon)</li>
-              <li>Other Subjects (Coming Soon)</li>
-            </ul>
-            <Link to="/paper2" className="track-card__btn track-card__btn--p2">
-              Explore Subjects
+            <Link to="/paper1" className="subject-card">
+              <div className="subject-card__icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <circle cx="12" cy="5" r="3" />
+                  <path d="M12 22V8M5 12h14" />
+                </svg>
+              </div>
+              <h3 className="subject-card__title">Research Aptitude</h3>
+              <span className="subject-card__badge subject-card__badge--p1">Paper 1 Core</span>
+            </Link>
+
+            <Link to="/paper2" className="subject-card">
+              <div className="subject-card__icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                  <line x1="2" y1="10" x2="22" y2="10" />
+                  <path d="M6 21h12" />
+                </svg>
+              </div>
+              <h3 className="subject-card__title">Commerce</h3>
+              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
+            </Link>
+
+            <Link to="/paper2" className="subject-card">
+              <div className="subject-card__icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <h3 className="subject-card__title">History</h3>
+              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
+            </Link>
+
+            <Link to="/paper2" className="subject-card">
+              <div className="subject-card__icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+              </div>
+              <h3 className="subject-card__title">Computer Science</h3>
+              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Feature Highlights Section */}
-      <section className="features-highlights">
-        <div className="section-header">
-          <h2 className="section-title">Designed for Success</h2>
-          <p className="section-subtitle">Features built to replicate the actual testing environment and maximize your JRF chances.</p>
-        </div>
-
-        <div className="features-list">
-          <div className="feature-item">
-            <div className="feature-item__badge">CBT Mode</div>
-            <h4 className="feature-item__title">Realistic NTA Interface</h4>
-            <p className="feature-item__desc">Practice in a computer-based test interface identical to the actual NTA portal to build speed and reduce exam-day anxiety.</p>
-          </div>
-          <div className="feature-item">
-            <div className="feature-item__badge">Solutions</div>
-            <h4 className="feature-item__title">Instant Explanations</h4>
-            <p className="feature-item__desc">Get detailed step-by-step solutions, key reference formulas, and subject concepts for every practice problem.</p>
-          </div>
-          <div className="feature-item">
-            <div className="feature-item__badge">Analytics</div>
-            <h4 className="feature-item__title">Accuracy Tracking</h4>
-            <p className="feature-item__desc">View instant breakdown of your scores, average time spent per question, and strong vs. weak topic areas.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Overview & Guidelines Section (AdSense Compliance & Rich Text) */}
-      <section className="home-overview">
-        <div className="section-header">
-          <h2 className="section-title">UGC NET Exam Overview & Guidelines</h2>
-          <p className="section-subtitle">Understanding the test pattern and requirements is your first step toward lectureship success.</p>
-        </div>
-        <div className="home-overview__content">
-          <div className="home-overview__card">
-            <h3>Examination Structure</h3>
-            <p className="home-overview__text">
-              The University Grants Commission National Eligibility Test (UGC NET) is conducted twice a year by the National Testing Agency (NTA). The test consists of two papers, both containing objective-type multiple-choice questions (MCQs). Candidates are given a total of 3 hours (180 minutes) to solve both papers without any break. There is no negative marking, making it crucial to attempt all questions.
+      {/* 5. CTA Section */}
+      <section className="cta-sec">
+        <div className="cta-sec__container">
+          <div className="cta-sec__box">
+            <h2 className="cta-sec__title">Ready to Crack UGC NET?</h2>
+            <p className="cta-sec__subtitle">
+              Join 100,000+ students preparing with us. Get full access to all mock tests and premium features at zero cost.
             </p>
-            <p className="home-overview__text">
-              <strong>Paper 1 (General Aptitude)</strong> contains 50 questions worth 100 marks, focusing on teaching, research ability, comprehension, and general awareness. <strong>Paper 2 (Core Subject)</strong> contains 100 questions worth 200 marks, assessing deep conceptual understanding in the candidate's chosen post-graduation discipline.
-            </p>
-          </div>
-          <div className="home-overview__card">
-            <h3>Eligibility & Qualifications</h3>
-            <p className="home-overview__text">
-              Candidates must secure at least 55% marks (50% for reserved categories) in their Master's Degree to be eligible. Qualifying UGC NET makes you eligible for Assistant Professorship positions across universities in India. Candidates scoring in the highest bracket also qualify for the Junior Research Fellowship (JRF), which offers financial stipends for research.
-            </p>
-            <p className="home-overview__text">
-              Regularly practicing previous year question papers (PYQs) and reviewing syllabus topics by unit is the most recommended study method to secure JRF scores. Our portal provides structured notes and mock tests to guide you through this journey.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section (AdSense & SEO Optimization) */}
-      <section className="home-faqs">
-        <div className="section-header">
-          <h2 className="section-title">Frequently Asked Questions (FAQs)</h2>
-          <p className="section-subtitle">Common queries regarding the UGC NET examination and preparation strategies.</p>
-        </div>
-        <div className="home-faqs__list">
-          <div className="home-faq-item">
-            <h3 className="home-faq-question">What is the age limit for Junior Research Fellowship (JRF)?</h3>
-            <p className="home-faq-answer">
-              The JRF age limit is typically 30 years for general category candidates, with relaxations up to 5 years for OBC-NCL, SC, ST, PwD, women candidates, and research experience holders. There is no upper age limit for applying for Assistant Professorship only.
-            </p>
-          </div>
-          <div className="home-faq-item">
-            <h3 className="home-faq-question">Is there negative marking in the NTA UGC NET exam?</h3>
-            <p className="home-faq-answer">
-              No, there is currently no negative marking in UGC NET. Each correct question awards 2 marks, while incorrect or unattempted questions award 0 marks. Aspirants are advised to attempt all 150 questions.
-            </p>
-          </div>
-          <div className="home-faq-item">
-            <h3 className="home-faq-question">How does solving mock tests help in preparation?</h3>
-            <p className="home-faq-answer">
-              Mock tests replicate the real computer-based testing (CBT) environment, helping you build time-management skills, identify weak subject units, and adapt to the exam UI to minimize layout confusion on test day.
-            </p>
+            <div className="cta-sec__actions">
+              <Link to="/signup" className="cta-sec__btn">
+                Register Now
+              </Link>
+              <div className="cta-sec__badge">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none" className="cta-sec__badge-icon">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>No Credit Card Required</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
