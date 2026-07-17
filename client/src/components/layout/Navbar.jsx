@@ -60,11 +60,7 @@ const Navbar = () => {
         {/* Brand Logo & Name */}
         <Link to="/" className="navbar__brand" onClick={() => setMenuOpen(false)}>
           <div className="navbar__logo-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
+            <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span className="navbar__logo-text">UGC Free Paper</span>
         </Link>

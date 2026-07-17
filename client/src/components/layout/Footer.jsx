@@ -9,12 +9,8 @@ const Footer = () => {
       <div className="footer__container">
         <div className="footer__info">
           <div className="footer__brand">
-            <div className="navbar__logo-icon" style={{ width: '32px', height: '32px', padding: '6px', borderRadius: '8px' }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
+            <div className="navbar__logo-icon" style={{ width: '36px', height: '36px' }}>
+              <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <span className="footer__logo-text" style={{ color: 'var(--primary, #2563eb)' }}>UGC Free Paper</span>
           </div>
