@@ -9,7 +9,7 @@ const Footer = () => {
       <div className="footer__container">
         <div className="footer__info">
           <div className="footer__brand">
-            <div className="navbar__logo-icon" style={{ width: '36px', height: '36px' }}>
+            <div className="navbar__logo-icon" style={{ width: '44px', height: '44px' }}>
               <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <span className="footer__logo-text" style={{ color: 'var(--primary, #2563eb)' }}>UGC Free Paper</span>
