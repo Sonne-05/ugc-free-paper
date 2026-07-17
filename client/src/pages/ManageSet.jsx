@@ -41,6 +41,13 @@ const ManageSet = () => {
     ['2021', '', ''],
     ['2022', '', '']
   ])
+  const [diQuestions, setDiQuestions] = useState([
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+  ])
 
   useEffect(() => {
     const role = localStorage.getItem('userRole')
@@ -164,6 +171,13 @@ const ManageSet = () => {
       ['Year', 'Product A', 'Product B'],
       ['2021', '', ''],
       ['2022', '', '']
+    ])
+    setDiQuestions([
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
     ])
   }
 
@@ -320,6 +334,64 @@ const ManageSet = () => {
   }
   const handleCreateQuestion = async (e) => {
     e.preventDefault()
+
+    // Handle bulk DI question creation
+    if (newQType === 'di' && !editingQuestionId) {
+      if (!newQPassage.trim()) {
+        alert('Please fill in the table data / passage.')
+        return
+      }
+      for (let i = 0; i < diQuestions.length; i++) {
+        const dq = diQuestions[i]
+        if (!dq.text.trim() || dq.options.some(o => !o.trim())) {
+          alert(`Please fill in the question text and all 4 options for Question ${i + 1}.`)
+          return
+        }
+      }
+
+      const targetSet = pyqSets.find(s => s.id === selectedSetId)
+      if (!targetSet) {
+        alert('Error: Please select a valid PYQ Set first.')
+        return
+      }
+
+      const questions = diQuestions.map(dq => ({
+        type: 'di',
+        text: dq.text,
+        options: dq.options,
+        correct: dq.correct,
+        passage: newQPassage,
+        explanation: dq.explanation
+      }))
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/questions/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId: selectedSetId, questions })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message)
+
+        setPyqSets(prev => prev.map(s => {
+          if (s.id === selectedSetId) {
+            return { ...s, questionsLoaded: data.updatedSet.questionsLoaded }
+          }
+          return s
+        }))
+        
+        if (editingSetId === selectedSetId && typeof loadQuestionsForSet === 'function') {
+          loadQuestionsForSet(selectedSetId)
+        }
+
+        alert(`Successfully added 5 Data Interpretation questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
+        cancelEditQuestion()
+      } catch (err) {
+        console.error(err)
+        alert('Failed to save questions to database')
+      }
+      return
+    }
     
     // Validation based on type
     if (newQType === 'mcq') {
@@ -337,7 +409,7 @@ const ManageSet = () => {
         alert('Please fill in List I, List II, and all options combinations.')
         return
       }
-    } else if (newQType === 'comprehension' || newQType === 'di') {
+    } else if (newQType === 'comprehension' || (newQType === 'di' && editingQuestionId)) {
       if (!newQPassage.trim() || !newQText.trim() || newQOpts.some(o => !o.trim())) {
         alert('Please fill in the passage/table data, specific question prompt, and options.')
         return
@@ -848,63 +920,161 @@ const ManageSet = () => {
   </div>
 )}
 
-{/* QUESTION TEXT (COMPREHENSION OR MCQ OR MATCH PROMPT) */}
-<div className="form-field full-width" style={{ marginBottom: '12px' }}>
-  <label>Question Prompt / Text</label>
-  <textarea 
-    required 
-    rows="2" 
-    placeholder={newQType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
-    value={newQText}
-    onChange={(e) => setNewQText(e.target.value)}
-  ></textarea>
-</div>
+{/* 5 DI QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
+{newQType === 'di' && !editingQuestionId ? (
+  <div className="di-questions-sequence" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
+    {diQuestions.map((dq, qIdx) => (
+      <div key={qIdx} style={{ border: '1px solid var(--border)', padding: '15px', borderRadius: '8px', background: 'var(--bg-card)' }}>
+        <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '6px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+          Question {qIdx + 1} of 5
+        </h4>
+        
+        {/* Question Text */}
+        <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
+          <textarea 
+            required 
+            rows="2" 
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box', fontSize: '0.85rem' }}
+            placeholder={`Type question ${qIdx + 1} text here...`}
+            value={dq.text}
+            onChange={(e) => {
+              setDiQuestions(prev => {
+                const next = [...prev]
+                next[qIdx] = { ...next[qIdx], text: e.target.value }
+                return next
+              })
+            }}
+          ></textarea>
+        </div>
 
-{/* OPTIONS */}
-<div className="options-grid" style={{ marginBottom: '12px' }}>
-  {newQOpts.map((opt, idx) => (
-    <div className="ms-form-field" key={idx}>
-      <label>Option {idx + 1}</label>
-      <input 
-        type="text" 
+        {/* Options */}
+        <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {dq.options.map((opt, oIdx) => (
+            <div className="ms-form-field" key={oIdx}>
+              <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Option {oIdx + 1}</label>
+              <input 
+                type="text" 
+                required 
+                placeholder={`Enter Option ${oIdx + 1}`}
+                value={opt}
+                onChange={(e) => {
+                  setDiQuestions(prev => {
+                    const next = [...prev]
+                    const nextOpts = [...next[qIdx].options]
+                    nextOpts[oIdx] = e.target.value
+                    next[qIdx] = { ...next[qIdx], options: nextOpts }
+                    return next
+                  })
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Correct answer and explanation */}
+        <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '15px' }}>
+          <div className="ms-form-field">
+            <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Correct Answer Option</label>
+            <select 
+              className="ms-input"
+              value={dq.correct}
+              onChange={(e) => {
+                setDiQuestions(prev => {
+                  const next = [...prev]
+                  next[qIdx] = { ...next[qIdx], correct: Number(e.target.value) }
+                  return next
+                })
+              }}
+            >
+              <option value="1">Option 1</option>
+              <option value="2">Option 2</option>
+              <option value="3">Option 3</option>
+              <option value="4">Option 4</option>
+            </select>
+          </div>
+          <div className="ms-form-field">
+            <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
+            <input 
+              type="text"
+              className="ms-input"
+              placeholder="Explanation..."
+              value={dq.explanation || ''}
+              onChange={(e) => {
+                setDiQuestions(prev => {
+                  const next = [...prev]
+                  next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                  return next
+                })
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <>
+    {/* QUESTION TEXT (COMPREHENSION OR MCQ OR MATCH PROMPT) */}
+    <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+      <label>Question Prompt / Text</label>
+      <textarea 
         required 
-        placeholder={newQType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
-        value={opt}
-        onChange={(e) => handleOptChange(idx, e.target.value)}
+        rows="2" 
+        placeholder={newQType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
+        value={newQText}
+        onChange={(e) => setNewQText(e.target.value)}
+      ></textarea>
+    </div>
+
+    {/* OPTIONS */}
+    <div className="options-grid" style={{ marginBottom: '12px' }}>
+      {newQOpts.map((opt, idx) => (
+        <div className="ms-form-field" key={idx}>
+          <label>Option {idx + 1}</label>
+          <input 
+            type="text" 
+            required 
+            placeholder={newQType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
+            value={opt}
+            onChange={(e) => handleOptChange(idx, e.target.value)}
+          />
+        </div>
+      ))}
+    </div>
+
+    {/* CORRECT SELECTION */}
+    <div className="ms-form-field" style={{ maxWidth: '200px', marginBottom: '16px' }}>
+      <label>Correct Answer Option</label>
+      <select 
+        className="ms-input"
+        value={newQCorrect}
+        onChange={(e) => setNewQCorrect(Number(e.target.value))}
+      >
+        <option value="1">Option 1</option>
+        <option value="2">Option 2</option>
+        <option value="3">Option 3</option>
+        <option value="4">Option 4</option>
+      </select>
+    </div>
+
+    {/* EXPLANATION */}
+    <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+      <label>Detailed Explanation (Optional)</label>
+      <textarea 
+        rows="3"
+        className="ms-input"
+        placeholder="Enter detailed explanation of the concept and why this option is correct"
+        value={newQExplanation}
+        onChange={(e) => setNewQExplanation(e.target.value)}
+        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
       />
     </div>
-  ))}
-</div>
-
-{/* CORRECT SELECTION */}
-<div className="ms-form-field" style={{ maxWidth: '200px', marginBottom: '16px' }}>
-  <label>Correct Answer Option</label>
-  <select 
-    className="ms-input"
-    value={newQCorrect}
-    onChange={(e) => setNewQCorrect(Number(e.target.value))}
-  >
-    <option value="1">Option 1</option>
-    <option value="2">Option 2</option>
-    <option value="3">Option 3</option>
-    <option value="4">Option 4</option>
-  </select>
-      </div>
-{/* EXPLANATION */}
-<div className="ms-form-field" style={{ marginBottom: '16px' }}>
-  <label>Detailed Explanation (Optional)</label>
-  <textarea 
-    rows="3"
-    className="ms-input"
-    placeholder="Enter detailed explanation of the concept and why this option is correct"
-    value={newQExplanation}
-    onChange={(e) => setNewQExplanation(e.target.value)}
-    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
-  />
-</div>
+  </>
+)}
 
 <button type="submit" className="ms-btn ms-btn-primary" style={{ width: '100%' }}>
-  {editingQuestionId ? 'Update Question' : 'Add Question to Selected Set'}
+  {editingQuestionId ? 'Update Question' : (newQType === 'di' ? 'Add 5 DI Questions to Selected Set' : 'Add Question to Selected Set')}
 </button>
 {editingQuestionId && (
   <button type="button" className="ms-btn ms-btn-secondary" style={{ width: '100%', marginTop: '10px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }} onClick={cancelEditQuestion}>
