@@ -107,6 +107,16 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Ad Slot 1: Top Leaderboard */}
+      <div className="ad-container-leaderboard">
+        <div className="ad-placeholder">
+          <span className="ad-placeholder-label">Advertisement</span>
+          <div className="ad-placeholder-frame">
+            <span className="ad-placeholder-text">Responsive Ad Banner Slot</span>
+          </div>
+        </div>
+      </div>
+
       {/* 3. Features Section */}
       <section className="features-sec">
         <div className="features-sec__container">
@@ -215,6 +225,16 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Ad Slot 2: Mid-page Leaderboard */}
+      <div className="ad-container-leaderboard">
+        <div className="ad-placeholder">
+          <span className="ad-placeholder-label">Advertisement</span>
+          <div className="ad-placeholder-frame">
+            <span className="ad-placeholder-text">Responsive Ad Banner Slot</span>
+          </div>
+        </div>
+      </div>
+
       {/* 5. CTA Section */}
       <section className="cta-sec">
         <div className="cta-sec__container">
@@ -237,9 +257,52 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* 6. AdSense Compliance Content & FAQs */}
+      <section className="adsense-content">
+        <div className="adsense-content__container">
+          <div className="adsense-content__info-block">
+            <h2 className="adsense-content__title">UGC NET Examination Guidelines & Resources</h2>
+            <p className="adsense-content__para">
+              The University Grants Commission National Eligibility Test (UGC NET) is a highly competitive national-level examination in India. Conducted by the National Testing Agency (NTA), it determines the eligibility of Indian nationals for 'Assistant Professor' and 'Junior Research Fellowship (JRF)' positions in Indian universities and colleges.
+            </p>
+            <p className="adsense-content__para">
+              To maximize success, candidate preparation should focus heavily on understanding the exam pattern. The test is administered in a Computer Based Test (CBT) format. It consists of two papers, both containing objective-type, multiple-choice questions (MCQs), spanning a duration of 3 hours without any break.
+            </p>
+            <p className="adsense-content__para">
+              <strong>Paper 1 (General Paper on Teaching & Research Aptitude)</strong> is compulsory and common to all candidates. It evaluates teaching methodologies, research capabilities, reading comprehension, mathematical reasoning, data interpretation, and environmental awareness. <strong>Paper 2 (Sociology Core Subject)</strong> focuses deeply on advanced sociology curriculum, sociological theories, research methodologies, and social development paradigms.
+            </p>
+          </div>
+
+          <div className="adsense-content__faq-block">
+            <h3 className="adsense-content__faq-title">Frequently Asked Questions</h3>
+            <div className="faq-accordion">
+              <div className="faq-accordion__item">
+                <h4 className="faq-accordion__question">Is there any negative marking in the NTA UGC NET exam?</h4>
+                <p className="faq-accordion__answer">
+                  No, there is currently no negative marking in the UGC NET exam. Each correct answer awards 2 marks, while unanswered or incorrect attempts receive zero marks. Aspirants are highly encouraged to answer all questions to improve their chances.
+                </p>
+              </div>
+
+              <div className="faq-accordion__item">
+                <h4 className="faq-accordion__question">What is the Junior Research Fellowship (JRF) age limit?</h4>
+                <p className="faq-accordion__answer">
+                  For General Category candidates, the age limit to qualify for the Junior Research Fellowship (JRF) is typically 30 years, with relaxations of up to 5 years for reserved categories (OBC-NCL, SC, ST, PwD, and female candidates). There is no upper age limit for applying for Assistant Professorship eligibility.
+                </p>
+              </div>
+
+              <div className="faq-accordion__item">
+                <h4 className="faq-accordion__question">How often is the UGC NET exam conducted?</h4>
+                <p className="faq-accordion__answer">
+                  The National Testing Agency (NTA) conducts the UGC NET exam twice a year, typically in the months of June and December. Candidates who are completing or have completed their postgraduate degrees with at least 55% marks are eligible to apply.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
 export default Home
-

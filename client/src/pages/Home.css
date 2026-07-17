@@ -649,3 +649,139 @@
     padding: 40px 20px;
   }
 }
+
+/* ───────────────────────────────────────
+   AdSense Ad Placeholders & Guidelines Content
+   ─────────────────────────────────────── */
+.ad-container-leaderboard {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+
+.ad-placeholder {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.ad-placeholder-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.ad-placeholder-frame {
+  width: 100%;
+  max-width: 728px;
+  height: 90px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+}
+
+.ad-placeholder-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+/* Informational Content for AdSense Compliance */
+.adsense-content {
+  padding: 80px 24px;
+  background-color: #ffffff;
+  border-top: 1px solid var(--border-light);
+}
+
+.adsense-content__container {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+}
+
+.adsense-content__info-block {
+  text-align: left;
+}
+
+.adsense-content__title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--primary-navy);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+
+.adsense-content__para {
+  font-size: 0.98rem;
+  color: var(--secondary-slate);
+  line-height: 1.65;
+  margin: 0 0 16px 0;
+}
+
+.adsense-content__para strong {
+  color: var(--primary-navy);
+}
+
+/* FAQ Block */
+.adsense-content__faq-block {
+  text-align: left;
+}
+
+.adsense-content__faq-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary-navy);
+  margin-bottom: 28px;
+  letter-spacing: -0.01em;
+}
+
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.faq-accordion__item {
+  background-color: #f8fafc;
+  padding: 24px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.faq-accordion__question {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary-navy);
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.faq-accordion__answer {
+  font-size: 0.95rem;
+  color: var(--secondary-slate);
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 820px) {
+  .adsense-content {
+    padding: 60px 16px;
+  }
+  
+  .faq-accordion__item {
+    padding: 20px;
+  }
+}
