@@ -107,15 +107,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Ad Slot 1: Top Leaderboard */}
-      <div className="ad-container-leaderboard">
-        <div className="ad-placeholder">
-          <span className="ad-placeholder-label">Advertisement</span>
-          <div className="ad-placeholder-frame">
-            <span className="ad-placeholder-text">Responsive Ad Banner Slot</span>
-          </div>
-        </div>
-      </div>
+
 
       {/* 3. Features Section */}
       <section className="features-sec">
@@ -225,15 +217,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Ad Slot 2: Mid-page Leaderboard */}
-      <div className="ad-container-leaderboard">
-        <div className="ad-placeholder">
-          <span className="ad-placeholder-label">Advertisement</span>
-          <div className="ad-placeholder-frame">
-            <span className="ad-placeholder-text">Responsive Ad Banner Slot</span>
-          </div>
-        </div>
-      </div>
+
 
       {/* 5. CTA Section */}
       <section className="cta-sec">
