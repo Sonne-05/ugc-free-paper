@@ -234,17 +234,17 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: white;
-  background: #030f40; /* Dark Navy Pill */
+  background: var(--primary, #2563eb); /* Brand Blue Pill */
   text-decoration: none;
   border-radius: 999px; /* Fully rounded pill */
   transition: all 0.15s ease;
-  box-shadow: 0 2px 4px rgba(3, 15, 64, 0.1);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
 .navbar__signup-btn:hover {
-  background: #00135d; /* Slightly lighter navy for hover */
+  background: var(--primary-dark, #1d4ed8); /* Brand Darker Blue Hover */
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(3, 15, 64, 0.15);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 /* Profile Menu Layout */
