@@ -156,11 +156,7 @@
   height: 32px;
   border-radius: 50%;
   border: 2px solid #ffffff;
-  background-color: var(--light-bg-alt);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95rem;
+  object-fit: cover;
   margin-left: -8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
