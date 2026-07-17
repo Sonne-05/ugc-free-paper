@@ -206,34 +206,13 @@ const Home = () => {
             <Link to="/paper2" className="subject-card">
               <div className="subject-card__icon-box">
                 <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                  <line x1="2" y1="10" x2="22" y2="10" />
-                  <path d="M6 21h12" />
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <h3 className="subject-card__title">Commerce</h3>
-              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
-            </Link>
-
-            <Link to="/paper2" className="subject-card">
-              <div className="subject-card__icon-box">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </div>
-              <h3 className="subject-card__title">History</h3>
-              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
-            </Link>
-
-            <Link to="/paper2" className="subject-card">
-              <div className="subject-card__icon-box">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
-              </div>
-              <h3 className="subject-card__title">Computer Science</h3>
+              <h3 className="subject-card__title">Sociology</h3>
               <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
             </Link>
           </div>
