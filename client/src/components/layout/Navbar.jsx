@@ -117,38 +117,16 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Info & Support Dropdown */}
-            <div className="navbar__nav-dropdown">
-              <button className="navbar__nav-item navbar__dropdown-trigger">
-                <span>Resources & Support</span>
-                <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              <div className="navbar__dropdown-menu">
-                <Link to="/about" className={`navbar__dropdown-item ${isActive('/about') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">A</div>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">About Us</span>
-                    <span className="navbar__dropdown-desc">Learn about our mission & platform</span>
-                  </div>
-                </Link>
-                <Link to="/contact" className={`navbar__dropdown-item ${isActive('/contact') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">C</div>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">Contact Us</span>
-                    <span className="navbar__dropdown-desc">Reach out for general business inquiries</span>
-                  </div>
-                </Link>
-                <Link to="/support" className={`navbar__dropdown-item ${isActive('/support') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">S</div>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">Help & Support</span>
-                    <span className="navbar__dropdown-desc">Get support or ask technical questions</span>
-                  </div>
-                </Link>
-              </div>
-            </div>
+            {/* Direct Links instead of Dropdown */}
+            <Link to="/about" className={`navbar__dropdown-trigger ${isActive('/about') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              About Us
+            </Link>
+            <Link to="/contact" className={`navbar__dropdown-trigger ${isActive('/contact') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              Contact Us
+            </Link>
+            <Link to="/support" className={`navbar__dropdown-trigger ${isActive('/support') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              Help & Support
+            </Link>
 
           </div>
         </div>
@@ -282,31 +260,16 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Info & Support Header */}
-          <div className="navbar__mobile-group">
-            <button 
-              className="navbar__mobile-group-trigger"
-              onClick={() => setMobileInfoOpen(!mobileInfoOpen)}
-            >
-              <span>Resources & Support</span>
-              <svg className={`navbar__chevron ${mobileInfoOpen ? 'navbar__chevron--rotated' : ''}`} viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {mobileInfoOpen && (
-              <div className="navbar__mobile-group-menu">
-                <Link to="/about" className={`navbar__mobile-group-item ${isActive('/about') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  About Us
-                </Link>
-                <Link to="/contact" className={`navbar__mobile-group-item ${isActive('/contact') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  Contact Us
-                </Link>
-                <Link to="/support" className={`navbar__mobile-group-item ${isActive('/support') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  Help & Support
-                </Link>
-              </div>
-            )}
-          </div>
+          {/* Direct Mobile Links instead of Group */}
+          <Link to="/about" className={`navbar__mobile-link ${isActive('/about') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
+            About Us
+          </Link>
+          <Link to="/contact" className={`navbar__mobile-link ${isActive('/contact') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
+            Contact Us
+          </Link>
+          <Link to="/support" className={`navbar__mobile-link ${isActive('/support') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
+            Help & Support
+          </Link>
 
         </div>
 
