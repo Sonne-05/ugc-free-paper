@@ -10,7 +10,7 @@ const Profile = () => {
   const [userEmail, setUserEmail] = useState('aspirant@ugcfreepaper.com')
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '')
-    const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic']
+    const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages']
     return validTabs.includes(hash) ? hash : 'settings'
   })
 
@@ -27,6 +27,7 @@ const Profile = () => {
   const [users, setUsers] = useState([])
 
   const [pyqSets, setPyqSets] = useState([])
+  const [messages, setMessages] = useState([])
 
   // Form states
   const [newNoteTitle, setNewNoteTitle] = useState('')
@@ -46,7 +47,7 @@ const Profile = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '')
-      const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic']
+      const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages']
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       }
@@ -98,6 +99,14 @@ const Profile = () => {
           if (data) setTrafficStats(data);
         })
         .catch(err => console.error('Failed to fetch traffic stats:', err));
+
+      // 5. Fetch contact messages
+      fetch(`${API_BASE_URL}/api/contact`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setMessages(data);
+        })
+        .catch(err => console.error('Failed to fetch contact messages:', err));
     }
   }, [isAdmin])
 
@@ -132,6 +141,13 @@ const Profile = () => {
     ['Year', 'Product A', 'Product B'],
     ['2021', '', ''],
     ['2022', '', '']
+  ])
+  const [diQuestions, setDiQuestions] = useState([
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
   ])
 
   // Student Dashboard states
@@ -395,6 +411,37 @@ const Profile = () => {
   }
 
   // Admin Actions
+  const handleToggleMessageStatus = async (id, currentStatus) => {
+    const nextStatus = currentStatus === 'unread' ? 'read' : 'unread';
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/contact/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setMessages(prev => prev.map(m => m.id === id ? updated : m));
+      }
+    } catch (err) {
+      console.error('Failed to update message status:', err);
+    }
+  }
+
+  const handleDeleteMessage = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this message?')) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/contact/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== id));
+      }
+    } catch (err) {
+      console.error('Failed to delete message:', err);
+    }
+  }
+
   const handleToggleMaintenance = async () => {
     const updatedValue = !settings.maintenanceMode;
     try {
@@ -734,6 +781,84 @@ const Profile = () => {
 
   const handleCreateQuestion = async (e) => {
     e.preventDefault()
+
+    // Handle bulk DI question creation
+    if (newQType === 'di') {
+      if (!newQPassage.trim()) {
+        alert('Please fill in the table data / passage.')
+        return
+      }
+      for (let i = 0; i < diQuestions.length; i++) {
+        const dq = diQuestions[i]
+        if (!dq.text.trim() || dq.options.some(o => !o.trim())) {
+          alert(`Please fill in the question text and all 4 options for Question ${i + 1}.`)
+          return
+        }
+      }
+
+      const targetSet = pyqSets.find(s => s.id === selectedSetId)
+      if (!targetSet) {
+        alert('Error: Please select a valid PYQ Set first.')
+        return
+      }
+
+      const questions = diQuestions.map(dq => ({
+        type: 'di',
+        text: dq.text,
+        options: dq.options,
+        correct: dq.correct,
+        passage: newQPassage,
+        explanation: dq.explanation
+      }))
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/questions/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId: selectedSetId, questions })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message)
+
+        setPyqSets(prev => prev.map(s => {
+          if (s.id === selectedSetId) {
+            return { ...s, questionsLoaded: data.updatedSet.questionsLoaded }
+          }
+          return s
+        }))
+
+        alert(`Successfully added 5 Data Interpretation questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
+        
+        // Reset Form Fields
+        setNewQText('')
+        setNewQOpts(['', '', '', ''])
+        setNewQCorrect(1)
+        setNewQExplanation('')
+        setNewQAssertion('')
+        setNewQReason('')
+        setNewQList1(['', '', '', ''])
+        setNewQList2(['', '', '', ''])
+        setNewQPassage('')
+        setNewQStatements(['', '', ''])
+        setDiMode('visual')
+        setDiTable([
+          ['Year', 'Product A', 'Product B'],
+          ['2021', '', ''],
+          ['2022', '', '']
+        ])
+        setDiQuestions([
+          { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+          { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+          { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+          { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+          { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+        ])
+      } catch (err) {
+        console.error(err)
+        alert('Failed to save questions to database')
+      }
+      return
+    }
     
     // Validation based on type
     if (newQType === 'mcq') {
@@ -751,7 +876,7 @@ const Profile = () => {
         alert('Please fill in List I, List II, and all options combinations.')
         return
       }
-    } else if (newQType === 'comprehension' || newQType === 'di') {
+    } else if (newQType === 'comprehension') {
       if (!newQPassage.trim() || !newQText.trim() || newQOpts.some(o => !o.trim())) {
         alert('Please fill in the passage/table data, specific question prompt, and options.')
         return
@@ -827,6 +952,13 @@ const Profile = () => {
       ['Year', 'Product A', 'Product B'],
       ['2021', '', ''],
       ['2022', '', '']
+    ])
+    setDiQuestions([
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+      { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
     ])
   }
 
@@ -1364,6 +1496,28 @@ const Profile = () => {
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
               <span>Website Traffic Analysis</span>
+            </button>
+            <button 
+              className={`admin-tab-link ${activeTab === 'messages' ? 'admin-tab-link--active' : ''}`}
+              onClick={() => setActiveTab('messages')}
+              style={{ display: 'flex', alignItems: 'center', width: '100%' }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <span>Contact Messages</span>
+              {messages.filter(m => m.status === 'unread').length > 0 && (
+                <span className="unread-count-badge" style={{
+                  marginLeft: 'auto',
+                  background: '#ef4444',
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  padding: '2px 6px',
+                  borderRadius: '99px',
+                  fontWeight: 'bold',
+                  lineHeight: '1'
+                }}>
+                  {messages.filter(m => m.status === 'unread').length}
+                </span>
+              )}
             </button>
           </aside>
 
@@ -2016,65 +2170,240 @@ const Profile = () => {
                           </div>
                         )}
 
-                        {/* QUESTION TEXT (COMPREHENSION OR MCQ OR MATCH PROMPT) */}
-                        <div className="form-field full-width" style={{ marginBottom: '12px' }}>
-                          <label>Question Prompt / Text</label>
-                          <textarea 
-                            required 
-                            rows="2" 
-                            placeholder={newQType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
-                            value={newQText}
-                            onChange={(e) => setNewQText(e.target.value)}
-                          ></textarea>
-                        </div>
+                        {/* 5 DI QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
+                        {newQType === 'di' ? (
+                          <div className="di-questions-sequence" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
+                            {diQuestions.map((dq, qIdx) => (
+                              <div key={qIdx} style={{ border: '1px solid var(--border)', padding: '15px', borderRadius: '8px', background: 'var(--bg-card)' }}>
+                                <h4 style={{ margin: '0 0 12px 0', color: 'var(--primary)', borderBottom: '1px solid var(--border)', paddingBottom: '6px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                  Question {qIdx + 1} of 5
+                                </h4>
+                                
+                                {/* Question Text */}
+                                <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+                                  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
+                                  <textarea 
+                                    required 
+                                    rows="2" 
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                                    placeholder={`Type question ${qIdx + 1} text here...`}
+                                    value={dq.text}
+                                    onChange={(e) => {
+                                      setDiQuestions(prev => {
+                                        const next = [...prev]
+                                        next[qIdx] = { ...next[qIdx], text: e.target.value }
+                                        return next
+                                      })
+                                    }}
+                                  ></textarea>
+                                </div>
 
-                        {/* OPTIONS */}
-                        <div className="options-grid" style={{ marginBottom: '12px' }}>
-                          {newQOpts.map((opt, idx) => (
-                            <div className="form-field" key={idx}>
-                              <label>Option {idx + 1}</label>
-                              <input 
-                                type="text" 
+                                {/* Options */}
+                                <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                  {dq.options.map((opt, oIdx) => (
+                                    <div className="form-field" key={oIdx}>
+                                      <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Option {oIdx + 1}</label>
+                                      <input 
+                                        type="text" 
+                                        required 
+                                        placeholder={`Enter Option ${oIdx + 1}`}
+                                        value={opt}
+                                        onChange={(e) => {
+                                          setDiQuestions(prev => {
+                                            const next = [...prev]
+                                            const nextOpts = [...next[qIdx].options]
+                                            nextOpts[oIdx] = e.target.value
+                                            next[qIdx] = { ...next[qIdx], options: nextOpts }
+                                            return next
+                                          })
+                                        }}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Correct answer and explanation */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: '15px' }}>
+                                  <div className="form-field">
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Correct Answer Option</label>
+                                    <select 
+                                      className="pane-select"
+                                      value={dq.correct}
+                                      onChange={(e) => {
+                                        setDiQuestions(prev => {
+                                          const next = [...prev]
+                                          next[qIdx] = { ...next[qIdx], correct: Number(e.target.value) }
+                                          return next
+                                        })
+                                      }}
+                                    >
+                                      <option value="1">Option 1</option>
+                                      <option value="2">Option 2</option>
+                                      <option value="3">Option 3</option>
+                                      <option value="4">Option 4</option>
+                                    </select>
+                                  </div>
+                                  <div className="form-field">
+                                    <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
+                                    <input 
+                                      type="text"
+                                      className="pane-input"
+                                      placeholder="Explanation..."
+                                      value={dq.explanation || ''}
+                                      onChange={(e) => {
+                                        setDiQuestions(prev => {
+                                          const next = [...prev]
+                                          next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                                          return next
+                                        })
+                                      }}
+                                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            {/* QUESTION TEXT (COMPREHENSION OR MCQ OR MATCH PROMPT) */}
+                            <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+                              <label>Question Prompt / Text</label>
+                              <textarea 
                                 required 
-                                placeholder={newQType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
-                                value={opt}
-                                onChange={(e) => handleOptChange(idx, e.target.value)}
+                                rows="2" 
+                                placeholder={newQType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
+                                value={newQText}
+                                onChange={(e) => setNewQText(e.target.value)}
+                              ></textarea>
+                            </div>
+
+                            {/* OPTIONS */}
+                            <div className="options-grid" style={{ marginBottom: '12px' }}>
+                              {newQOpts.map((opt, idx) => (
+                                <div className="form-field" key={idx}>
+                                  <label>Option {idx + 1}</label>
+                                  <input 
+                                    type="text" 
+                                    required 
+                                    placeholder={newQType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
+                                    value={opt}
+                                    onChange={(e) => handleOptChange(idx, e.target.value)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* CORRECT SELECTION */}
+                            <div className="form-field" style={{ maxWidth: '200px', marginBottom: '16px' }}>
+                              <label>Correct Answer Option</label>
+                              <select 
+                                className="pane-select"
+                                value={newQCorrect}
+                                onChange={(e) => setNewQCorrect(Number(e.target.value))}
+                              >
+                                <option value="1">Option 1</option>
+                                <option value="2">Option 2</option>
+                                <option value="3">Option 3</option>
+                                <option value="4">Option 4</option>
+                              </select>
+                            </div>
+                            {/* EXPLANATION */}
+                            <div className="form-field" style={{ marginBottom: '16px' }}>
+                              <label>Detailed Explanation (Optional)</label>
+                              <textarea 
+                                rows="3"
+                                placeholder="Enter detailed explanation of the concept and why this option is correct"
+                                value={newQExplanation}
+                                onChange={(e) => setNewQExplanation(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
                               />
                             </div>
-                          ))}
-                        </div>
-
-                        {/* CORRECT SELECTION */}
-                        <div className="form-field" style={{ maxWidth: '200px', marginBottom: '16px' }}>
-                          <label>Correct Answer Option</label>
-                          <select 
-                            className="pane-select"
-                            value={newQCorrect}
-                            onChange={(e) => setNewQCorrect(Number(e.target.value))}
-                          >
-                            <option value="1">Option 1</option>
-                            <option value="2">Option 2</option>
-                            <option value="3">Option 3</option>
-                            <option value="4">Option 4</option>
-                          </select>
-                        </div>
-                        {/* EXPLANATION */}
-                        <div className="form-field" style={{ marginBottom: '16px' }}>
-                          <label>Detailed Explanation (Optional)</label>
-                          <textarea 
-                            rows="3"
-                            placeholder="Enter detailed explanation of the concept and why this option is correct"
-                            value={newQExplanation}
-                            onChange={(e) => setNewQExplanation(e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
-                          />
-                        </div>
+                          </>
+                        )}
 
                         <button type="submit" className="pane-submit-btn" style={{ width: '100%' }}>
-                          Add Question to Selected Set
+                          {newQType === 'di' ? 'Add 5 DI Questions to Selected Set' : 'Add Question to Selected Set'}
                         </button>
                       </form>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* 6. CONTACT MESSAGES */}
+            {activeTab === 'messages' && (
+              <div className="admin-pane">
+                <h2 className="pane-title">Contact Messages</h2>
+                <p className="pane-desc">View and manage contact form submissions from your users.</p>
+
+                <div className="messages-list" style={{ marginTop: '20px' }}>
+                  {messages.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '40px', textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-secondary)' }}>
+                      No messages received yet.
+                    </div>
+                  ) : (
+                    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Sender</th>
+                            <th>Email</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {messages.map((msg) => (
+                            <tr key={msg.id} style={{ background: msg.status === 'unread' ? 'rgba(37, 99, 235, 0.03)' : 'transparent' }}>
+                              <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                                {new Date(msg.createdAt).toLocaleString()}
+                              </td>
+                              <td style={{ fontSize: '0.88rem' }}><strong>{msg.name}</strong></td>
+                              <td style={{ fontSize: '0.85rem' }}>
+                                <a href={`mailto:${msg.email}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                                  {msg.email}
+                                </a>
+                              </td>
+                              <td style={{ 
+                                maxWidth: '300px', 
+                                whiteSpace: 'pre-wrap', 
+                                fontSize: '0.88rem', 
+                                color: msg.status === 'unread' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                              }}>
+                                {msg.message}
+                              </td>
+                              <td>
+                                <span className={`role-badge role-badge--${msg.status}`}>
+                                  {msg.status}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button 
+                                    onClick={() => handleToggleMessageStatus(msg.id, msg.status)}
+                                    className="table-btn table-btn--edit"
+                                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                                  >
+                                    {msg.status === 'unread' ? 'Mark Read' : 'Mark Unread'}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteMessage(msg.id)}
+                                    className="table-btn table-btn--delete"
+                                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
