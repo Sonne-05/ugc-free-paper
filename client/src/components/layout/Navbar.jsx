@@ -190,13 +190,11 @@ const Navbar = () => {
           ) : (
             <>
               <Link to="/signin" className="navbar__login-btn">
-                Sign In
+                Login
               </Link>
-              {!hasAccount && (
-                <Link to="/signup" className="navbar__signup-btn">
-                  Sign Up
-                </Link>
-              )}
+              <Link to="/signup" className="navbar__signup-btn">
+                Register
+              </Link>
             </>
           )}
         </div>
@@ -297,13 +295,11 @@ const Navbar = () => {
           ) : (
             <>
               <Link to="/signin" className="navbar__mobile-link" onClick={() => setMenuOpen(false)}>
-                Sign In
+                Login
               </Link>
-              {!hasAccount && (
-                <Link to="/signup" className="navbar__mobile-cta" onClick={() => setMenuOpen(false)}>
-                  Sign Up
-                </Link>
-              )}
+              <Link to="/signup" className="navbar__mobile-cta" onClick={() => setMenuOpen(false)}>
+                Register
+              </Link>
             </>
           )}
         </div>
