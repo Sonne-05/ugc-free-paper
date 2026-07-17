@@ -46,7 +46,6 @@ const Footer = () => {
             <Link to="/paper1" className="footer__link">Mock Tests</Link>
             <Link to="/paper1-notes" className="footer__link">Study Material</Link>
             <Link to="/paper2" className="footer__link">Subjects</Link>
-            <Link to="/support" className="footer__link">Blog</Link>
           </div>
 
           <div className="footer__links-column">
