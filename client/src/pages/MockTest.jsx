@@ -238,7 +238,7 @@ const MockTest = () => {
       if (tableData) {
         return (
           <div key={pIdx} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
-            <table style={{ width: '100%', maxWidth: '650px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid var(--border)' }}>
+            <table style={{ width: '100%', maxWidth: '550px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid var(--border)' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-card)' }}>
                   {tableData[0].map((cell, cIdx) => (
