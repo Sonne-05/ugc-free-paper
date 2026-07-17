@@ -32,17 +32,7 @@ const Home = () => {
                 Browse Papers
               </Link>
             </div>
-            
-            <div className="hero-sec__social-proof">
-              <div className="hero-sec__avatars">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" alt="Student" className="hero-sec__avatar hero-sec__avatar--1" />
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80" alt="Student" className="hero-sec__avatar hero-sec__avatar--2" />
-                <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&h=80&q=80" alt="Student" className="hero-sec__avatar hero-sec__avatar--3" />
-              </div>
-              <span className="hero-sec__social-text">
-                Joined by <strong>100k+ aspirants</strong> this month
-              </span>
-            </div>
+
           </div>
           
           <div className="hero-sec__visual">
