@@ -20,7 +20,7 @@ const Contact = () => {
 
         <div className="info-page__content">
           <p>
-            We would love to hear from you. For support queries, feedback on mock exams, advertisement opportunities, or feature suggestions, fill out the form below or email us directly at <strong>support@ugcfreepaper.com</strong>.
+            We would love to hear from you. For support queries, feedback on mock exams, advertisement opportunities, or feature suggestions, fill out the form below or email us directly at <a href="mailto:support@ugcfreepaper.com" style={{ fontWeight: 'bold', color: 'var(--primary)' }}>support@ugcfreepaper.com</a>.
           </p>
 
           {submitted ? (

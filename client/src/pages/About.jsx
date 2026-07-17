@@ -26,7 +26,7 @@ const About = () => {
 
           <h2>Get in Touch</h2>
           <p>
-            We are constantly improving our mock test library and adding subject materials. If you have any suggestions, feedback, or would like to contribute study notes, feel free to visit our contact page or email us at support@ugcfreepaper.com.
+            We are constantly improving our mock test library and adding subject materials. If you have any suggestions, feedback, or would like to contribute study notes, feel free to visit our contact page or email us at <a href="mailto:support@ugcfreepaper.com" style={{ fontWeight: 'bold', color: 'var(--primary)' }}>support@ugcfreepaper.com</a>.
           </p>
         </div>
       </div>
