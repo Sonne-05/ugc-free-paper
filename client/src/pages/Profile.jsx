@@ -136,6 +136,7 @@ const Profile = () => {
   
   const [newQPassage, setNewQPassage] = useState('')
   const [newQStatements, setNewQStatements] = useState(['', '', ''])
+  const [newQSubPrompt, setNewQSubPrompt] = useState('Choose the correct answer from the options given below:')
   const [diMode, setDiMode] = useState('visual')
   const [diTable, setDiTable] = useState([
     ['Year', 'Product A', 'Product B'],
@@ -905,6 +906,7 @@ const Profile = () => {
       list1: newQList1,
       list2: newQList2,
       statements: newQStatements,
+      subPrompt: newQSubPrompt,
       explanation: newQExplanation
     }
 
@@ -947,6 +949,7 @@ const Profile = () => {
     setNewQList2(['', '', '', ''])
     setNewQPassage('')
     setNewQStatements(['', '', ''])
+    setNewQSubPrompt('Choose the correct answer from the options given below:')
     setDiMode('visual')
     setDiTable([
       ['Year', 'Product A', 'Product B'],
@@ -2165,6 +2168,16 @@ const Profile = () => {
                                 {newQStatements.length > 2 && (
                                   <button type="button" className="pane-btn" style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#ef4444' }} onClick={() => setNewQStatements(prev => prev.slice(0, -1))}>Remove Last</button>
                                 )}
+                              </div>
+                              <div className="form-field" style={{ marginTop: '12px' }}>
+                                <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                                <input 
+                                  type="text" 
+                                  required 
+                                  placeholder="e.g. Choose the correct answer from the options given below:"
+                                  value={newQSubPrompt}
+                                  onChange={(e) => setNewQSubPrompt(e.target.value)}
+                                />
                               </div>
                             </div>
                           </div>

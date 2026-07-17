@@ -31,6 +31,7 @@ const questionSchema = new mongoose.Schema({
   reason: String,
   passage: String,
   explanation: String,
+  subPrompt: String,
   list1: {
     type: [String],
     default: []

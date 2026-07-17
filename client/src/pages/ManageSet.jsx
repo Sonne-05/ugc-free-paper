@@ -35,6 +35,7 @@ const ManageSet = () => {
   const [newQList2, setNewQList2] = useState(['', '', '', ''])
   const [newQPassage, setNewQPassage] = useState('')
   const [newQStatements, setNewQStatements] = useState(['', '', '', '', ''])
+  const [newQSubPrompt, setNewQSubPrompt] = useState('Choose the correct answer from the options given below:')
   const [diMode, setDiMode] = useState('visual')
   const [diTable, setDiTable] = useState([
     ['Year', 'Product A', 'Product B'],
@@ -133,6 +134,7 @@ const ManageSet = () => {
     setNewQList2(q.list2 || ['', '', '', ''])
     setNewQPassage(q.passage || '')
     setNewQStatements(q.statements || ['', '', '', '', ''])
+    setNewQSubPrompt(q.subPrompt || 'Choose the correct answer from the options given below:')
     
     if (q.type === 'di' && q.passage) {
       const parsedTable = parseTableText(q.passage)
@@ -166,6 +168,7 @@ const ManageSet = () => {
     setNewQList2(['', '', '', ''])
     setNewQPassage('')
     setNewQStatements(['', '', '', '', ''])
+    setNewQSubPrompt('Choose the correct answer from the options given below:')
     setDiMode('visual')
     setDiTable([
       ['Year', 'Product A', 'Product B'],
@@ -436,6 +439,7 @@ const ManageSet = () => {
       reason: newQReason,
       passage: newQPassage,
       statements: newQStatements,
+      subPrompt: newQSubPrompt,
       explanation: newQExplanation
     }
 
@@ -916,6 +920,17 @@ const ManageSet = () => {
           <button type="button" onClick={() => setNewQStatements(prev => prev.slice(0, -1))} style={{ padding: '4px 8px', fontSize: '0.75rem', cursor: 'pointer', background: 'var(--danger-hover)' }}>- Remove</button>
         )}
       </div>
+      <div className="ms-form-field" style={{ marginTop: '12px' }}>
+        <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+        <input 
+          type="text" 
+          required 
+          placeholder="e.g. Choose the correct answer from the options given below:"
+          value={newQSubPrompt}
+          onChange={(e) => setNewQSubPrompt(e.target.value)}
+          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box', fontSize: '0.85rem' }}
+        />
+      </div>
     </div>
   </div>
 )}
@@ -1204,6 +1219,17 @@ const ManageSet = () => {
                                     {q.list2.map((item, i) => <li key={i}>{item}</li>)}
                                   </ol>
                                 </div>
+                              </div>
+                            )}
+                            {q.type === 'multiple-statement' && q.statements && q.statements.length > 0 && (
+                              <div style={{ fontSize: '0.85rem', marginBottom: '8px', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '4px' }}>
+                                <strong>Statements:</strong>
+                                <ul style={{ listStyleType: 'none', paddingLeft: '10px', margin: '4px 0' }}>
+                                  {q.statements.map((stmt, sIdx) => (
+                                    <li key={sIdx}><strong>{String.fromCharCode(65 + sIdx)}.</strong> {stmt}</li>
+                                  ))}
+                                </ul>
+                                <div style={{ fontWeight: 'bold', marginTop: '6px' }}>{q.subPrompt || 'Choose the correct answer from the options given below:'}</div>
                               </div>
                             )}
                             <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}><strong>Q:</strong> {q.text}</div>
