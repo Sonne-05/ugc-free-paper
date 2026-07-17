@@ -1037,19 +1037,7 @@ const MockTest = () => {
                   <div className="question-body">
                     {/* Render the DI passage/table inline first */}
                     {questionsState[activeQuestionIndex].passage && (
-                      <div className="di-passage-inline" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
-                        <div style={{ 
-                          fontSize: '0.72rem',
-                          fontWeight: '700',
-                          textTransform: 'uppercase',
-                          color: '#64748b',
-                          letterSpacing: '0.05em',
-                          marginBottom: '10px',
-                          borderBottom: '2px solid #cbd5e1',
-                          paddingBottom: '8px'
-                        }}>
-                          Data Interpretation / Table Data
-                        </div>
+                      <div className="di-passage-inline" style={{ marginBottom: '20px', background: '#fff', border: 'none', padding: 0 }}>
                         <div style={{ fontSize: '0.88rem', lineHeight: '1.7', color: '#334155' }}>
                           {renderPassageWithTable(questionsState[activeQuestionIndex].passage)}
                         </div>
