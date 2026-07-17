@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit-1: Teaching Aptitude Complete Study Guide | UGC NET Paper 1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+        
+                :root {
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --border-light: #e2e8f0;
+            --text: #0f172a;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-cyan: #2563eb;
+            --accent-magenta: #7c3aed;
+            --accent-blue: #3b82f6;
+            --accent-light: rgba(124, 58, 237, 0.08);
+            --accent-glow: rgba(124, 58, 237, 0.12);
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+            --radius: 10px;
+            --font: 'Inter', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-heading: 'Outfit', sans-serif;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+                body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .layout {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 0.75rem;
+            position: sticky;
+            top: 0;
+            align-self: flex-start;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .sidebar-brand {
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 0.75rem 1rem 0.75rem;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav > li {
+            margin-bottom: 0.15rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .sidebar-nav a:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .sidebar-nav a.active {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .sidebar-nav a .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            background: var(--border);
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .sidebar-nav a.active .num {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .sidebar-nav .sub {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 0 1.5rem;
+        }
+
+        .sidebar-nav .sub a {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.75rem;
+            color: var(--text-muted);
+            border-left: 2px solid var(--border);
+            border-radius: 0;
+        }
+
+        .sidebar-nav .sub a:hover {
+            border-left-color: var(--accent);
+            color: var(--text-secondary);
+            background: none;
+        }
+
+        .main {
+            flex: 1;
+            padding: 2rem 2.5rem 3rem;
+            min-width: 0;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header h1 {
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .page-header h1 span {
+            color: var(--accent);
+        }
+
+        .page-header .subtitle {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.45rem 1rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .home-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        @media (max-width: 768px) {
+            .layout {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 1rem;
+            }
+            .main {
+                padding: 1.25rem;
+            }
+            .page-header {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+
+
+        /* Rich Text Nodes */
+        .section-node {
+            margin-bottom: 4rem;
+        }
+
+        .section-node h2 {
+            font-family: var(--font-heading);
+            font-size: 1.85rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent-cyan);
+            border-left: 4px solid var(--accent-cyan);
+            padding-left: 0.75rem;
+        }
+
+        .sub-node {
+            margin-bottom: 2.5rem;
+            padding-left: 0.5rem;
+        }
+
+        .sub-node h3 {
+            font-family: var(--font-heading);
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sub-node h3::before {
+            content: "•";
+            color: var(--accent-magenta);
+            font-size: 1.75rem;
+            line-height: 0;
+        }
+
+        .note-list {
+            list-style-type: none;
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .note-list li {
+            position: relative;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .note-list li::before {
+            content: "—";
+            position: absolute;
+            left: -1.25rem;
+            color: #cbd5e1;
+        }
+
+        .note-list li strong {
+            color: var(--text-primary);
+        }
+
+        /* Sub-bullet items */
+        .sub-bullet-list {
+            list-style-type: circle;
+            padding-left: 2rem;
+            margin: 0.5rem 0 1rem 0;
+            color: var(--text-secondary);
+        }
+
+        .sub-bullet-list li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sub-bullet-list li::before {
+            display: none;
+        }
+
+        /* Custom Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.01);
+        }
+
+        th, td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+
+        tr:hover td {
+            background-color: rgba(37, 99, 235, 0.02);
+            color: var(--text-primary);
+        }
+
+        /* Highlights */
+        mark {
+            background-color: rgba(37, 99, 235, 0.08);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+        }
+
+        /* Revision Card */
+        .revision-card {
+            border: 1px dashed var(--accent-purple);
+            background: rgba(124, 58, 237, 0.02);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .revision-card h4 {
+            font-family: var(--font-heading);
+            color: var(--accent-magenta);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .revision-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* Flashcard Columns Stylings */
+        .flashcard-cell {
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition);
+        }
+
+        /* Obscuring Overlay */
+        .flashcard-cell::before {
+            content: "Reveal";
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            bottom: 6px;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border: 1px dashed #ddd6fe;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 6px;
+            z-index: 2;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .flashcard-cell:hover::before {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            border-color: var(--accent);
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.1);
+        }
+
+        /* Flip/Reveal animation */
+        .flashcard-cell.revealed::before {
+            opacity: 0;
+            transform: rotateX(90deg) scale(0.9);
+            pointer-events: none;
+        }
+
+        .flashcard-cell .flashcard-text {
+            display: inline-block;
+            transition: filter 0.25s ease, opacity 0.25s ease;
+            filter: blur(5px);
+            opacity: 0;
+        }
+
+        .flashcard-cell.revealed .flashcard-text {
+            filter: blur(0);
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    
+
+    <div class="layout">
+                <!-- Sidebar Navigation Index -->
+        <nav class="sidebar">
+            <div class="sidebar-brand">Teaching Aptitude</div>
+            <ul class="sidebar-nav" id="sidebarNav">
+                <li><a href="#quick-overview" class="active"><span class="num">0</span> Summary Comparison Tables</a></li>
+                <li><a href="#toc-section"><span class="num">TC</span> TOC</a></li>
+                <li><a href="#topic-1"><span class="num">1</span> Education Definitions</a></li>
+                <li><a href="#topic-2"><span class="num">2</span> Philosophies of Education</a></li>
+                <li><a href="#topic-3"><span class="num">3</span> Forms of Education</a></li>
+                <li><a href="#topic-4"><span class="num">4</span> Aims and Objectives</a></li>
+                <li><a href="#topic-5"><span class="num">5</span> Teaching Concept</a></li>
+                <li><a href="#topic-6"><span class="num">6</span> Basic Teaching Models</a></li>
+                <li><a href="#topic-7"><span class="num">7</span> Levels of Teaching</a></li>
+                <li><a href="#topic-8"><span class="num">8</span> Variables in Teaching</a></li>
+                <li><a href="#topic-9"><span class="num">9</span> Concepts Related to Teaching</a></li>
+                <li><a href="#topic-10"><span class="num">10</span> Maxims of Teaching</a></li>
+                <li><a href="#topic-11"><span class="num">11</span> Principles of Teaching</a></li>
+                <li><a href="#topic-12"><span class="num">12</span> Microteaching</a></li>
+                <li><a href="#topic-13"><span class="num">13</span> Bloom's Taxonomy</a></li>
+                <li><a href="#topic-14"><span class="num">14</span> Methods of Teaching</a></li>
+                <li><a href="#topic-15"><span class="num">15</span> Offline vs Online Methods</a></li>
+                <li><a href="#topic-16"><span class="num">16</span> MOOCs, SWAYAM & SWAYAM PRABHA</a></li>
+                <li><a href="#topic-17"><span class="num">17</span> Teaching Support Systems</a></li>
+                <li><a href="#topic-18"><span class="num">18</span> Learner's Characteristics</a></li>
+                <li><a href="#topic-19"><span class="num">19</span> Adolescent Learners</a></li>
+                <li><a href="#topic-20"><span class="num">20</span> Adult Learners</a></li>
+                <li><a href="#topic-21"><span class="num">21</span> Factors Affecting Teaching</a></li>
+                <li><a href="#topic-22"><span class="num">22</span> Instructional Facilities</a></li>
+                <li><a href="#topic-23"><span class="num">23</span> Dale's Cone of Experience</a></li>
+                <li><a href="#topic-24"><span class="num">24</span> Evaluation Systems</a></li>
+                <li><a href="#topic-25"><span class="num">25</span> CBCS</a></li>
+                <li><a href="#topic-26"><span class="num">26</span> Computer Based Testing</a></li>
+                <li><a href="#topic-27"><span class="num">27</span> Curriculum and Syllabus</a></li>
+                <li><a href="#topic-28"><span class="num">28</span> Important Days</a></li>
+                <li><a href="#topic-29"><span class="num">29</span> Quick Revision Cards</a></li>
+                <li><a href="#theorist-list"><span class="num">•</span> Theorist Contribution List</a></li>
+                <li><a href="#learning-disabilities"><span class="num">•</span> Learning Disabilities Directory</a></li>
+                <li><a href="#nep-2020"><span class="num">•</span> NEP 2020 Key Points</a></li>
+                <li><a href="#additional-frameworks"><span class="num">•</span> Teaching & Instructional Frameworks</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Main Document Pane -->
+        <div class="main">
+            <div class="page-header">
+            <div>
+                <h1>Unit 1: <span>Teaching Aptitude</span></h1>
+                <div class="subtitle">Complete topic-wise breakdown for UGC NET Paper 1</div>
+            </div>
+        </div>
+
+
+
+            <!-- SECTION 0: SWIFT REFERENCE TABLES -->
+            <section class="section-node" id="quick-overview">
+                <h2>0. Summary Comparison Tables</h2>
+                
+                <div class="sub-node">
+                    <h3>Teaching Aptitude - Core Concepts</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Concept</th>
+                                <th>Level/Stage</th>
+                                <th>Proponent</th>
+                                <th>Key Characteristics</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="3"><strong>Levels of Teaching</strong></td>
+                                <td>Memory</td>
+                                <td>Herbart</td>
+                                <td>Rote learning, factual recall, teacher-centric.</td>
+                            </tr>
+                            <tr>
+                                <td>Understanding</td>
+                                <td>Morrison</td>
+                                <td>Relationship between facts, comprehension, application.</td>
+                            </tr>
+                            <tr>
+                                <td>Reflective</td>
+                                <td>Hunt</td>
+                                <td>Highest level, problem-centric, critical thinking.</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="4"><strong>Piaget's Stages</strong></td>
+                                <td>Sensorimotor</td>
+                                <td>Piaget</td>
+                                <td>0–2 years; object permanence, motor activity.</td>
+                            </tr>
+                            <tr>
+                                <td>Preoperational</td>
+                                <td>Piaget</td>
+                                <td>2–7 years; symbolic thought, egocentrism.</td>
+                            </tr>
+                            <tr>
+                                <td>Concrete Operational</td>
+                                <td>Piaget</td>
+                                <td>7–11 years; logical thought, conservation.</td>
+                            </tr>
+                            <tr>
+                                <td>Formal Operational</td>
+                                <td>Piaget</td>
+                                <td>11+ years; abstract reasoning, hypothetical thinking.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>SWAYAM & SWAYAM PRABHA At a Glance</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Full Form</strong></td>
+                                <td>Study Webs of Active Learning for Young Aspiring Minds</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Core Principles</strong></td>
+                                <td>Access, Equity, and Quality</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4 Quadrants</strong></td>
+                                <td>1. Video Lectures, 2. Reading Material (E-content), 3. Discussion Forum, 4. Self-Assessment Tests</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SWAYAM PRABHA</strong></td>
+                                <td>40 DTH channels via GSAT-15 satellite; uplinked by BISAG-N, Gandhinagar.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>Evaluation Classifications</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Timing/Purpose</th>
+                                <th>Focus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Placement</strong></td>
+                                <td>Before instruction</td>
+                                <td>Determining entry-level skills or position.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Formative</strong></td>
+                                <td>During instruction</td>
+                                <td>Continuous feedback to improve learning/teaching.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Diagnostic</strong></td>
+                                <td>Anytime (usually start)</td>
+                                <td>Identifying specific learning difficulties or causes.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Summative</strong></td>
+                                <td>End of instruction</td>
+                                <td>Certification, grading, and final outcomes.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Norm-Referenced</strong></td>
+                                <td>Comparison</td>
+                                <td>Comparing a student's performance against others (Rank/Percentile).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Criterion-Referenced</strong></td>
+                                <td>Mastery</td>
+                                <td>Comparing performance against a fixed standard/criteria.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>Taxonomy & Experience Hierarchies</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Category/Focus</th>
+                                <th>Highest Level / Most Effective</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="3"><strong>Bloom’s Taxonomy</strong></td>
+                                <td>Cognitive (Thinking)</td>
+                                <td>Evaluation (or Creating in revised version)</td>
+                            </tr>
+                            <tr>
+                                <td>Affective (Feeling)</td>
+                                <td>Characterization</td>
+                            </tr>
+                            <tr>
+                                <td>Psychomotor (Doing)</td>
+                                <td>Naturalization</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Dale’s Cone</strong></td>
+                                <td>Experience/Retention</td>
+                                <td>Direct, Purposeful Experiences (90% retention)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+
+
+            <!-- Topic 1 -->
+            <section class="section-node" id="topic-1">
+                <h2>TOPIC 1: EDUCATION – DEFINITIONS AND MEANING</h2>
+                <div class="sub-node">
+                    <h3>Key Definitions (For Conceptual Understanding)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Thinker</th>
+                                <th>Definition</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Swami Vivekananda</strong></td>
+                                <td>Education is the manifestation of perfection already in man.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Aristotle</strong></td>
+                                <td>Creation of a sound mind in a sound body.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Heinrich Pestalozzi</strong></td>
+                                <td>Natural, harmonious, and progressive development of man's innate powers.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>John Dewey</strong></td>
+                                <td>Power by which man controls his environment and fulfills his possibilities.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Froebel</strong></td>
+                                <td>Process by which child develops inner potential to participate meaningfully in external environment.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem;">Three Bases of Education</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Question</th>
+                                <th>Basis</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Why?</strong></td>
+                                <td>Philosophy</td>
+                                <td>Determines aims</td>
+                            </tr>
+                            <tr>
+                                <td><strong>How?</strong></td>
+                                <td>Psychology</td>
+                                <td>Determines methods</td>
+                            </tr>
+                            <tr>
+                                <td><strong>What?</strong></td>
+                                <td>Social needs</td>
+                                <td>Determines curriculum</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 2 -->
+            <section class="section-node" id="topic-2">
+                <h2>TOPIC 2: MAJOR PHILOSOPHIES OF EDUCATION</h2>
+                <div class="sub-node">
+                    <h3>Comparison of Philosophies</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Philosophy</th>
+                                <th>Core Belief</th>
+                                <th>Key Proponents</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Idealism</strong></td>
+                                <td>Mind and Self (Spiritualism); God is source of all knowledge; Values are absolute.</td>
+                                <td>Froebel, Kant, Plato, Swami Dayanand, Vivekananda, Sri Aurobindo</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Naturalism</strong></td>
+                                <td>Nature alone represents reality; No spirituality; Senses are gateway to knowledge.</td>
+                                <td>Tagore, Rousseau, Herbert Spencer</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Pragmatism</strong></td>
+                                <td>Utility is key; "Whatever is useful is good"; Truth created through experience.</td>
+                                <td>John Dewey, Kilpatrick, Mead</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Constructivism</strong></td>
+                                <td>Learner actively constructs knowledge; Accommodation and Assimilation.</td>
+                                <td>Jean Piaget, J.S. Bruner</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Behaviourism</strong></td>
+                                <td>Learner is passive organism; Learning = change in observable behaviour.</td>
+                                <td>E.L. Thorndike, Pavlov, Skinner</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem;">Important Concepts and Proponents</h3>
+                    <table id="concepts-proponents-table">
+                        <thead>
+                            <tr>
+                                <th>Concept</th>
+                                <th>Proponent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Basic Education (Wardha System)</td><td>Mahatma Gandhi</td></tr>
+                            <tr><td>Learning from nature</td><td>Rabindranath Tagore</td></tr>
+                            <tr><td>Integral Education</td><td>Sri Aurobindo</td></tr>
+                            <tr><td>Spiritual aspects of Indian philosophy</td><td>Dr. Sarvepalli Radhakrishnan</td></tr>
+                            <tr><td>Education to transform human mind</td><td>J. Krishnamurti</td></tr>
+                            <tr><td>Experiential learning</td><td>John Dewey</td></tr>
+                            <tr><td>Kindergarten system</td><td>Froebel</td></tr>
+                            <tr><td>No formal learning; nature is teacher</td><td>Rousseau</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 3 -->
+            <section class="section-node" id="topic-3">
+                <h2>TOPIC 3: FORMS OF EDUCATION</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Form</th>
+                                <th>Characteristics</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Formal</strong></td>
+                                <td>Pre-planned, organized, specific institution, qualified teachers, strict discipline.</td>
+                                <td>School, College</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Informal</strong></td>
+                                <td>Not pre-planned, indirect, spontaneous, day-to-day activities, no formal goals.</td>
+                                <td>Family, Community</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Non-formal</strong></td>
+                                <td>Flexible, intentional, outside formal system, open system.</td>
+                                <td>Adult education, Distance education</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p style="font-style: italic; color: var(--text-muted); margin-top: 1rem;">"A child educated only at school is an uneducated child" – George Santayana</p>
+                </div>
+            </section>
+
+            <!-- Topic 4 -->
+            <section class="section-node" id="topic-4">
+                <h2>TOPIC 4: AIMS AND OBJECTIVES OF EDUCATION</h2>
+                <div class="sub-node">
+                    <h3>Functions of Education (Havighurst & Neugarten)</h3>
+                    <ul class="note-list">
+                        <li>A mirror that reflects society (stabilizer).</li>
+                        <li>Agent of social change.</li>
+                    </ul>
+
+                    <h3>Factors Determining Educational Aims</h3>
+                    <ul class="note-list">
+                        <li>Philosophy and Human nature.</li>
+                        <li>Socio-cultural and religious factors.</li>
+                        <li>Political ideologies.</li>
+                        <li>Exploration of knowledge, Vocational needs, and Self-actualization.</li>
+                        <li>Harmonious development (Mahatma Gandhi).</li>
+                        <li>Moral and character development (Herbert Spencer).</li>
+                    </ul>
+
+                    <h3>Indian Context (NEP 1986 Aims)</h3>
+                    <ul class="note-list">
+                        <li>All-round material and spiritual development.</li>
+                        <li>Cultural orientation & Scientific temper.</li>
+                        <li>National cohesion & Independence of mind and spirit.</li>
+                        <li>Manpower development, Fostering research, and Education for equality.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 5 -->
+            <section class="section-node" id="topic-5">
+                <h2>TOPIC 5: TEACHING – CONCEPT AND DEFINITIONS</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Definition</th>
+                                <th>Focus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Purposeful direction and management of learning process</td><td>Direction</td></tr>
+                            <tr><td>Providing opportunities for permanent change</td><td>Experience</td></tr>
+                            <tr><td>Skilful application of knowledge and scientific principles</td><td>Skill</td></tr>
+                            <tr><td>Planned activity depending on clear expectations and measurement</td><td>Planning</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top:1.5rem">Nature of Teaching</h3>
+                    <ul class="note-list">
+                        <li>Teaching is an art as well as a science.</li>
+                        <li>Teaching is an intellectual activity and a profession with a high degree of autonomy.</li>
+                        <li>Teaching is a social service.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 6 -->
+            <section class="section-node" id="topic-6">
+                <h2>TOPIC 6: BASIC TEACHING MODELS</h2>
+                <div class="sub-node">
+                    <h3>Pedagogy vs Andragogy</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aspect</th>
+                                <th>Pedagogy (Teacher-centered)</th>
+                                <th>Andragogy (Learner-centered)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Learner role</strong></td>
+                                <td>Dependent on instructor</td>
+                                <td>Self-directed, responsible</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Teacher role</strong></td>
+                                <td>Controls material and pace</td>
+                                <td>Facilitator / Enabler</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Focus</strong></td>
+                                <td>Acquire and memorize</td>
+                                <td>Discover, interpret, and solve</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top:1.5rem">Major Shifts in Pedagogy</h3>
+                    <ul class="note-list">
+                        <li>From Teacher-centered, fixed designs to Learner-centered, flexible processes.</li>
+                        <li>From Teacher's direction to Learner's autonomy and Teacher's facilitation.</li>
+                        <li>From Passive reception to Active participation.</li>
+                        <li>From assessment of linear exposure to multifarious, continuous assessment.</li>
+                    </ul>
+                </div>
+            
+                    <h3 style="margin-top:2rem">Family of Teaching Models (Bruce Joyce & Marsha Weil)</h3>
+                    <p style="margin-bottom: 1rem;">Teaching models are structured plans or patterns that can be used to shape a curriculum, design instructional materials, and guide instruction in the classroom. They are grouped into four major families:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Family of Models</th>
+                                <th>Model of Teaching</th>
+                                <th>Developer(s)</th>
+                                <th>Core Objective / Focus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="5"><strong>Information Processing</strong><br><small>(Focuses on how learners process, organize, and retrieve information)</small></td>
+                                <td>Advance Organizer Model</td>
+                                <td>David Ausubel</td>
+                                <td>Strengthens cognitive structures by providing a general overview of a subject before introducing specific details.</td>
+                            </tr>
+                            <tr>
+                                <td>Concept Attainment Model</td>
+                                <td>Jerome Bruner</td>
+                                <td>Teaches categorization and conceptual thinking by comparing examples and non-examples.</td>
+                            </tr>
+                            <tr>
+                                <td>Inductive Thinking Model</td>
+                                <td>Hilda Taba</td>
+                                <td>Trains students to form concepts and rules by moving from specific facts to generalizations.</td>
+                            </tr>
+                            <tr>
+                                <td>Inquiry Training Model</td>
+                                <td>Richard Suchman</td>
+                                <td>Helps students ask questions, form hypotheses, and logically analyze puzzling phenomena.</td>
+                            </tr>
+                            <tr>
+                                <td>Cognitive Growth Model</td>
+                                <td>Jean Piaget</td>
+                                <td>Directs instructional strategies to align with the learner’s current stage of cognitive development.</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="4"><strong>Social Interaction</strong><br><small>(Focuses on collective problem-solving, relationships, and democracy)</small></td>
+                                <td>Jurisprudential Inquiry</td>
+                                <td>Donald Oliver & James Shaver</td>
+                                <td>Guides students to systematically analyze legal, ethical, and controversial public policy issues.</td>
+                            </tr>
+                            <tr>
+                                <td>Group Investigation</td>
+                                <td>John Dewey & Herbert Thelen</td>
+                                <td>Emphasizes collaborative group research, democratic processes, and collective problem-solving.</td>
+                            </tr>
+                            <tr>
+                                <td>Role Playing Model</td>
+                                <td>Fannie & George Shaftel</td>
+                                <td>Uses acted-out scenarios to help students explore human relationships, empathy, and social values.</td>
+                            </tr>
+                            <tr>
+                                <td>Cooperative Learning / Positive Interdependence</td>
+                                <td>David Johnson, Roger Johnson & Robert Slavin</td>
+                                <td>Structuring group work so that individual and group successes are completely linked.</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="2"><strong>Personal Family</strong><br><small>(Focuses on individual psychological health, self-actualization, and emotional growth)</small></td>
+                                <td>Non-Directive Teaching</td>
+                                <td>Carl Rogers</td>
+                                <td>Focuses on student-centered growth; the teacher acts as a facilitator helping students set and evaluate their own goals.</td>
+                            </tr>
+                            <tr>
+                                <td>Synectics Model</td>
+                                <td>William (Bill) Gordon</td>
+                                <td>Stimulates creative thinking and problem-solving through the use of metaphors and analogies ("making the strange familiar").</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="6"><strong>Behavioral Systems</strong><br><small>(Focuses on observable behavior, skill acquisition, and reinforcement)</small></td>
+                                <td>Mastery Learning</td>
+                                <td>Benjamin Bloom</td>
+                                <td>Assumes all students can master a subject if provided with adequate time and tailored instruction.</td>
+                            </tr>
+                            <tr>
+                                <td>Direct Instruction</td>
+                                <td>Tom Good, Jere Brophy & Siegfried Engelmann</td>
+                                <td>Employs highly structured, teacher-led lessons with immediate student feedback for content mastery.</td>
+                            </tr>
+                            <tr>
+                                <td>Operant Conditioning / Programmed Instruction</td>
+                                <td>B.F. Skinner</td>
+                                <td>Breaks tasks down into sequential, bite-sized steps accompanied by positive reinforcement.</td>
+                            </tr>
+                            <tr>
+                                <td>Simulation</td>
+                                <td>Carl Smith</td>
+                                <td>Employs life-like scenarios in a controlled environment to practice decision-making.</td>
+                            </tr>
+                            <tr>
+                                <td>Social Learning</td>
+                                <td>Albert Bandura</td>
+                                <td>Focuses on behavioral acquisition through observation, imitation, and modeling.</td>
+                            </tr>
+                            <tr>
+                                <td>Anxiety Reduction / Assertiveness Training</td>
+                                <td>Joseph Wolpe / Andrew Salter</td>
+                                <td>Pairs deep relaxation with progressive steps to overcome anxiety or teach honest interpersonal skills.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top:2rem">Syntax of the Group Investigation Model (Dewey & Thelen)</h3>
+                    <p style="margin-bottom: 1rem;">The Group Investigation Model follows a structured democratic process where students actively solve a problem together. The logical progression of its phases is as follows:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Phase</th>
+                                <th>Step Name</th>
+                                <th>Core Activities</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Phase 1</strong></td>
+                                <td>C - Students encounter puzzling situation</td>
+                                <td>The teacher presents a provocative, challenging, or puzzling situation to spark curiosity and interest.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 2</strong></td>
+                                <td>E - Students explore reactions to the situation</td>
+                                <td>Students express their initial reactions, share thoughts, and begin to brainstorm different dimensions of the problem.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 3</strong></td>
+                                <td>A - Students formulate study task and organize for study</td>
+                                <td>The group defines the specific problem to be researched, formulates questions, and organizes themselves into sub-groups based on tasks or roles.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 4</strong></td>
+                                <td>D - Independent and Group study</td>
+                                <td>Students carry out data gathering, research, and analysis both individually and collaboratively.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 5</strong></td>
+                                <td>B - Students analyze progress and process</td>
+                                <td>Students evaluate their own findings, review the group's progress, and reflect on their problem-solving process (often followed by a presentation or integration phase).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </section>
+
+            <!-- Topic 7 -->
+            <section class="section-node" id="topic-7">
+                <h2>TOPIC 7: LEVELS OF TEACHING</h2>
+                <div class="sub-node">
+                    <h3>Complete Comparison Table</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Memory Level</th>
+                                <th>Understanding Level</th>
+                                <th>Reflective Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Proponent</strong></td>
+                                <td>Herbart</td>
+                                <td>Morrison</td>
+                                <td>Hunt</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nature</strong></td>
+                                <td>Initial stage</td>
+                                <td>Memory + Insight</td>
+                                <td>Highest level</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Focus</strong></td>
+                                <td>Rote memorization</td>
+                                <td>Mastery of subject</td>
+                                <td>Problem-solving</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Teaching process</strong></td>
+                                <td>Stimulus-Response (S-R)</td>
+                                <td>Intellectual behaviour</td>
+                                <td>Problem-centric</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Student role</strong></td>
+                                <td>Passive</td>
+                                <td>Active</td>
+                                <td>Highly active, motivated</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Teacher role</strong></td>
+                                <td>Primary / Dominant</td>
+                                <td>Active</td>
+                                <td>Secondary / Facilitating</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Classroom environment</strong></td>
+                                <td>Structured and authoritarian</td>
+                                <td>Instructional</td>
+                                <td>Open, democratic, and independent</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Evaluation</strong></td>
+                                <td>Oral, written, essay tests</td>
+                                <td>Essay + objective type tests</td>
+                                <td>Essay type, attitude, and belief scales</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Key Points for Exam</h3>
+                    <ul class="note-list">
+                        <li><strong>Highest level of teaching:</strong> Reflective Level.</li>
+                        <li><strong>Exploratory understanding & Critical thinking:</strong> Reflective Level.</li>
+                        <li><strong>Problem-centric approach:</strong> Reflective Level.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 8 -->
+            <section class="section-node" id="topic-8">
+                <h2>TOPIC 8: VARIABLES IN TEACHING</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Variable Type</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Independent</strong></td>
+                                <td>Manipulated by teacher to influence learning</td>
+                                <td>Teacher</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Dependent</strong></td>
+                                <td>Changes as a result of instruction</td>
+                                <td>Student</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Intervening</strong></td>
+                                <td>Facilitates the teaching-learning process</td>
+                                <td>Teaching methods, instructional facilities, curriculum</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Process Types</h3>
+                    <ul class="note-list">
+                        <li><strong>Bipolar:</strong> Teacher ↔ Student (traditional concept).</li>
+                        <li><strong>Tripolar:</strong> Teacher ↔ Student ↔ Social environment (modern concept).</li>
+                        <li><strong>Quadripolar:</strong> Teacher ↔ Student ↔ Curriculum ↔ Physical conditions.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 9 -->
+            <section class="section-node" id="topic-9">
+                <h2>TOPIC 9: CONCEPTS RELATED TO TEACHING</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Concept</th>
+                                <th>Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Instruction</strong></td>
+                                <td>Delivery of content; does not necessarily require active interaction.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Training</strong></td>
+                                <td>Job-specific/technical skills; practical application.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Indoctrination</strong></td>
+                                <td>Highest order of teaching; impressing absolute beliefs and values.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top:1.5rem">Teaching vs Training</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teaching</th>
+                                <th>Training</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Wider, more comprehensive concept</td>
+                                <td>Narrower, specialized concept</td>
+                            </tr>
+                            <tr>
+                                <td>Focuses on theoretical aspects & concepts</td>
+                                <td>Focuses on practical application & habits</td>
+                            </tr>
+                            <tr>
+                                <td>Enriches the mind and cognitive abilities</td>
+                                <td>Moulds specific performance/skills</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 10 -->
+            <section class="section-node" id="topic-10">
+                <h2>TOPIC 10: MAXIMS OF TEACHING</h2>
+                <div class="sub-node">
+                    <ul class="note-list">
+                        <li><strong>Simple to complex:</strong> Start with simple ideas, then move to complex structures.</li>
+                        <li><strong>Known to unknown:</strong> Link new knowledge with what the student already knows.</li>
+                        <li><strong>Seen to unseen:</strong> Present physical objects first, then past/future abstract concepts.</li>
+                        <li><strong>Concrete to abstract:</strong> Teach using tactile objects before introducing logic.</li>
+                        <li><strong>Particular to general:</strong> Show examples first, then derive formulas/laws (Inductive method).</li>
+                        <li><strong>Whole to part:</strong> Provide an overview first, then explain details.</li>
+                        <li><strong>Analysis to synthesis:</strong> Break a concept down into components, then connect them together.</li>
+                        <li><strong>Training of senses:</strong> Utilize sight, hearing, and touch to reinforce learning.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 11 -->
+            <section class="section-node" id="topic-11">
+                <h2>TOPIC 11: PRINCIPLES OF TEACHING</h2>
+                <div class="sub-node">
+                    <h3>General Principles</h3>
+                    <ul class="note-list">
+                        <li><strong>Motivation & Interest:</strong> Key to student engagement.</li>
+                        <li><strong>Activity:</strong> Learning by doing (Froebel's Kindergarten model).</li>
+                        <li><strong>Linking with life:</strong> Applying concepts to real-world scenarios.</li>
+                        <li><strong>Recognizing individual differences:</strong> Adapting pace to match learners.</li>
+                    </ul>
+
+                    <h3>Psychological Principles</h3>
+                    <ul class="note-list">
+                        <li>Encouraging creativity and self-expression.</li>
+                        <li>Repetition, exercise, and reinforcement (Thorndike's laws).</li>
+                        <li>Remedial teaching to address specific learning gaps.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 12 -->
+            <section class="section-node" id="topic-12">
+                <h2>TOPIC 12: MICROTEACHING</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Origin</strong></td>
+                                <td>Stanford University, 1961 (Dwight Allen and team)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Definition</strong></td>
+                                <td>Scaled-down teacher training technique for mastering specific teaching skills.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Standard Cycle Steps</strong></td>
+                                <td>Plan → Teach → Observe → Re-plan → Re-teach → Re-observe</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Standard Duration</strong></td>
+                                <td>36 minutes (Teach: 6m, Feedback: 6m, Re-plan: 12m, Re-teach: 6m, Re-feedback: 6m)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 13 -->
+            <section class="section-node" id="topic-13">
+                <h2>TOPIC 13: BLOOM'S TAXONOMY (HIGH PRIORITY)</h2>
+                <div class="sub-node">
+                    <p style="margin-bottom: 1.5rem;">In teaching aptitude, educational objectives are categorized into three distinct domains, often referred to as the <strong>KSA Bio-triangle</strong> (Knowledge, Skills, and Attitudes). This classification ensures a holistic approach to teaching and assessment.</p>
+
+                    <h3>1. Cognitive Domain (The "Head" - Thinking/Knowledge)</h3>
+                    <p style="margin-bottom: 1rem;">Developed by Benjamin Bloom (1956) and revised by Lorin Anderson & David Krathwohl (2001). It focuses on intellectual skills, knowledge acquisition, and critical thinking. They are structured from lowest complexity to highest complexity:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Classic Level (1956 - Noun)</th>
+                                <th>Revised Level (2001 - Verb)</th>
+                                <th>Core Meaning / Description</th>
+                                <th>Key Action Verbs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1. Knowledge</td>
+                                <td><strong>Remembering</strong></td>
+                                <td>Recalling factual data, terms, and basic concepts.</td>
+                                <td>Define, List, State, Identify, Name, Label</td>
+                            </tr>
+                            <tr>
+                                <td>2. Comprehension</td>
+                                <td><strong>Understanding</strong></td>
+                                <td>Grasping the meaning of informational material; translating or interpreting.</td>
+                                <td>Paraphrase, Classify, Summarize, Convert, Describe</td>
+                            </tr>
+                            <tr>
+                                <td>3. Application</td>
+                                <td><strong>Applying</strong></td>
+                                <td>Using abstract concepts or rules in concrete, real-world situations.</td>
+                                <td>Solve, Calculate, Demonstrate, Use, Modify, Implement</td>
+                            </tr>
+                            <tr>
+                                <td>4. Analysis</td>
+                                <td><strong>Analyzing</strong></td>
+                                <td>Breaking down information into parts to see how they relate to each other.</td>
+                                <td>Differentiate, Separate, Outline, Sift, Compare, Contrast</td>
+                            </tr>
+                            <tr>
+                                <td>5. Synthesis</td>
+                                <td><strong>Evaluating</strong></td>
+                                <td>Making judgments about the value of ideas, methods, or materials based on criteria. (Moved down in 2001)</td>
+                                <td>Appraise, Criticize, Defend, Justify, Judge, Rate</td>
+                            </tr>
+                            <tr>
+                                <td>6. Evaluation</td>
+                                <td><strong>Creating</strong></td>
+                                <td>Putting parts together to form a unique, original whole. (Moved to top spot in 2001)</td>
+                                <td>Formulate, Design, Create, Compose, Plan, Construct</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 2rem;">2. Affective Domain (The "Heart" - Feelings/Attitudes)</h3>
+                    <p style="margin-bottom: 1rem;">Developed by David Krathwohl (1964). It deals with emotional growth, values, motivations, attitudes, and how learners handle things emotionally. Hierarchical levels from lowest to highest:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Hierarchy & Description</th>
+                                <th>Key Action Verbs / Keywords</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Receiving (Awareness)</strong></td>
+                                <td>Willingness to listen or pay attention to a stimulus (e.g., listening politely to a lecture).</td>
+                                <td>Listen, attend, notice, look, share attention</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Responding</strong></td>
+                                <td>Active participation; the student reacts to the stimulus, not just observes it.</td>
+                                <td>Discuss, practice, volunteer, reply, answer, assist</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Valuing</strong></td>
+                                <td>Attaching a specific worth or value to an object, phenomenon, or behavior.</td>
+                                <td>Argue, respect, support, cherish, complete, invite</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4. Organization</strong></td>
+                                <td>Prioritizing and resolving conflicts between different values to build an internally consistent value system.</td>
+                                <td>Systematize, arrange, integrate, formulate, organize, defend</td>
+                            </tr>
+                            <tr>
+                                <td><strong>5. Characterization</strong></td>
+                                <td>Highest level; internalizing values so thoroughly that they completely control behavior and become a lifestyle or philosophy of life.</td>
+                                <td>Internalize, practice regularly, display, exemplify, influence</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 2rem;">3. Psychomotor Domain (The "Hand" - Physical Skills)</h3>
+                    <p style="margin-bottom: 1rem;">Primarily adapted in UGC NET from R.H. Dave’s hierarchy (1970). It covers physical movement, coordination, and motor-skill areas. Hierarchical levels from lowest to highest:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Hierarchy & Description</th>
+                                <th>Key Action Verbs / Keywords</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Imitation</strong></td>
+                                <td>Observing a skill and attempting to copy it or repeat it mechanically.</td>
+                                <td>Copy, mimic, follow, repeat, replicate</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Manipulation</strong></td>
+                                <td>Performing an action from memory or following written/verbal instructions rather than just copying a demonstration.</td>
+                                <td>Execute, perform, build, operate, construct (from directions)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Precision</strong></td>
+                                <td>Refining a physical skill to make it exact, accurate, and stable without needing instructions.</td>
+                                <td>Master, perfect, accurately perform, control, calibrate</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4. Articulation</strong></td>
+                                <td>Coordinating a series of physical movements or skills sequentially and consistently.</td>
+                                <td>Combine, integrate, coordinate, adapt, solve complex tasks</td>
+                            </tr>
+                            <tr>
+                                <td><strong>5. Naturalization</strong></td>
+                                <td>Highest level; automating the skill completely. The physical task is performed effortlessly, naturally, and with extreme confidence (unconscious competence).</td>
+                                <td>Automate, naturally design, fluidly operate, orchestrate</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="revision-card" style="margin-top: 2rem; border-color: var(--accent-cyan); background: rgba(37, 99, 235, 0.02);">
+                        <h4>💡 UGC NET High-Yield Exam Tips</h4>
+                        <p><strong>• The "Peaks":</strong> Always remember the highest levels because they are common target areas for multiple-choice questions: <strong>Creating</strong> (Cognitive), <strong>Characterization</strong> (Affective), and <strong>Naturalization</strong> (Psychomotor).</p>
+                        <p style="margin-top: 0.5rem;"><strong>• Action Verb Traps:</strong> Pay attention to verbs like <em>Paraphrase</em> or <em>Summarize</em>—they belong to <strong>Comprehension / Understanding</strong>, not Knowledge / Remembering.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Topic 14 -->
+            <section class="section-node" id="topic-14">
+                <h2>TOPIC 14: METHODS OF TEACHING</h2>
+                <div class="sub-node">
+                    <h3>Classification</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Teacher-Centred</th>
+                                <th>Mixed Strategy</th>
+                                <th>Learner-Centred</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Lecture method<br>Team teaching<br>Demonstration<br>TV/Video presentations</td>
+                                <td>Group discussion<br>Seminar / Symposium<br>Panel discussion<br>Brainstorming<br>Simulation / Roleplay</td>
+                                <td>Tutorials<br>Assignments<br>Project work / Case studies<br>Heuristic method (Armstrong)<br>Programmed instruction</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Teacher-Centered vs. Learner-Centered Methods</h3>
+                    <ul class="note-list">
+                        <li><strong>Teacher-Centered Methods (Traditional):</strong>
+                            <ul class="sub-bullet-list">
+                                <li><strong>Lecture Method:</strong> Most common "one-way" communication. Large amounts of content delivered quickly, but student participation is low.</li>
+                                <li><strong>Demonstration Method:</strong> Teacher "shows" how something works. Better than pure lecture as it involves visual learning.</li>
+                                <li><strong>Team Teaching:</strong> Multiple teachers plan and teach the same group of students.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Learner-Centered Methods (Modern):</strong>
+                            <ul class="sub-bullet-list">
+                                <li><strong>Heuristic Method (Dr. H.E. Armstrong):</strong> Students act as independent discoverers. The teacher provides the problem, and the student finds the solution.</li>
+                                <li><strong>Project Method (William Kilpatrick):</strong> Learning by doing. Students work on a purposeful activity in a social environment.</li>
+                                <li><strong>Assignment & Discussion:</strong> Encourages self-study and critical thinking.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            
+                    <h3 style="margin-top: 2rem">The Six Thinking Hats System (Edward de Bono, 1985)</h3>
+                    <p style="margin-bottom: 1rem;">The Six Thinking Hats is a powerful tool for group discussion and individual thinking. It replaces traditional adversarial arguing (where people clash or debate) with <strong>Parallel Thinking</strong>, where everyone in a group looks in the same direction and focuses on the same perspective at the same time.</p>
+                    <p style="margin-bottom: 1rem;"><strong>Objective:</strong> To separate emotion from logic, creativity from information, and to prevent cognitive overload by tackling one perspective at a time.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hat Color</th>
+                                <th>Core Focus / Type</th>
+                                <th>Mechanism & Description</th>
+                                <th>Exam Keywords</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>🤍 <strong>White Hat</strong></td>
+                                <td>The Data Hat</td>
+                                <td>Purely objective and neutral. It deals with what information is currently available, what is missing, and what data needs to be gathered.</td>
+                                <td>Facts, figures, data gathering, information gaps, neutral</td>
+                            </tr>
+                            <tr>
+                                <td>❤️ <strong>Red Hat</strong></td>
+                                <td>The Emotion Hat</td>
+                                <td>Allows learners or team members to express fears, likes, dislikes, and hunches immediately without any need for logical justification.</td>
+                                <td>Intuition, feelings, hunches, emotions, no justification</td>
+                            </tr>
+                            <tr>
+                                <td>🖤 <strong>Black Hat</strong></td>
+                                <td>The Caution Hat</td>
+                                <td>Logical negative perspective. Identifies why a proposal might fail, design flaws, regulations, and potential dangers.</td>
+                                <td>Caution, risk, judgment, logical negative, why it won't work</td>
+                            </tr>
+                            <tr>
+                                <td>💛 <strong>Yellow Hat</strong></td>
+                                <td>The Optimism Hat</td>
+                                <td>Logical positive perspective. Deliberately looks for the upside, advantages, feasible outcomes, and why an idea will succeed.</td>
+                                <td>Optimism, benefits, values, advantages, logical positive</td>
+                            </tr>
+                            <tr>
+                                <td>💚 <strong>Green Hat</strong></td>
+                                <td>The Creativity Hat</td>
+                                <td>Focuses on generating out-of-the-box ideas, alternatives, modifications, and creative provocations to solve difficulties.</td>
+                                <td>Creativity, alternatives, proposals, provocations, new possibilities</td>
+                            </tr>
+                            <tr>
+                                <td>💙 <strong>Blue Hat</strong></td>
+                                <td>The Process Hat</td>
+                                <td>The orchestrator hat (worn by facilitator/teacher). Manages the thinking process, ensures guidelines are followed, switches hats, and guides to final summaries.</td>
+                                <td>Control, process management, agenda, summaries, overview</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="revision-card" style="border-color: var(--accent-magenta); background: rgba(124, 58, 237, 0.02);">
+                        <h4>💡 Exam Flashpoints</h4>
+                        <p><strong>• Parallel Thinking:</strong> If a question asks about a framework designed to facilitate "parallel thinking" or reduce ego-driven arguments in classroom debates, the answer is always <strong>Six Thinking Hats</strong>.</p>
+                        <p style="margin-top: 0.5rem;"><strong>• Distractors:</strong> Exams often insert fake colors like a <em>Brown Hat</em> or <em>Violet Hat</em>. Remember only the primary six: White, Red, Black, Yellow, Green, and Blue.</p>
+                        <p style="margin-top: 0.5rem;"><strong>• Logical Negative vs. Positive:</strong> Black Hat = Logical Negative (reality check); Yellow Hat = Logical Positive (finding benefits).</p>
+                    </div>
+            </section>
+
+            <!-- Topic 15 -->
+            <section class="section-node" id="topic-15">
+                <h2>TOPIC 15: OFFLINE VS ONLINE METHODS</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Offline Methods</th>
+                                <th>Online Methods</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Teacher-focused, highly structured environment</td>
+                                <td>Learner-focused, flexible environment</td>
+                            </tr>
+                            <tr>
+                                <td>Passive listening and rote learning</td>
+                                <td>Active learning and problem-solving</td>
+                            </tr>
+                            <tr>
+                                <td>Face-to-face interaction and immediate physical feedback</td>
+                                <td>Digital interaction, asynchronous discussions</td>
+                            </tr>
+                            <tr>
+                                <td>Fixed location and schedule constraints</td>
+                                <td>Accessible anywhere, anytime (highly flexible)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 16 -->
+            <section class="section-node" id="topic-16">
+                <h2>TOPIC 16: MOOCs, SWAYAM, SWAYAM PRABHA</h2>
+                <div class="sub-node">
+                    <h3>MOOCs (Massive Open Online Courses)</h3>
+                    <ul class="note-list">
+                        <li><strong>Philosophy:</strong> Anyone, Anytime, Anywhere, Any number of times.</li>
+                        <li><strong>First MOOC (2008):</strong> Connectivism and Connective Knowledge (Downes & Siemens).</li>
+                    </ul>
+
+                    <h3>SWAYAM</h3>
+                    <ul class="note-list">
+                        <li><strong>Full Form:</strong> Study Webs of Active learning for Young Aspiring Minds.</li>
+                        <li><strong>Core Principles:</strong> Access, Equity, Quality.</li>
+                        <li><strong>4 Quadrants:</strong> (1) Video lecture, (2) E-content reading material, (3) Discussion forum, (4) Self-assessment tests.</li>
+                    </ul>
+
+                    <h3>SWAYAM PRABHA</h3>
+                    <ul class="note-list">
+                        <li><strong>Type:</strong> Group of DTH channels broadcasting educational programmes 24/7.</li>
+                        <li><strong>Channels:</strong> 40 channels.</li>
+                        <li><strong>Satellite:</strong> GSAT-15.</li>
+                        <li><strong>Uplink Location:</strong> BISAG-N, Gandhinagar.</li>
+                        <li><strong>Web Portal Maintenance:</strong> INFLIBNET Centre.</li>
+                    </ul>
+
+                    <h3 style="margin-top: 1.5rem">National Coordinators for SWAYAM</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Course Type</th>
+                                <th>Coordinator</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Engineering</td><td>NPTEL</td></tr>
+                            <tr><td>Undergraduate (non-technical)</td><td>CEC</td></tr>
+                            <tr><td>Postgraduate (non-technical)</td><td>UGC / CEC / IGNOU</td></tr>
+                            <tr><td>School Education</td><td>NCERT / NIOS</td></tr>
+                            <tr><td>Teacher Training</td><td>NITTTR</td></tr>
+                        </tbody>
+                    </table>
+
+                                         <h3 style="margin-top: 1.5rem">SWAYAM PRABHA Channels (Complete 1-40 List)</h3>
+
+                     <div class="revision-card" style="border-color: var(--accent-magenta); background: rgba(124, 58, 237, 0.02); margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                         <h4>💡 Remember Trick / Mnemonic (Channels 1-8):</h4>
+                         <p style="font-size: 1.05rem; font-style: italic; margin-bottom: 0.75rem; color: var(--text-primary);">
+                             "Sanskar वाला Sanvahak, Kautilya और Aryabhatt के Spandan से Daksh बनकर Vyas से Aatmagyan प्राप्त करता है।"
+                         </p>
+                         <h4 style="margin-top: 1.25rem; color: var(--accent-cyan);">📌 Channel Grouping Summary:</h4>
+                         <ul style="margin: 0.75rem 0 0 1rem; padding-left: 1rem; list-style-type: disc; color: var(--text-secondary);">
+                             <li style="margin-bottom: 0.5rem;"><strong>Channels 01 to 08 (Total 8):</strong> Rebranded Individual Channels (see mnemonic above)</li>
+                             <li style="margin-bottom: 0.5rem;"><strong>Channel 09:</strong> AICTE/MIC 01 (Technology and Innovation)</li>
+                             <li style="margin-bottom: 0.5rem;"><strong>Channels 10 to 16 (Total 7):</strong> Managed by <strong>IGNOU</strong></li>
+                             <li style="margin-bottom: 0.5rem;"><strong>Channels 17 to 38 (Total 22):</strong> Managed by <strong>IITs</strong>
+                                 <ul style="margin: 0.25rem 0 0 1.25rem; padding-left: 1rem; list-style-type: circle;">
+                                     <li style="margin-bottom: 0.25rem;">Channels 17 to 20: <strong>IIT Bombay</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channels 21 & 22: <strong>IIT Delhi</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channel 23: <strong>IIT Gandhinagar</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channels 24 to 28: <strong>IIT Kanpur</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channels 29 & 30: <strong>IIT Kharagpur</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channels 31 to 36: <strong>IIT Madras</strong></li>
+                                     <li style="margin-bottom: 0.25rem;">Channels 37 & 38: <strong>IIT Tirupati</strong></li>
+                                 </ul>
+                             </li>
+                             <li style="margin-bottom: 0.5rem;"><strong>Channels 39 & 40 (Total 2):</strong> Managed by <strong>University of Hyderabad (UoH)</strong></li>
+                         </ul>
+                     </div>
+
+                     <table id="swayam-channels-table">
+                         <thead>
+                             <tr>
+                                 <th>Channel No.</th>
+                                 <th>Theme / Subject Area</th>
+                                 <th>Provider / Coordinator</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                             <tr><td><strong>01</strong></td><td><strong>SANSKAR</strong><br>Language and Literature; History, Culture & Philosophy</td><td>CEC, New Delhi and EMRC EFLU, Hyderabad</td></tr>
+                             <tr><td><strong>02</strong></td><td><strong>SANVAHAK</strong><br>Education and Home Science; Information, Communication and Management Studies</td><td>CEC, New Delhi And MCRC, Jamia Millia Islamia, New Delhi</td></tr>
+                             <tr><td><strong>03</strong></td><td><strong>KAUTILYA</strong><br>Economics, Commerce and Finance</td><td>Gujrat University, EMRC Ahmedabad</td></tr>
+                             <tr><td><strong>04</strong></td><td><strong>ARYABHATT</strong><br>Physical sciences, Mathematics, Physics, Chemistry</td><td>Calicut University, EMRC Calicut</td></tr>
+                             <tr><td><strong>05</strong></td><td><strong>SPANDAN</strong><br>Life Sciences, Botany, Zoology, Bio-Science</td><td>Kashmir University, EMRC Srinagar</td></tr>
+                             <tr><td><strong>06</strong></td><td><strong>DAKSH</strong><br>Applied Sciences, Allied Physical and Chemical sciences and related subjects</td><td>Anna University, EMRC Chennai</td></tr>
+                             <tr><td><strong>07</strong></td><td><strong>Vyas</strong><br>Band 01: Arts/Literature Band 02: Social Science Band 03: Management and other Professional Courses Band 04: Natural and Applied Science</td><td>CEC, New Delhi</td></tr>
+                             <tr><td><strong>08</strong></td><td><strong>आत्मज्ञान (Aatmagyan)</strong><br>Social & Behavioural Sciences, Law, Legal Studies, Human Rights</td><td>INFLIBNET Centre, Gandhinagar</td></tr>
+                             <tr><td><strong>09</strong></td><td><strong>AICTE/MIC 01</strong><br>Technology and Innovation</td><td>AICTE/MIC</td></tr>
+                             <tr><td><strong>10</strong></td><td><strong>IGNOU</strong><br>Indian and Foreign Languages</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>11</strong></td><td><strong>IGNOU</strong><br>Social Sciences and Humanities</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>12</strong></td><td><strong>IGNOU</strong><br>Basic and Applied Sciences</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>13</strong></td><td><strong>IGNOU</strong><br>Professional Education</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>14</strong></td><td><strong>IGNOU</strong><br>State Open Universities and Gyandarshan</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>15</strong></td><td><strong>IGNOU</strong><br>Capacity Building and Teacher Education</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>16</strong></td><td><strong>IGNOU</strong><br>Skill and Vocational Education</td><td>IGNOU, New Delhi</td></tr>
+                             <tr><td><strong>17</strong></td><td><strong>IIT BOMBAY</strong><br>Biotechnology and Biochemical Engineering</td><td>IIT Bombay</td></tr>
+                             <tr><td><strong>18</strong></td><td><strong>IIT BOMBAY</strong><br>Electronics and Communication Engineering</td><td>IIT BOMBAY</td></tr>
+                             <tr><td><strong>19</strong></td><td><strong>IIT BOMBAY</strong><br>Electrical Engineering</td><td>IIT Bombay</td></tr>
+                             <tr><td><strong>20</strong></td><td><strong>IIT BOMBAY</strong><br>Physics</td><td>IIT BOMBAY</td></tr>
+                             <tr><td><strong>21</strong></td><td><strong>IIT DELHI</strong><br>Textile Engineering</td><td>IIT Delhi</td></tr>
+                             <tr><td><strong>22</strong></td><td><strong>IIT DELHI</strong><br>IIT PAL</td><td>IIT Delhi</td></tr>
+                             <tr><td><strong>23</strong></td><td><strong>IIT GANDHINAGAR</strong><br>Civil Engineering</td><td>IIT Gandhinagar</td></tr>
+                             <tr><td><strong>24</strong></td><td><strong>IIT KANPUR</strong><br>Aeronautical Engineering</td><td>IIT Kanpur</td></tr>
+                             <tr><td><strong>25</strong></td><td><strong>IIT KANPUR</strong><br>Humanities and Social Sciences</td><td>IIT Kanpur</td></tr>
+                             <tr><td><strong>26</strong></td><td><strong>IIT KANPUR</strong><br>Management, Law, Economics; Business Analytics, Communication, Cooperative Management</td><td>IIT Kanpur</td></tr>
+                             <tr><td><strong>27</strong></td><td><strong>IIT KANPUR</strong><br>Mechanical Engineering, Engineering Design, Manufacturing E & T and allied subjects</td><td>IIT Kanpur</td></tr>
+                             <tr><td><strong>28</strong></td><td><strong>IIT KANPUR</strong><br>Visual communications, Graphic design & Media technology</td><td>IIT Kanpur</td></tr>
+                             <tr><td><strong>29</strong></td><td><strong>IIT KHARAGPUR</strong><br>Architecture and Interior Design</td><td>IIT Kharagpur</td></tr>
+                             <tr><td><strong>30</strong></td><td><strong>IIT KHARAGPUR</strong><br>Computer Sciences Engineering / IT & Related Branches</td><td>IIT Kharagpur</td></tr>
+                             <tr><td><strong>31</strong></td><td><strong>IIT Madras</strong><br>Instrumentation Control, Biomedical and Engineering</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>32</strong></td><td><strong>IIT Madras</strong><br>Bridge Courses and Impact Series</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>33</strong></td><td><strong>IIT Madras</strong><br>Chemical Engineering, Nanotechnology, Environmental and Atmospheric Sciences</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>34</strong></td><td><strong>IIT Madras</strong><br>Health Sciences</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>35</strong></td><td><strong>IIT Madras</strong><br>Metallurgical and Material Science Engineering, Mining and Ocean Engineering</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>36</strong></td><td><strong>IIT Madras</strong><br>Skills and Logistics (IT - Enabled Sector, Banking, Financial and Insurance sector Skills Logistics, Supply Chain Management and Transportation, Life skills)</td><td>IIT Madras</td></tr>
+                             <tr><td><strong>37</strong></td><td><strong>IIT TIRUPATI</strong><br>Chemistry, Biochemistry and Food Processing Engineering</td><td>IIT Tirupati</td></tr>
+                             <tr><td><strong>38</strong></td><td><strong>IIT TIRUPATI</strong><br>Mathematics</td><td>IIT Tirupati</td></tr>
+                             <tr><td><strong>39</strong></td><td><strong>UoH</strong><br>Performing Arts:Classical Dances, Theatrical Arts & Painting</td><td>University of Hyderabad</td></tr>
+                             <tr><td><strong>40</strong></td><td><strong>UoH</strong><br>Performing Arts: Indian Classical Music</td><td>University of Hyderabad</td></tr>
+                         </tbody>
+                     </table>
+                </div>
+            </section>
+
+            <!-- Topic 17 -->
+            <section class="section-node" id="topic-17">
+                <h2>TOPIC 17: TEACHING SUPPORT SYSTEMS</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Traditional</strong></td>
+                                <td>Teacher-centred, rote-memorization, direct instruction, print textbooks.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Modern</strong></td>
+                                <td>Student-centric, critical thinking, integrated subjects, group activities, models.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ICT-based</strong></td>
+                                <td>Computer networks, internet, smart boards, e-learning platforms, online repositories.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            
+                    <h3 style="margin-top: 2rem">Mind-Mapping and Key Graphical Tools</h3>
+                    <p style="margin-bottom: 1rem;"><strong>Mind-Mapping (Tony Buzan):</strong> A non-linear, graphical technique that mimics the brain's natural, radiant way of thinking. It uses a mix of images, colors, lines, and words to map out information radiating outward from a central idea. It relies heavily on evocative images rather than dense text to trigger associations.</p>
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">Comparison of Graphical & Problem-Solving Tools</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tool / Technique</th>
+                                <th>Primary Function</th>
+                                <th>Core Mechanism</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Mind-Mapping</strong></td>
+                                <td>Knowledge organization & creative association.</td>
+                                <td>Uses visual hierarchy, colors, and evocative images radiating from a central idea.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Concept Mapping</strong></td>
+                                <td>Showing structural relationships between distinct ideas.</td>
+                                <td>Uses nodes (concepts) connected by labeled arrows/linking words (e.g., "leads to", "is a part of").</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Brainstorming</strong></td>
+                                <td>Rapid idea generation.</td>
+                                <td>Focuses on quantity over quality in a judgment-free zone; usually textual or verbal.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Storyboarding</strong></td>
+                                <td>Linear sequencing & narrative planning.</td>
+                                <td>A series of illustrations or images displayed in sequence to visualize a timeline or animation.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Synectics</strong></td>
+                                <td>Creative problem-solving.</td>
+                                <td>Relies on the use of analogies and metaphors ("making the strange familiar").</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="revision-card" style="border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.02);">
+                        <h4>💡 Exam Flashpoints</h4>
+                        <p><strong>• Mind-Mapping vs Concept Mapping:</strong> If the question emphasizes <strong>images being more evocative than words</strong> and triggering wide associations, the answer is always <strong>Mind-Mapping</strong>. If it emphasizes <strong>relationships between cross-linked concepts</strong> with connecting lines, it is <strong>Concept Mapping</strong>.</p>
+                        <p style="margin-top: 0.5rem;"><strong>• MOODLE:</strong> If a question points to an open-source platform or dynamic learning environments that integrate these tools, watch out for <strong>MOODLE</strong> (Modular Object-Oriented Dynamic Learning Environment).</p>
+                    </div>
+            </section>
+
+            <!-- Topic 18 -->
+            <section class="section-node" id="topic-18">
+                <h2>TOPIC 18: LEARNER'S CHARACTERISTICS</h2>
+                <div class="sub-node">
+                    <h3>Learning Definition</h3>
+                    <p style="font-style: italic; margin-bottom: 1rem;">"Learning is a relatively permanent change in behaviour or capacity acquired through experience."</p>
+
+                    <h3>Individual Differences - Field Dependency</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Field Independent Learners</th>
+                                <th>Field Dependent Learners</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Analytical, focuses on details</td>
+                                <td>Global, looks at the big picture context</td>
+                            </tr>
+                            <tr>
+                                <td>Self-structured goals; works well alone</td>
+                                <td>Socially motivated; works well in teams</td>
+                            </tr>
+                            <tr>
+                                <td>Less influenced by external context</td>
+                                <td>More influenced by surroundings/criticism</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Thinking Styles</h3>
+                    <ul class="note-list">
+                        <li><strong>Reflective:</strong> Relates new information to past experiences, asks "why?".</li>
+                        <li><strong>Creative:</strong> Creates unique solutions, takes cognitive shortcuts.</li>
+                        <li><strong>Practical:</strong> Focuses on concrete facts, simplest way to complete tasks.</li>
+                        <li><strong>Conceptual:</strong> Demands the big picture, wants to know how components interact.</li>
+                    </ul>
+                </div>
+            
+                    <h3 style="margin-top: 2rem">Parenting Styles Matrix (Diana Baumrind)</h3>
+                    <p style="margin-bottom: 1rem;">Parenting styles differ along two key dimensions: Warmth/Responsiveness (acceptance and support) and Control/Demandingness (rules and supervision). This results in four parenting styles:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Parenting Style</th>
+                                <th>Warmth / Responsiveness</th>
+                                <th>Control / Demandingness</th>
+                                <th>Description & Characteristics</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>a) Authoritative</strong></td>
+                                <td><mark>High</mark></td>
+                                <td><mark>High</mark></td>
+                                <td>Set clear rules and expectations but are highly supportive, warm, and open to communication. (Considered the most balanced style).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>b) Authoritarian</strong></td>
+                                <td>Low</td>
+                                <td><mark>High</mark></td>
+                                <td>Highly controlling, strict, and expect blind obedience ("Because I said so") with little emotional warmth or discussion.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>c) Permissive</strong></td>
+                                <td><mark>High</mark></td>
+                                <td>Low</td>
+                                <td>Very warm, loving, and nurturing but set few boundaries, rarely enforce rules, and avoid confrontation.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>d) Rejecting / Neglecting</strong></td>
+                                <td>Low</td>
+                                <td>Low</td>
+                                <td>Uninvolved, emotionally detached, and provide little to no guidance, rules, or emotional support.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 2rem">Core Intelligence and Developmental Theories</h3>
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">1. Theory of Fluid & Crystallized Intelligence (Cattell & Horn)</h4>
+                    <p style="margin-bottom: 1rem;">General intelligence is split into two distinct, interactive components:</p>
+                    <ul class="note-list">
+                        <li><strong>Fluid Intelligence ($G_f$ - Raymond Cattell):</strong> The native, inherited capacity to think logically, reason abstractly, and solve novel problems independent of any acquired knowledge or schooling (e.g., pattern recognition, memory span).
+                            <br><small style="color: var(--accent-magenta);"><strong>Exam Flashpoint:</strong> Peaks in late adolescence/young adulthood and gradually declines with age due to biological degeneration.</small>
+                        </li>
+                        <li><strong>Crystallized Intelligence ($G_c$ - John Horn):</strong> The ability to use accumulated knowledge, skills, vocabulary, and experience deeply rooted in education and cultural familiarity.
+                            <br><small style="color: var(--accent-cyan);"><strong>Exam Flashpoint:</strong> Continues to grow or remain stable throughout adulthood and late old age.</small>
+                        </li>
+                    </ul>
+
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">2. Lawrence Kohlberg's Theory of Moral Development</h4>
+                    <p style="margin-bottom: 1rem;">Kohlberg proposed that moral reasoning progresses through 3 levels and 6 stages, driven by cognitive growth and social experiences:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Focus / Drivers</th>
+                                <th>Stages</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Pre-conventional</strong></td>
+                                <td>Driven purely by external consequences (rules are external rather than internalized).</td>
+                                <td>Stage 1: Obedience and Punishment Orientation<br>Stage 2: Individualism and Exchange (Self-interest)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Conventional</strong></td>
+                                <td>Driven by societal expectations, laws, social order, and approval from others.</td>
+                                <td>Stage 3: Good Interpersonal Relationships (Approval)<br>Stage 4: Maintaining the Social Order (Law & Order)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Post-conventional</strong></td>
+                                <td>Driven by internal ethical frameworks, universal human rights, and social contracts.</td>
+                                <td>Stage 5: Social Contract and Individual Rights<br>Stage 6: Universal Ethical Principles</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">3. Identity Status Theory & Identity Moratorium (James Marcia)</h4>
+                    <p style="margin-bottom: 1rem;">Expanding on Erik Erikson's adolescence stage (Identity vs. Role Confusion), James Marcia classified adolescents into four identity statuses based on two criteria: Exploration (crisis) and Commitment:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Identity Status</th>
+                                <th>Exploration (Crisis)</th>
+                                <th>Commitment</th>
+                                <th>Core Characteristics</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Identity Achievement</strong></td>
+                                <td><mark>High</mark></td>
+                                <td><mark>High</mark></td>
+                                <td>Has explored options and made a firm commitment (found themselves).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Identity Moratorium</strong></td>
+                                <td><mark>High</mark></td>
+                                <td>Low</td>
+                                <td>Active exploration of roles and values without final commitment (actively searching).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Identity Foreclosure</strong></td>
+                                <td>Low</td>
+                                <td><mark>High</mark></td>
+                                <td>Adopts parents' or authority's choices blindly without personal exploration.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Identity Diffusion</strong></td>
+                                <td>Low</td>
+                                <td>Low</td>
+                                <td>No direction, no active exploration, and no commitment.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 2rem;">Erik Erikson’s Eight Stages of Psychosocial Development</h3>
+                    <p style="margin-bottom: 1rem;">Erikson's theory defines eight developmental stages through which a healthy developing human should pass from infancy to late adulthood. Each stage is characterized by a psychosocial crisis that yields a basic virtue.</p>
+                    <p style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: rgba(124, 58, 237, 0.08); border-left: 3px solid var(--accent-magenta); border-radius: 6px; font-size: 0.95rem;">
+                        <strong>?? Remembering Keyword:</strong> <code>TM-AS-IG-II, IR-IIS-GS-ED</code>
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Stage</th>
+                                <th>Psychosocial Crisis</th>
+                                <th>Approximate Age</th>
+                                <th>Basic Virtue</th>
+                                <th>Core Focus / Major Event</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1</strong></td>
+                                <td>Trust vs. Mistrust</td>
+                                <td>Infancy (0 to 18 months)</td>
+                                <td>Hope</td>
+                                <td>Feeding & comfort; reliability of caregivers meeting basic needs.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2</strong></td>
+                                <td>Autonomy vs. Shame & Doubt</td>
+                                <td>Toddlerhood (18 months to 3 years)</td>
+                                <td>Will</td>
+                                <td>Toilet training & independence; asserting control over clothing/food choices.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3</strong></td>
+                                <td>Initiative vs. Guilt</td>
+                                <td>Preschool (3 to 5 years)</td>
+                                <td>Purpose</td>
+                                <td>Exploration & play; directing and planning social/play interactions.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4</strong></td>
+                                <td>Industry vs. Inferiority</td>
+                                <td>School Age (6 to 12 years)</td>
+                                <td>Competence</td>
+                                <td>School & academic success; reading, writing, and peer comparison.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>5</strong></td>
+                                <td>Identity vs. Role Confusion</td>
+                                <td>Adolescence (12 to 18 years)</td>
+                                <td>Fidelity</td>
+                                <td>Social relationships & identity; active exploration of values and career path.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>6</strong></td>
+                                <td>Intimacy vs. Isolation</td>
+                                <td>Young Adulthood (18 to 40 years)</td>
+                                <td>Love</td>
+                                <td>Romantic relationships; forming deep, committed bonds and close friendships.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>7</strong></td>
+                                <td>Generativity vs. Stagnation</td>
+                                <td>Middle Adulthood (40 to 65 years)</td>
+                                <td>Care</td>
+                                <td>Parenting & work/mentoring; producing items/ideas of value to contribute.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>8</strong></td>
+                                <td>Ego Integrity vs. Despair</td>
+                                <td>Late Adulthood (65+ years)</td>
+                                <td>Wisdom</td>
+                                <td>Reflection on life; achieving a sense of fulfillment or facing regrets.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">Detailed Breakdown of the 8 Stages</h4>
+                    <ul class="note-list">
+                        <li><strong>1. Trust vs. Mistrust:</strong> Center is reliability of caregivers. Success brings hope; failure leads to lifelong fear and suspicion.</li>
+                        <li><strong>2. Autonomy vs. Shame and Doubt:</strong> Children assertion of independence. Encouragement develops will/confidence; punishment or over-control leads to self-doubt.</li>
+                        <li><strong>3. Initiative vs. Guilt:</strong> Exerting power and control over play. Success brings purpose; disapproval or overly rigid control creates guilt.</li>
+                        <li><strong>4. Industry vs. Inferiority:</strong> Learning formal skills (academic success). Pride and competence follow success; negative comparison leads to feelings of inadequacy.</li>
+                        <li><strong>5. Identity vs. Role Confusion:</strong> Adolescents establishing individual values. Success leads to fidelity (staying true to self); failure leads to identity crisis and role confusion.</li>
+                        <li><strong>6. Intimacy vs. Isolation:</strong> Forming long-term committed love relationships. Avoiding intimacy can lead to loneliness, isolation, and depression.</li>
+                        <li><strong>7. Generativity vs. Stagnation:</strong> Career, community, and parenting contribution. Success results in care; failure leads to stagnation and feeling stuck.</li>
+                        <li><strong>8. Ego Integrity vs. Despair:</strong> Reflection in old age. A sense of fulfillment brings wisdom; looking back with regret brings bitterness and despair.</li>
+                    </ul>
+            </section>
+
+            <!-- Topic 19 -->
+            <section class="section-node" id="topic-19">
+                <h2>TOPIC 19: ADOLESCENT LEARNERS</h2>
+                <div class="sub-node">
+                    <h3>Stages of Adolescence</h3>
+                    <ul class="note-list">
+                        <li><strong>Early Adolescence (10-12 years):</strong> Demand for independence and privacy.</li>
+                        <li><strong>Middle Adolescence (12-16 years):</strong> Bodily developments, peer loyalty, career concern.</li>
+                        <li><strong>Late Adolescence (16-19 years):</strong> Cognitive transformation to adulthood.</li>
+                    </ul>
+
+                    <h3>Domain Characteristics</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Features</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Academic</strong></td><td>Predicted by parental engagement and developing intrinsic motivation.</td></tr>
+                            <tr><td><strong>Social</strong></td><td>High peer pressure, homophily, cliques, crowds, seeking social identity.</td></tr>
+                            <tr><td><strong>Emotional</strong></td><td>Conscience formation, rebellion, preferences for permissive atmospheres.</td></tr>
+                            <tr><td><strong>Cognitive</strong></td><td>Systematic analysis, logical approach, formal operational stage (Piaget).</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1rem;">WHO defines adolescence as 10-19 years. Stanley Hall described it as a period of "Storm and Stress".</p>
+                </div>
+            </section>
+
+            <!-- Topic 20 -->
+            <section class="section-node" id="topic-20">
+                <h2>TOPIC 20: ADULT LEARNERS</h2>
+                <div class="sub-node">
+                    <h3>Malcolm Knowles' Andragogy Principles</h3>
+                    <ul class="note-list">
+                        <li><strong>Self-concept:</strong> Adult learners are autonomous and self-directed.</li>
+                        <li><strong>Role of Experience:</strong> Possess rich life experience which is a resource for learning.</li>
+                        <li><strong>Readiness to Learn:</strong> Oriented to social/occupational roles.</li>
+                        <li><strong>Orientation to Learning:</strong> Focus on immediate application and problem-solving.</li>
+                        <li><strong>Motivation:</strong> Intrinsic factors (recognition, self-actualization) are stronger.</li>
+                    </ul>
+
+                    <h3>Adolescent vs. Adult Learners</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Element</th>
+                                <th>Adolescent Learner</th>
+                                <th>Adult Learner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Autonomy</strong></td>
+                                <td>Dependent on teacher</td>
+                                <td>Self-directed, independent</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Experience</strong></td>
+                                <td>Little life experience</td>
+                                <td>Tremendous life experience</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Orientation</strong></td>
+                                <td>Subject-centered</td>
+                                <td>Problem-centered / Practical</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Motivation</strong></td>
+                                <td>External (grades, rewards)</td>
+                                <td>Internal (self-actualization, career)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 21 -->
+            <section class="section-node" id="topic-21">
+                <h2>TOPIC 21: FACTORS AFFECTING TEACHING</h2>
+                <div class="sub-node">
+                    <h3>Teacher Qualities</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Personal Qualities</th>
+                                <th>Professional Competencies</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Warmth, affection, empathy, optimism, democracy, dynamic nature</td>
+                                <td>Command over subject, communication skills, classroom management, assessment skills</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Core Teaching Skills (NCERT, 1982)</h3>
+                    <ul class="note-list">
+                        <li>Writing instructional objectives and organizing content.</li>
+                        <li>Structuring and delivering clear questions.</li>
+                        <li>Stimulus variation, pacing of lessons, and achieving closure.</li>
+                        <li>Diagnosing learning difficulties and applying remedial measures.</li>
+                    </ul>
+                </div>
+            
+                    <h3 style="margin-top: 2rem">Gary Borich's Framework of Effective Teaching Behaviors</h3>
+                    <p style="margin-bottom: 1rem;">Educational psychologist Gary Borich identified 10 classroom behaviors that correlate directly with positive student outcomes and higher test scores. He divided these into <strong>5 Key Behaviors</strong> (essential) and <strong>5 Helping Behaviors</strong> (supportive).</p>
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">The 5 Key Behaviors (Mnemonic: <mark>L-I-T-E-S</mark>)</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Key Behavior</th>
+                                <th>Description / Technical Characteristics</th>
+                                <th>Classroom Implementation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Lesson Clarity</strong></td>
+                                <td>Presenting concepts logically, clearly, and step-by-step so that ideas are easy to comprehend.</td>
+                                <td>Speaking audibly, minimizing distracting jargon, organizing the board well, and explaining concepts directly.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Instructional Variety</strong></td>
+                                <td>The flexibility, diversity, and variability shown by the teacher when presenting a lesson to sustain interest.</td>
+                                <td>Shifting pacing, changing voice modulation/tone, using mixed media, and moving around the classroom.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Teacher Task Orientation</strong></td>
+                                <td>The amount of classroom time dedicated purely to teaching and academic content rather than administration.</td>
+                                <td>Minimizing disruptions, keeping attendance taking brief, handling misbehavior quickly, and maximizing subject-matter time.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4. Engagement in Learning</strong></td>
+                                <td>Actively involving students in the lesson so that they are mentally participating, not just sitting passively.</td>
+                                <td>Constant monitoring of seatwork/group activities, setting a fixed schedule, and high-interest exercises.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>5. Student Success Rate</strong></td>
+                                <td>Designing instruction so that students spend a high percentage of time on tasks with moderate-to-high success rate.</td>
+                                <td>Ensuring new material builds logically upon prior knowledge to prevent overwhelming frustration.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">The 5 Helping Behaviors</h4>
+                    <ul class="note-list">
+                        <li><strong>Using Student Ideas and Contributions:</strong> Acknowledging, rephrasing, modifying, or applying student answers to drive the direction of the lecture.</li>
+                        <li><strong>Structuring Lesson Content:</strong> Providing advanced frameworks, organizers, or summaries at the beginning or end of a lesson to firmly tie old knowledge to new information.</li>
+                        <li><strong>Questioning:</strong> Asking both content questions (lower-order, factual recall) and process questions (higher-order, requiring generalizations, inferences, and deep thinking).</li>
+                        <li><strong>Probing:</strong> Prompting and encouraging students to expand, clarify, or elaborate further on their initial response, rather than moving on immediately.</li>
+                        <li><strong>Teacher Affect:</strong> Fostering a warm, supportive environment by displaying enthusiasm, excitement, healthy eye contact, and authentic passion for the subject.</li>
+                    </ul>
+            </section>
+
+            <!-- Topic 22 -->
+            <section class="section-node" id="topic-22">
+                <h2>TOPIC 22: INSTRUCTIONAL FACILITIES (TEACHING AIDS)</h2>
+                <div class="sub-node">
+                    <h3>Classification by Senses</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Examples</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Audio</strong></td><td>Radio, tape recorder, podcast, language lab</td></tr>
+                            <tr><td><strong>Visual</strong></td><td>Posters, flashcards, charts, maps, models, globes</td></tr>
+                            <tr><td><strong>Audio-Visual</strong></td><td>Television, educational films, documentary videos</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Classification by Projection</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Projected Aids</th>
+                                <th>Non-Projected Aids</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>OHP slides, film strips, video projector, epidiascope</td>
+                                <td>Blackboard, charts, flannel boards, models, specimens</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 23 -->
+            <section class="section-node" id="topic-23">
+                <h2>TOPIC 23: DALE'S CONE OF EXPERIENCE</h2>
+                <div class="sub-node">
+                    <p style="font-weight: 600; margin-bottom: 1rem;">Core Principle: Learners retain more by what they "do" than what they "hear", "read", or "observe".</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method of Learning</th>
+                                <th>Retention Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Reading</strong></td><td>10%</td></tr>
+                            <tr><td><strong>Hearing</strong></td><td>20%</td></tr>
+                            <tr><td><strong>Seeing</strong></td><td>30%</td></tr>
+                            <tr><td><strong>Seeing + Hearing</strong></td><td>50%</td></tr>
+                            <tr><td><strong>Saying + Writing</strong></td><td>70%</td></tr>
+                            <tr><td><strong>Doing (Experiential learning / Simulation)</strong></td><td>90%</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1rem;"><strong>Most effective:</strong> Direct, purposeful experiences (bottom of cone). <strong>Least effective:</strong> Verbal symbols (top of cone).</p>
+                </div>
+            </section>
+
+            <!-- Topic 24 -->
+            <section class="section-node" id="topic-24">
+                <h2>TOPIC 24: EVALUATION SYSTEMS</h2>
+                <div class="sub-node">
+                    <h3>Teaching-Learning-Evaluation Relationship</h3>
+                    <p>Teaching, Learning, and Evaluation form three interdependent aspects of the educational process.</p>
+
+                    <h3 style="margin-top: 1.5rem">Types of Evaluation (Based on Phase)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Timing</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Placement</strong></td>
+                                <td>Before instruction starts</td>
+                                <td>Determine entry behaviour, pre-requisite skills.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Formative</strong></td>
+                                <td>During instruction process</td>
+                                <td>Provide continuous feedback for learning improvement (internal evaluation).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Diagnostic</strong></td>
+                                <td>Any time (usually at start or during)</td>
+                                <td>Identify specific causes of persistent learning difficulties.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Summative</strong></td>
+                                <td>End of course/instruction</td>
+                                <td>Grade, certify, and judge final outcomes (external evaluation).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 1.5rem">Norm-Referenced vs. Criterion-Referenced</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aspect</th>
+                                <th>Norm-Referenced Evaluation</th>
+                                <th>Criterion-Referenced Evaluation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Comparison</strong></td>
+                                <td>Against performance of other students.</td>
+                                <td>Against a pre-determined fixed standard.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Purpose</strong></td>
+                                <td>Rank students, determine percentile.</td>
+                                <td>Determine degree of mastery/competency.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Example</strong></td>
+                                <td>Competitive exams (CAT, JEE, UGC NET percentile)</td>
+                                <td>"Typed 58 words per minute", "Scored 75%"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            
+                    <h3 style="margin-top: 2rem">Maximum Performance vs. Typical Response Tests</h3>
+                    <p style="margin-bottom: 1rem;">Psychological and educational assessments are broadly categorized into maximum performance (measuring limits of ability) and typical response (measuring common behavior/personality traits).</p>
+                    
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">1. Maximum Performance Tests</h4>
+                    <p style="margin-bottom: 0.5rem;">These tests assess the upper limits of an examinee's knowledge, cognitive capacity, and abilities under best effort. They have right/wrong answers:</p>
+                    <ul class="note-list">
+                        <li><strong>Achievement Tests:</strong> Measure past learning and acquired knowledge to determine how much a student has learned after specific instruction (e.g., classroom quizzes, board exams). <em>Key Question: "What has the individual already learned?"</em></li>
+                        <li><strong>Aptitude Tests:</strong> Measure future potential and innate capacity to learn, predicting how well an individual is likely to perform or adapt in a new environment/training (e.g., GRE, GMAT, Teaching Aptitude tests). <em>Key Question: "What is the individual capable of learning in the future?"</em></li>
+                    </ul>
+
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">2. Typical Response Tests (Personality Assessment)</h4>
+                    <p style="margin-bottom: 0.5rem;">These tests evaluate an examinee's typical behavior, interests, attitudes, and psychological traits. There are no right or wrong answers:</p>
+                    <ul class="note-list">
+                        <li><strong>Objective Personality Tests:</strong> Highly structured, clear, and unambiguous stimuli (e.g., rating scales, True/False statements like MMPI, Big Five Index). Scoring is standardized and free from examiner bias.</li>
+                        <li><strong>Projective Personality Tests:</strong> Unstructured, vague, and ambiguous stimuli (e.g., open-ended responses to inkblots or pictures like Rorschach Inkblot, Thematic Apperception Test [TAT]). Examinees project their unconscious motives/conflicts onto the ambiguous material. Scoring is qualitative and relies heavily on interpretation.</li>
+                    </ul>
+
+                    <h4 style="margin-bottom: 0.75rem; color: var(--text-primary); font-family: var(--font-heading); font-size: 1.15rem;">Comparison Summary</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Test Category</th>
+                                <th>Primary Objective</th>
+                                <th>Key Examples</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Achievement</strong></td>
+                                <td>Evaluates specific, previously learned knowledge.</td>
+                                <td>Classroom quizzes, Board exams.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Aptitude</strong></td>
+                                <td>Predicts capability to acquire new skills.</td>
+                                <td>IQ tests, Career aptitude tests, GRE.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Objective Personality</strong></td>
+                                <td>Profiles explicit traits via structured self-reporting.</td>
+                                <td>MMPI, Myers-Briggs (MBTI), Big Five.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Projective Personality</strong></td>
+                                <td>Uncovers hidden or unconscious psychological patterns.</td>
+                                <td>Rorschach Inkblot Test, Thematic Apperception Test (TAT).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+            </section>
+
+            <!-- Topic 25 -->
+            <section class="section-node" id="topic-25">
+                <h2>TOPIC 25: CHOICE BASED CREDIT SYSTEM (CBCS)</h2>
+                <div class="sub-node">
+                    <h3>Key Course Components</h3>
+                    <ul class="note-list">
+                        <li><strong>Core Course:</strong> Compulsory course that all students must complete.</li>
+                        <li><strong>Elective Course:</strong> Chosen from a pool of courses; can be discipline-specific or generic.</li>
+                        <li><strong>Ability Enhancement Courses (AEC):</strong> Focuses on skill enhancement or environmental education.</li>
+                    </ul>
+
+                    <h3>Advantages</h3>
+                    <ul class="note-list">
+                        <li>Shifts focus from teacher-centric to student-centric education.</li>
+                        <li>Allows interdisciplinary credit transfers across institutions.</li>
+                        <li>Enables students to choose a pace that matches their learning capacity.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Topic 26 -->
+            <section class="section-node" id="topic-26">
+                <h2>TOPIC 26: COMPUTER BASED TESTING (CBT)</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>CBT Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Linear Test</strong></td>
+                                <td>Delivers the same sequence of questions to all candidates regardless of performance.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Adaptive Test</strong></td>
+                                <td>Dynamically adjusts question difficulty based on the candidate's previous responses.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 27 -->
+            <section class="section-node" id="topic-27">
+                <h2>TOPIC 27: CURRICULUM AND SYLLABUS</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aspect</th>
+                                <th>Curriculum</th>
+                                <th>Syllabus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Scope</strong></td>
+                                <td>Wider, includes all learning experiences inside/outside class.</td>
+                                <td>Narrower, focuses on specific subject topics.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nature</strong></td>
+                                <td>Prescriptive (what must be achieved).</td>
+                                <td>Descriptive (what topics will be covered).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Origin</strong></td>
+                                <td>Prepared by administration/government.</td>
+                                <td>Prepared by teachers/departments.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 28 -->
+            <section class="section-node" id="topic-28">
+                <h2>TOPIC 28: IMPORTANT DAYS FOR EDUCATION</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Important Day</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>January 4</td><td>World Braille Day</td></tr>
+                            <tr><td>January 24</td><td>National Girl Child Day (Balika Divas)</td></tr>
+                            <tr><td>February 21</td><td>International Mother Language Day</td></tr>
+                            <tr><td>February 28</td><td>National Science Day (Raman Effect)</td></tr>
+                            <tr><td>June 21</td><td>International Day of Yoga</td></tr>
+                            <tr><td>September 5</td><td>Teachers' Day (Dr. S. Radhakrishnan's birthday)</td></tr>
+                            <tr><td>September 8</td><td>International Literacy Day</td></tr>
+                            <tr><td>October 5</td><td>World Teachers' Day (UNESCO)</td></tr>
+                            <tr><td>November 11</td><td>National Education Day (Maulana Abul Kalam Azad's birthday)</td></tr>
+                            <tr><td>November 14</td><td>Children's Day (Jawaharlal Nehru's birthday)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topic 29 -->
+            <section class="section-node" id="topic-29">
+                <h2>TOPIC 29: QUICK REVISION CARDS</h2>
+                <div class="sub-node">
+                    <div class="revision-card">
+                        <h4>Levels of Teaching</h4>
+                        <p>Memory (Herbart) → Understanding (Morrison) → Reflective (Hunt). Reflective is highest, problem-centric, and focuses on critical thinking.</p>
+                    </div>
+                    <div class="revision-card">
+                        <h4>SWAYAM Quadrants & Principles</h4>
+                        <p>Principles: Access, Equity, Quality. 4 Quadrants: Video Lectures, Reading (E-content), Discussion Forums, Self-Assessment. SWAYAM PRABHA runs 40 DTH channels via GSAT-15 satellite.</p>
+                    </div>
+                    <div class="revision-card">
+                        <h4>Evaluation Phase Matrix</h4>
+                        <p>Placement (Entry behaviour) | Formative (Feedback during class) | Diagnostic (Find learning difficulties) | Summative (Grading at end).</p>
+                    </div>
+                    <div class="revision-card">
+                        <h4>Bloom's Highest Domains</h4>
+                        <p>Cognitive: Evaluation (Creating in revised) | Affective: Characterization | Psychomotor: Naturalization.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Theorist contribution list -->
+            <section class="section-node" id="theorist-list">
+                <h2>Theorist Contribution List</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Theorist</th>
+                                <th>Theory or Contribution</th>
+                                <th>Key Concept</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Pavlov</strong></td><td>Classical Conditioning</td><td>Stimulus-Response (S-R)</td></tr>
+                            <tr><td><strong>Skinner</strong></td><td>Operant Conditioning</td><td>Reinforcement, Punishment</td></tr>
+                            <tr><td><strong>Bandura</strong></td><td>Social Learning Theory</td><td>Observation, Imitation, Modeling</td></tr>
+                            <tr><td><strong>Thorndike</strong></td><td>Trial and Error</td><td>Law of Effect, Law of Exercise</td></tr>
+                            <tr><td><strong>Piaget</strong></td><td>Cognitive Development</td><td>4 stages of development</td></tr>
+                            <tr><td><strong>Vygotsky</strong></td><td>Sociocultural Theory</td><td>Zone of Proximal Development (ZPD)</td></tr>
+                            <tr><td><strong>Bruner</strong></td><td>Constructivism</td><td>Discovery learning, Scaffolding</td></tr>
+                            <tr><td><strong>Ausubel</strong></td><td>Meaningful Verbal Learning</td><td>Advance Organizers</td></tr>
+                            <tr><td><strong>Gagne</strong></td><td>Conditions of Learning</td><td>5 learning outcomes, hierarchy</td></tr>
+                            <tr><td><strong>Bloom</strong></td><td>Taxonomy of Learning</td><td>Cognitive, Affective, Psychomotor domains</td></tr>
+                            <tr><td><strong>Erikson</strong></td><td>Psychosocial Development</td><td>8 stages of development</td></tr>
+                            <tr><td><strong>Kohlberg</strong></td><td>Moral Development</td><td>3 levels, 6 stages</td></tr>
+                            <tr><td><strong>Gardner</strong></td><td>Multiple Intelligences</td><td>8 types of intelligence</td></tr>
+                            <tr><td><strong>Maslow</strong></td><td>Hierarchy of Needs</td><td>Self-actualization</td></tr>
+                            <tr><td><strong>Dewey</strong></td><td>Experiential Learning</td><td>Learning by doing</td></tr>
+                            <tr><td><strong>Froebel</strong></td><td>Kindergarten</td><td>Play-based learning</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Learning disabilities directory -->
+            <section class="section-node" id="learning-disabilities">
+                <h2>Learning Disabilities Directory</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Disability</th>
+                                <th>Area of Difficulty</th>
+                                <th>Key Symptom</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Dyslexia</strong></td><td>Reading</td><td>Difficulty reading words, spelling, decoding.</td></tr>
+                            <tr><td><strong>Dyscalculia</strong></td><td>Mathematics</td><td>Difficulty with quantities, basic calculations, formulas.</td></tr>
+                            <tr><td><strong>Dysgraphia</strong></td><td>Writing</td><td>Difficulty writing, illegible handwriting, spacing problems.</td></tr>
+                            <tr><td><strong>Dyspraxia</strong></td><td>Motor coordination</td><td>Difficulty holding pencils, physical coordination challenges.</td></tr>
+                            <tr><td><strong>Dysphasia / Aphasia</strong></td><td>Language</td><td>Difficulty understanding or speaking spoken language.</td></tr>
+                            <tr><td><strong>ADHD</strong></td><td>Attention</td><td>Hyperactivity, impulsivity, inattention.</td></tr>
+                            <tr><td><strong>Autism</strong></td><td>Social communication</td><td>Difficulty with social interaction, repetitive behaviours.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- NEP 2020 -->
+            <section class="section-node" id="nep-2020">
+                <h2>NEP 2020 Key Points</h2>
+                <div class="sub-node">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aspect</th>
+                                <th>Provision</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>School Curriculum</strong></td>
+                                <td>New 5+3+3+4 structure (Foundational, Preparatory, Middle, Secondary).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Higher Education</strong></td>
+                                <td>Multidisciplinary, flexible subject combinations, multiple entry/exit points (Academic Bank of Credits).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Language</strong></td>
+                                <td>Mother tongue/local language preferred till Grade 5 (ideally Grade 8).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Assessment</strong></td>
+                                <td>360-degree holistic progress card (Self, Peer, and Teacher assessment).</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Teacher Education</strong></td>
+                                <td>4-year Integrated B.Ed as the minimum degree qualification by 2030.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Technology Integration</strong></td>
+                                <td>PM e-Vidya, DIKSHA, SWAYAM, NDEAR (National Digital Education Architecture).</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Additional Frameworks -->
+            <section class="section-node" id="additional-frameworks">
+                <h2>Teaching & Instructional Frameworks</h2>
+                
+                <div class="sub-node">
+                    <h3>TPACK Framework (Mishra & Koehler, 2006)</h3>
+                    <p style="margin-bottom: 1rem;"><strong>Purpose:</strong> Effective integration of Technology, Pedagogy, and Content Knowledge in teaching.</p>
+                    <ul class="note-list">
+                        <li><strong>TK:</strong> Technological Knowledge</li>
+                        <li><strong>PK:</strong> Pedagogical Knowledge</li>
+                        <li><strong>CK:</strong> Content Knowledge</li>
+                        <li><strong>TPK:</strong> Technological Pedagogical Knowledge</li>
+                        <li><strong>TCK:</strong> Technological Content Knowledge</li>
+                        <li><strong>PCK:</strong> Pedagogical Content Knowledge</li>
+                        <li><strong>TPACK:</strong> Technology, Pedagogy, and Content Knowledge (intersection of all three)</li>
+                    </ul>
+                </div>
+
+                <div class="sub-node">
+                    <h3>Danielson's Framework for Teaching</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Key Components</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Planning and Preparation</strong></td>
+                                <td>Demonstrating knowledge of content/pedagogy, knowing students, designing instruction, and assessment.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Classroom Environment</strong></td>
+                                <td>Creating respect and rapport, managing classroom procedures, managing student behavior, and physical space.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Instruction</strong></td>
+                                <td>Communicating with students, using questioning/discussion, engaging students, and demonstrating flexibility.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>4. Professional Responsibilities</strong></td>
+                                <td>Reflecting on teaching, maintaining records, communicating with families, and growing professionally.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>Herbart's Pedagogy Steps</h3>
+                    <p style="margin-bottom: 1rem;"><strong>Correct Sequence:</strong> Preparation → Presentation → Association → Generalization → Application</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Step</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td><strong>Preparation</strong></td><td>Prepare students' minds for new knowledge; linking to previous experience.</td></tr>
+                            <tr><td>2</td><td><strong>Presentation</strong></td><td>Introduce and explain the new lesson content/materials.</td></tr>
+                            <tr><td>3</td><td><strong>Association</strong></td><td>Connect new knowledge with existing ideas; find similarities/differences.</td></tr>
+                            <tr><td>4</td><td><strong>Generalization</strong></td><td>Derive general rules, principles, or concepts from facts.</td></tr>
+                            <tr><td>5</td><td><strong>Application</strong></td><td>Provide opportunities to apply knowledge in practical situations.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>Morrison's Understanding Level Steps</h3>
+                    <p style="margin-bottom: 1rem;"><strong>Correct Sequence:</strong> Exploration → Presentation → Assimilation → Organization → Recitation</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Step</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td><strong>Exploration</strong></td><td>Testing previous knowledge and providing initial exposure to the topic.</td></tr>
+                            <tr><td>2</td><td><strong>Presentation</strong></td><td>Teacher presents the content and ensures students understand basic concepts.</td></tr>
+                            <tr><td>3</td><td><strong>Assimilation</strong></td><td>Students work independently to internalize the content and relate it to prior knowledge.</td></tr>
+                            <tr><td>4</td><td><strong>Organization</strong></td><td>Students organize the learned material into a coherent, logical structure.</td></tr>
+                            <tr><td>5</td><td><strong>Recitation</strong></td><td>Students express their understanding orally/through presentations without notes.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="sub-node">
+                    <h3>ADDIE Instructional Design Model</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Letter</th>
+                                <th>Phase</th>
+                                <th>Meaning & Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>A</strong></td><td>Analysis</td><td>Analyze target learners, identify needs, and understand learning context.</td></tr>
+                            <tr><td><strong>D</strong></td><td>Design</td><td>Define specific learning objectives, assessment tools, exercises, and planning.</td></tr>
+                            <tr><td><strong>D</strong></td><td>Development</td><td>Create and assemble the actual content, materials, and digital/physical resources.</td></tr>
+                            <tr><td><strong>I</strong></td><td>Implementation</td><td>Deliver the instruction or training in the chosen learning environment.</td></tr>
+                            <tr><td><strong>E</strong></td><td>Evaluation</td><td>Measure the effectiveness of the instruction through feedback and tests.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const links = document.querySelectorAll('.sidebar-nav a');
+        const sections = document.querySelectorAll('.section-node[id]');
+
+        function updateActive() {
+            let current = '';
+            sections.forEach(s => {
+                const rect = s.getBoundingClientRect();
+                if (rect.top <= 150) current = s.id;
+            });
+
+            links.forEach(a => {
+                a.classList.remove('active');
+                if (a.getAttribute('href') === '#' + current) {
+                    a.classList.add('active');
+                }
+            });
+        }
+
+        // Initialize SWAYAM PRABHA table flashcards
+        const swayamTable = document.getElementById('swayam-channels-table');
+        if (swayamTable) {
+            const rows = swayamTable.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const tds = row.querySelectorAll('td');
+                for (let i = 1; i < tds.length; i++) {
+                    const td = tds[i];
+                    td.classList.add('flashcard-cell');
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'flashcard-text';
+                    while (td.firstChild) {
+                        wrapper.appendChild(td.firstChild);
+                    }
+                    td.appendChild(wrapper);
+                    td.addEventListener('click', () => {
+                        td.classList.toggle('revealed');
+                    });
+                }
+            });
+        }
+
+        // Initialize Important Concepts and Proponents table flashcards (proponents only)
+        const conceptsTable = document.getElementById('concepts-proponents-table');
+        if (conceptsTable) {
+            const rows = conceptsTable.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const tds = row.querySelectorAll('td');
+                if (tds.length >= 2) {
+                    const td = tds[1]; // Proponent is the second column (index 1)
+                    td.classList.add('flashcard-cell');
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'flashcard-text';
+                    while (td.firstChild) {
+                        wrapper.appendChild(td.firstChild);
+                    }
+                    td.appendChild(wrapper);
+                    td.addEventListener('click', () => {
+                        td.classList.toggle('revealed');
+                    });
+                }
+            });
+        }
+
+        function hideAllFlashcards() {
+            const cells = document.querySelectorAll(".flashcard-cell");
+            cells.forEach(cell => cell.classList.remove("revealed"));
+        }
+
+        function revealAllFlashcards() {
+            const cells = document.querySelectorAll(".flashcard-cell");
+            cells.forEach(cell => cell.classList.add("revealed"));
+        }
+
+        window.addEventListener('keydown', function(e) {
+            if (document.activeElement && (
+                document.activeElement.tagName === 'INPUT' || 
+                document.activeElement.tagName === 'TEXTAREA' ||
+                document.activeElement.isContentEditable
+            )) {
+                return;
+            }
+            
+            const key = e.key.toLowerCase();
+            if (key === 'r') {
+                revealAllFlashcards();
+            } else if (key === 'h') {
+                hideAllFlashcards();
+            }
+        });
+
+        window.addEventListener('scroll', updateActive);
+        updateActive();
+    })();
+</script>
+</body>
+</html>

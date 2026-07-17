@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Secrets
+.env
+server/.env
+client/.env
+
+# Build files
+dist/
+client/dist/
+
+# OS/IDE metadata
+.DS_Store
+.vscode/
+.idea/

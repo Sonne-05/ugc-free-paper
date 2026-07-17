@@ -1,0 +1,30 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import './Profile.css'
+
+const ManageSet = () => {
+  const { setId } = useParams()
+  const navigate = useNavigate()
+  
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [pyqSets, setPyqSets] = useState([])
+  
+  const [newSetPaperType, setNewSetPaperType] = useState('Paper I')
+  const [newSetYear, setNewSetYear] = useState('')
+  const [newSetSubtitle, setNewSetSubtitle] = useState('')
+  const [newSetCount, setNewSetCount] = useState(50)
+  
+  const [editingSetId, setEditingSetId] = useState(null)
+  const [editingSetQuestions, setEditingSetQuestions] = useState([])
+  
+  const [selectedSetId, setSelectedSetId] = useState('')
+  const [importMode, setImportMode] = useState('single')
+  const [rawImportText, setRawImportText] = useState('')
+  
+  const [newQType, setNewQType] = useState('mcq')
+  const [newQText, setNewQText] = useState('')
+  const [newQOpts, setNewQOpts] = useState(['', '', '', ''])
+  const [newQCorrect, setNewQCorrect] = useState(1)
+  const [newQAssertion, setNewQAssertion] = useState('')
+  const [newQReason, setNewQReason] = useState('')
+  const [newQList1, setNewQList1] = useState(['', '', '', ''])

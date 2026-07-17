@@ -1,0 +1,53 @@
+const mongoose = require('mongoose');
+
+const questionSchema = new mongoose.Schema({
+  setId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PyqSet',
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'],
+    required: true
+  },
+  text: {
+    type: String,
+    required: true
+  },
+  options: {
+    type: [String],
+    default: []
+  },
+  statements: {
+    type: [String],
+    default: []
+  },
+  correct: {
+    type: Number,
+    required: true
+  },
+  assertion: String,
+  reason: String,
+  passage: String,
+  explanation: String,
+  list1: {
+    type: [String],
+    default: []
+  },
+  list2: {
+    type: [String],
+    default: []
+  }
+}, { timestamps: true });
+
+// Transform _id to id when sending to frontend
+questionSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    delete ret._id;
+  }
+});
+
+module.exports = mongoose.model('Question', questionSchema);

@@ -1,0 +1,233 @@
+.notes-template-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  padding-top: 70px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+}
+
+.notes-template-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 1.5rem 0.75rem;
+  position: sticky;
+  top: 70px; /* Offset for navbar */
+  align-self: flex-start;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+.notes-template-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notes-template-sidebar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.notes-template-sidebar-brand {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.75rem 1rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notes-template-sidebar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.notes-template-sidebar-nav > li {
+  margin-bottom: 0.25rem;
+}
+
+.notes-template-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.notes-template-sidebar-nav a:hover {
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+}
+
+.notes-template-sidebar-nav a .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.notes-template-main {
+  flex: 1;
+  padding: 2rem 3rem 4rem;
+  min-width: 0;
+}
+
+.notes-template-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notes-template-page-header h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.notes-template-page-header h1 span {
+  color: #7c3aed;
+}
+
+.notes-template-subtitle {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-top: 0.4rem;
+}
+
+/* === RICH CONTENT STYLES === 
+   These styles target the raw HTML output by React Quill to make them look
+   exactly like the beautiful original template components! */
+
+.notes-template-rich-content {
+  line-height: 1.6;
+  color: #334155;
+}
+
+.notes-template-rich-content p {
+  margin-bottom: 1rem;
+}
+
+/* Equivalent to .section-node h2 */
+.notes-template-rich-content h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  margin-top: 4rem;
+  margin-bottom: 1.5rem;
+  color: #2563eb;
+  border-left: 4px solid #2563eb;
+  padding-left: 0.75rem;
+}
+
+/* Equivalent to .sub-node h3 */
+.notes-template-rich-content h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem; /* Simulate sub-node padding */
+}
+
+.notes-template-rich-content h3::before {
+  content: "•";
+  color: #7c3aed;
+  font-size: 1.75rem;
+  line-height: 0;
+}
+
+/* Lists styling */
+.notes-template-rich-content ul,
+.notes-template-rich-content ol {
+  margin-bottom: 1.5rem;
+  padding-left: 2rem;
+  margin-left: 0.5rem;
+}
+
+.notes-template-rich-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* Auto style tables created in Quill */
+.notes-template-rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+}
+
+.notes-template-rich-content th, 
+.notes-template-rich-content td {
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.notes-template-rich-content th,
+.notes-template-rich-content thead td {
+  background-color: #f1f5f9;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notes-template-rich-content td {
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.notes-template-rich-content tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+.notes-template-rich-content tr:hover td {
+  background-color: rgba(37, 99, 235, 0.02);
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .notes-template-layout {
+    flex-direction: column;
+  }
+  .notes-template-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem;
+  }
+  .notes-template-main {
+    padding: 1.25rem;
+  }
+}

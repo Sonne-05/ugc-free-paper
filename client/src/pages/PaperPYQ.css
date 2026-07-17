@@ -1,0 +1,168 @@
+.pyq-page {
+  padding: 120px 24px 80px;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.pyq-page__container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  box-shadow: var(--shadow);
+}
+
+.pyq-page__title {
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.pyq-page__subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.pyq-page__intro {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pyq-page__intro h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.pyq-page__intro p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  text-align: justify;
+}
+
+.pyq-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.pyq-table__th {
+  padding: 16px 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  letter-spacing: 0.05em;
+}
+
+.pyq-table__tr {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.pyq-table__tr:hover {
+  background-color: rgba(37, 99, 235, 0.01);
+}
+
+.pyq-table__td {
+  padding: 18px 20px;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.font-semibold {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.q-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.subject-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--accent);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-right: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cycle-text {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.pyq-table__btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+  text-align: center;
+}
+
+.pyq-table__btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.15);
+}
+
+.pyq-table__btn:active {
+  transform: translateY(0);
+}
+
+.col-year {
+  width: 15%;
+}
+
+.col-cycle {
+  width: 65%;
+}
+
+.col-action {
+  width: 20%;
+}
+
+@media (max-width: 640px) {
+  .pyq-page__container {
+    padding: 24px 16px;
+  }
+  .pyq-table__th,
+  .pyq-table__td {
+    padding: 12px 10px;
+  }
+}
+
+.pyq-table__td--year-group {
+  vertical-align: middle;
+  border-right: 1px solid var(--border);
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.005);
+}

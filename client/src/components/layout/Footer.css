@@ -1,0 +1,126 @@
+.footer {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 60px 0 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.footer__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+  display: flex;
+  justify-content: space-between;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.footer__info {
+  flex: 1;
+  min-width: 280px;
+  max-width: 420px;
+}
+
+.footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.footer__logo-icon {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  background: var(--gradient-1);
+  border-radius: 8px;
+  color: white;
+}
+
+.footer__logo-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.footer__desc {
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.footer__links-section {
+  display: flex;
+  gap: 60px;
+  flex-wrap: wrap;
+}
+
+.footer__links-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 120px;
+}
+
+.footer__links-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.footer__link {
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.footer__link:hover {
+  color: var(--primary);
+}
+
+.footer__bottom {
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  padding: 24px 0;
+}
+
+.footer__bottom-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.footer__copyright {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.footer__disclaimer {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  max-width: 500px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .footer__bottom-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .footer__disclaimer {
+    text-align: left;
+  }
+  .footer__links-section {
+    gap: 40px;
+  }
+}

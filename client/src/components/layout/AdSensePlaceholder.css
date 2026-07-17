@@ -1,0 +1,57 @@
+.ad-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px 0;
+  width: 100%;
+}
+
+.ad-placeholder__label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.ad-placeholder__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.02);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: system-ui, -apple-system, sans-serif;
+  text-align: center;
+  width: 100%;
+}
+
+.ad-placeholder--horizontal .ad-placeholder__content {
+  height: 90px;
+  max-width: 728px;
+}
+
+.ad-placeholder--rectangle .ad-placeholder__content {
+  height: 250px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.ad-placeholder__logo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ad-placeholder__dimensions {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.ad-placeholder--vertical .ad-placeholder__content {
+  height: 600px;
+  width: 160px;
+}
