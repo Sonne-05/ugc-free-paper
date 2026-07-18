@@ -238,11 +238,11 @@ const MockTest = () => {
       if (tableData) {
         return (
           <div key={pIdx} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
-            <table style={{ width: '100%', maxWidth: '550px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid var(--border)' }}>
+            <table style={{ width: '70%', maxWidth: '420px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid var(--border)', fontSize: '0.82rem' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-card)' }}>
                   {tableData[0].map((cell, cIdx) => (
-                    <th key={cIdx} style={{ border: '1px solid var(--border)', padding: '10px', fontWeight: '600', textAlign: 'center' }}>
+                    <th key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', fontWeight: '600', textAlign: 'center' }}>
                       {cell}
                     </th>
                   ))}
@@ -252,7 +252,7 @@ const MockTest = () => {
                 {tableData.slice(1).map((row, rIdx) => (
                   <tr key={rIdx} style={{ backgroundColor: rIdx % 2 === 0 ? 'transparent' : 'var(--bg-card)', opacity: 0.9 }}>
                     {row.map((cell, cIdx) => (
-                      <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '10px', textAlign: 'center' }}>
+                      <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
                         {cell}
                       </td>
                     ))}
