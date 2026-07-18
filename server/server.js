@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 
 // Configure Nodemailer for Zoho SMTP
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtppro.zoho.com',
+  host: process.env.EMAIL_HOST || 'smtp.zoho.in',
   port: parseInt(process.env.EMAIL_PORT, 10) || 465,
   secure: (process.env.EMAIL_PORT === '465' || !process.env.EMAIL_PORT), // true for 465, false for other ports
   auth: {
