@@ -55,6 +55,7 @@ const Footer = () => {
           <div className="footer__links-column">
             <h4 className="footer__links-title">About</h4>
             <Link to="/about" className="footer__link">About Us</Link>
+            <Link to="/blog" className="footer__link">Blog</Link>
             <Link to="/about" className="footer__link">Student Stories</Link>
             <Link to="/about" className="footer__link">Mission</Link>
           </div>

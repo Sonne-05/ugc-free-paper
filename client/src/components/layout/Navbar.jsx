@@ -118,6 +118,9 @@ const Navbar = () => {
             <Link to="/about" className={`navbar__dropdown-trigger ${isActive('/about') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
               About Us
             </Link>
+            <Link to="/blog" className={`navbar__dropdown-trigger ${isActive('/blog') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
+              Blog
+            </Link>
             <Link to="/contact" className={`navbar__dropdown-trigger ${isActive('/contact') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
               Contact Us
             </Link>
@@ -258,6 +261,9 @@ const Navbar = () => {
           {/* Direct Mobile Links instead of Group */}
           <Link to="/about" className={`navbar__mobile-link ${isActive('/about') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
             About Us
+          </Link>
+          <Link to="/blog" className={`navbar__mobile-link ${isActive('/blog') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
+            Blog
           </Link>
           <Link to="/contact" className={`navbar__mobile-link ${isActive('/contact') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
             Contact Us
