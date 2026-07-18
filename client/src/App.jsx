@@ -69,6 +69,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<Profile />} />
           <Route path="/admin/manage-set/:setId" element={<ManageSet />} />
+          <Route path="/admin/manage-set" element={<ManageSet />} />
           <Route path="/admin/edit-note/:unitId" element={<AdminNoteEditor />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />

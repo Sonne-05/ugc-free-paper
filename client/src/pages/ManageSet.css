@@ -433,3 +433,94 @@ textarea.ms-input {
   color: #6b7280;
   border-color: rgba(107, 114, 128, 0.15);
 }
+
+/* Question slots styling */
+.ms-q-slot-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.ms-q-slot-card--saved {
+  border-left: 4px solid #10b981;
+}
+
+.ms-q-slot-card--empty {
+  border-left: 4px solid #94a3b8;
+}
+
+.ms-q-slot-card--open {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  border-color: #3b82f6;
+}
+
+.ms-q-slot-header {
+  padding: 14px 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  background: #fff;
+  transition: background 0.2s;
+}
+
+.ms-q-slot-header:hover {
+  background: #f8fafc;
+}
+
+.ms-q-slot-number {
+  font-weight: 700;
+  color: #0f172a;
+  min-width: 35px;
+}
+
+.ms-q-slot-badge {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ms-q-slot-badge--saved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ms-q-slot-badge--empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.ms-q-slot-preview {
+  font-size: 0.88rem;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 450px;
+}
+
+@media (max-width: 768px) {
+  .ms-q-slot-preview {
+    max-width: 180px;
+  }
+}
+
+.ms-q-slot-body {
+  padding: 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #fdfdfd;
+}
+
+.ms-q-slot-toggle-icon {
+  font-size: 0.8rem;
+  color: #64748b;
+  transition: transform 0.2s;
+}
+

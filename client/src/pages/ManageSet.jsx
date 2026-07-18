@@ -4,6 +4,495 @@ import { API_BASE_URL } from '../services/api'
 import './Profile.css'
 import './ManageSet.css'
 
+const QuestionSlot = ({ 
+  index, 
+  question, 
+  setId, 
+  onSave, 
+  onDelete, 
+  API_BASE_URL 
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [qType, setQType] = useState('mcq')
+  const [qText, setQText] = useState('')
+  const [qOpts, setQOpts] = useState(['', '', '', ''])
+  const [qCorrect, setQCorrect] = useState(1)
+  const [qExplanation, setQExplanation] = useState('')
+  const [qAssertion, setQAssertion] = useState('')
+  const [qReason, setQReason] = useState('')
+  const [qList1, setQList1] = useState(['', '', '', ''])
+  const [qList2, setQList2] = useState(['', '', '', ''])
+  const [qPassage, setQPassage] = useState('')
+  const [qStatements, setQStatements] = useState(['', '', '', '', ''])
+  const [qSubPrompt, setQSubPrompt] = useState('Choose the correct answer from the options given below:')
+  
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [pasteText, setPasteText] = useState('')
+
+  // Sync state with question when it changes or opens
+  useEffect(() => {
+    if (question) {
+      setQType(question.type || 'mcq')
+      setQText(question.text || '')
+      setQOpts(question.options && question.options.length >= 4 ? question.options.slice(0, 4) : ['', '', '', ''])
+      setQCorrect(question.correct || 1)
+      setQExplanation(question.explanation || '')
+      setQAssertion(question.assertion || '')
+      setQReason(question.reason || '')
+      setQList1(question.list1 && question.list1.length >= 4 ? question.list1.slice(0, 4) : ['', '', '', ''])
+      setQList2(question.list2 && question.list2.length >= 4 ? question.list2.slice(0, 4) : ['', '', '', ''])
+      setQPassage(question.passage || '')
+      setQStatements(question.statements || ['', '', '', '', ''])
+      setQSubPrompt(question.subPrompt || 'Choose the correct answer from the options given below:')
+    } else {
+      // Clear fields for empty slots
+      setQType('mcq')
+      setQText('')
+      setQOpts(['', '', '', ''])
+      setQCorrect(1)
+      setQExplanation('')
+      setQAssertion('')
+      setQReason('')
+      setQList1(['', '', '', ''])
+      setQList2(['', '', '', ''])
+      setQPassage('')
+      setQStatements(['', '', '', '', ''])
+      setQSubPrompt('Choose the correct answer from the options given below:')
+    }
+  }, [question, isOpen])
+
+  const handlePasteChange = (e) => {
+    const text = e.target.value
+    setPasteText(text)
+    if (!text.trim()) return
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    let parsedText = ''
+    let parsedOpts = ['', '', '', '']
+    let parsedCorrect = 1
+    
+    let optIndex = 0
+    let promptLines = []
+    
+    for (let line of lines) {
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      if (optMatch && optIndex < 4) {
+        const optLetter = optMatch[1].toUpperCase()
+        const optVal = optMatch[2].trim()
+        
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        else {
+          indexToPut = optIndex
+        }
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+      
+      const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
+      if (ansMatch) {
+        const ansVal = ansMatch[1].toUpperCase()
+        if (['A', '1'].includes(ansVal)) parsedCorrect = 1
+        else if (['B', '2'].includes(ansVal)) parsedCorrect = 2
+        else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
+        else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
+        continue
+      }
+      
+      promptLines.push(line)
+    }
+
+    if (promptLines.length > 0) {
+      parsedText = promptLines.join('\n')
+    }
+
+    if (parsedText) {
+      setQText(parsedText)
+    }
+    if (parsedOpts.some(o => o !== '')) {
+      setQOpts(parsedOpts)
+    }
+    setQCorrect(parsedCorrect)
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setIsSaving(true)
+    
+    if (qType === 'mcq') {
+      if (!qText.trim() || qOpts.some(o => !o.trim())) {
+        alert('Please fill in the question prompt and all 4 options.')
+        setIsSaving(false)
+        return
+      }
+    } else if (qType === 'assertion-reason') {
+      if (!qAssertion.trim() || !qReason.trim() || qOpts.some(o => !o.trim())) {
+        alert('Please fill in both Assertion and Reason statements, and all options.')
+        setIsSaving(false)
+        return
+      }
+    } else if (qType === 'match-column') {
+      if (!qText.trim() || qList1.some(l => !l.trim()) || qList2.some(l => !l.trim()) || qOpts.some(o => !o.trim())) {
+        alert('Please fill in List I, List II, and all options combinations.')
+        setIsSaving(false)
+        return
+      }
+    } else if (qType === 'comprehension' || qType === 'di') {
+      if (!qPassage.trim() || !qText.trim() || qOpts.some(o => !o.trim())) {
+        alert('Please fill in the passage/table data, specific question prompt, and options.')
+        setIsSaving(false)
+        return
+      }
+    } else if (qType === 'multiple-statement') {
+      if (!qText.trim() || qStatements.some(s => !s.trim()) || qOpts.some(o => !o.trim())) {
+        alert('Please fill in the question text, all statements, and all options.')
+        setIsSaving(false)
+        return
+      }
+    }
+
+    const payload = {
+      setId,
+      type: qType,
+      text: qText,
+      options: qOpts,
+      correct: qCorrect,
+      assertion: qAssertion,
+      reason: qReason,
+      passage: qPassage,
+      statements: qStatements,
+      subPrompt: qSubPrompt,
+      explanation: qExplanation,
+      list1: qList1,
+      list2: qList2
+    }
+
+    try {
+      let res
+      if (question && (question.id || question._id)) {
+        res = await fetch(`${API_BASE_URL}/api/questions/${question.id || question._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      } else {
+        res = await fetch(`${API_BASE_URL}/api/questions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      }
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message)
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+      
+      const savedQ = data.question || (question ? { ...payload, id: question.id || question._id } : null)
+      onSave(savedQ, data.updatedSet)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save question: ' + err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!question || !(question.id || question._id)) return
+    if (!window.confirm(`Are you sure you want to delete Question ${index}?`)) return
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/questions/${question.id || question._id}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        const data = await res.json()
+        onDelete(question.id || question._id, data.updatedSet)
+      } else {
+        alert('Failed to delete question')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error deleting question')
+    }
+  }
+
+  const isSaved = !!question
+
+  return (
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="ms-q-slot-number">Q{index}</span>
+          <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
+            {isSaved ? `Saved (${qType.replace('-', ' ')})` : 'Empty'}
+          </span>
+          <span className="ms-q-slot-preview" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            {qText ? (qText.length > 60 ? qText.substring(0, 60) + '...' : qText) : 'Click to add question content'}
+          </span>
+        </div>
+        <div className="ms-q-slot-toggle-icon">
+          {isOpen ? '▲' : '▼'}
+        </div>
+      </div>
+
+      {isOpen && (
+        <form className="ms-q-slot-body" onSubmit={handleSave}>
+          {!isSaved && (
+            <div className="ms-form-field" style={{ marginBottom: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+              <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                ⚡ Quick Paste / Auto-fill Helper
+              </label>
+              <textarea
+                placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
+                rows="2"
+                style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box' }}
+                value={pasteText}
+                onChange={handlePasteChange}
+              />
+              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                Tip: Paste the prompt and options, and the form below will auto-populate!
+              </span>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div className="ms-form-field">
+              <label>Question Type</label>
+              <select className="ms-input" value={qType} onChange={(e) => setQType(e.target.value)}>
+                <option value="mcq">Normal MCQ</option>
+                <option value="assertion-reason">Assertion & Reasoning</option>
+                <option value="match-column">Match the Column</option>
+                <option value="comprehension">Comprehension / Passage</option>
+                <option value="di">Data Interpretation / Table Data</option>
+                <option value="multiple-statement">Multiple Statements</option>
+              </select>
+            </div>
+            {qType === 'di' && (
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '8px', borderRadius: '6px' }}>
+                Note: Creating a new DI table is easiest in the right pane DI bulk tool. Editing existing DI in this slot works below.
+              </div>
+            )}
+          </div>
+
+          {(qType === 'comprehension' || qType === 'di') && (
+            <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+              <label>{qType === 'di' ? 'Table Data / Passage' : 'Comprehension Passage'}</label>
+              <textarea 
+                required 
+                rows="4" 
+                placeholder={qType === 'di' ? 'Paste table data...' : 'Paste comprehension passage here...'}
+                value={qPassage}
+                onChange={(e) => setQPassage(e.target.value)}
+                className="ms-input"
+              />
+            </div>
+          )}
+
+          {qType === 'assertion-reason' && (
+            <>
+              <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                <label>Assertion (A) Statement</label>
+                <textarea 
+                  required 
+                  rows="2" 
+                  placeholder="Assertion statement..."
+                  value={qAssertion}
+                  onChange={(e) => setQAssertion(e.target.value)}
+                  className="ms-input"
+                />
+              </div>
+              <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                <label>Reason (R) Statement</label>
+                <textarea 
+                  required 
+                  rows="2" 
+                  placeholder="Reason statement..."
+                  value={qReason}
+                  onChange={(e) => setQReason(e.target.value)}
+                  className="ms-input"
+                />
+              </div>
+            </>
+          )}
+
+          {qType === 'match-column' && (
+            <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: '#f8fafc' }}>
+              <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>List I & List II Items</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I (A, B, C, D)</span>
+                  {qList1.map((item, idx) => (
+                    <input 
+                      key={idx}
+                      style={{ fontSize: '0.8rem', padding: '6px' }}
+                      type="text"
+                      required
+                      placeholder={`Item ${idx + 1}`}
+                      value={item}
+                      onChange={(e) => {
+                        const next = [...qList1]
+                        next[idx] = e.target.value
+                        setQList1(next)
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List II (I, II, III, IV)</span>
+                  {qList2.map((item, idx) => (
+                    <input 
+                      key={idx}
+                      style={{ fontSize: '0.8rem', padding: '6px' }}
+                      type="text"
+                      required
+                      placeholder={`Match ${idx + 1}`}
+                      value={item}
+                      onChange={(e) => {
+                        const next = [...qList2]
+                        next[idx] = e.target.value
+                        setQList2(next)
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {qType === 'multiple-statement' && (
+            <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: '#f8fafc' }}>
+              <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Statements (A, B, C, D, E)</strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {qStatements.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 600 }}>{String.fromCharCode(65 + idx)}.</span>
+                    <textarea
+                      required
+                      rows="1"
+                      style={{ flex: 1, padding: '8px', fontSize: '0.85rem' }}
+                      placeholder={`Statement ${String.fromCharCode(65 + idx)}`}
+                      value={item}
+                      onChange={(e) => {
+                        const next = [...qStatements]
+                        next[idx] = e.target.value
+                        setQStatements(next)
+                      }}
+                    />
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <button type="button" onClick={() => setQStatements(prev => [...prev, ''])} style={{ padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer' }}>+ Add Statement</button>
+                  {qStatements.length > 2 && (
+                    <button type="button" onClick={() => setQStatements(prev => prev.slice(0, -1))} style={{ padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer', background: '#fee2e2', color: '#ef4444' }}>- Remove</button>
+                  )}
+                </div>
+                <div className="ms-form-field" style={{ marginTop: '12px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="e.g. Choose the correct answer from the options given below:"
+                    value={qSubPrompt}
+                    onChange={(e) => setQSubPrompt(e.target.value)}
+                    className="ms-input"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+            <label>Question Prompt / Text</label>
+            <textarea 
+              required 
+              rows="2" 
+              placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
+              value={qText}
+              onChange={(e) => setQText(e.target.value)}
+              className="ms-input"
+            />
+          </div>
+
+          <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {qOpts.map((opt, idx) => (
+              <div className="ms-form-field" key={idx}>
+                <label>Option {idx + 1}</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder={qType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
+                  value={opt}
+                  onChange={(e) => {
+                    const next = [...qOpts]
+                    next[idx] = e.target.value
+                    setQOpts(next)
+                  }}
+                  className="ms-input"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div className="ms-form-field">
+              <label>Correct Answer Option</label>
+              <select 
+                className="ms-input"
+                value={qCorrect}
+                onChange={(e) => setQCorrect(Number(e.target.value))}
+              >
+                <option value="1">Option 1</option>
+                <option value="2">Option 2</option>
+                <option value="3">Option 3</option>
+                <option value="4">Option 4</option>
+              </select>
+            </div>
+            
+            {isSaved && (
+              <div className="ms-form-field" style={{ justifyContent: 'flex-end' }}>
+                <button type="button" className="ms-btn ms-btn-secondary" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={handleDelete}>
+                  Delete Question
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+            <label>Detailed Explanation (Optional)</label>
+            <textarea 
+              rows="2"
+              className="ms-input"
+              placeholder="Enter detailed explanation of the concept and why this option is correct"
+              value={qExplanation}
+              onChange={(e) => setQExplanation(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" disabled={isSaving} className="ms-btn ms-btn-primary" style={{ flex: 1 }}>
+              {isSaving ? 'Saving...' : (isSaved ? 'Update Question' : 'Save to Database')}
+            </button>
+            {saveSuccess && (
+              <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                ✓ Saved!
+              </div>
+            )}
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
 const ManageSet = () => {
   const { setId } = useParams()
   const navigate = useNavigate()
@@ -75,6 +564,15 @@ const ManageSet = () => {
             setNewSetIsPublished(target.isPublished || false)
             loadQuestionsForSet(setId)
           }
+        } else {
+          setEditingSetId(null)
+          setSelectedSetId('')
+          setNewSetPaperType('Paper I')
+          setNewSetYear('')
+          setNewSetSubtitle('')
+          setNewSetCount(50)
+          setNewSetIsPublished(false)
+          setEditingSetQuestions([])
         }
       })
       .catch(err => console.error(err))
@@ -1106,12 +1604,39 @@ const ManageSet = () => {
     <div className="manage-set-page">
     <div className="manage-set-container">
       <div className="manage-set-header">
-        <h1>Manage Exam Set #{setId}</h1>
-        <p>Edit set details and manage questions</p>
+        <h1>{setId ? `Manage Exam Set #${setId}` : 'Manage Exam Sets'}</h1>
+        <p>{setId ? 'Edit set details and manage questions' : 'Select or create a set to manage questions'}</p>
         <button className="btn-back" onClick={() => navigate('/profile')}>&larr; Back to Profile</button>
       </div>
       <div className="manage-set-layout">
         <div className="manage-set-left">
+                  {/* SET SELECTOR DROPDOWN */}
+                  <div className="ms-card" style={{ marginBottom: '12px' }}>
+                    <h3>Select PYQ Set to Manage</h3>
+                    <div className="ms-form-field">
+                      <select
+                        className="ms-input"
+                        value={selectedSetId}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setSelectedSetId(val)
+                          if (val) {
+                            navigate(`/admin/manage-set/${val}`)
+                          } else {
+                            navigate('/admin/manage-set')
+                          }
+                        }}
+                      >
+                        <option value="">-- Create New Set --</option>
+                        {pyqSets.map(s => (
+                          <option key={s.id || s._id} value={s.id || s._id}>
+                            {s.title} ({s.questionsLoaded || 0} / {s.questionsCount || 100} Qs)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   {/* 4.2 CREATE / EDIT PYQ SET FORM */}
                   <form className="ms-card" onSubmit={handleCreateSet}>
                     <h3>{editingSetId ? `Edit PYQ Set #${editingSetId}` : 'Create New PYQ Year-Wise Set'}</h3>
@@ -1120,7 +1645,11 @@ const ManageSet = () => {
                       <select 
                         className="ms-input"
                         value={newSetPaperType}
-                        onChange={(e) => setNewSetPaperType(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setNewSetPaperType(val)
+                          setNewSetCount(val === 'Paper I' ? 50 : 100)
+                        }}
                       >
                         <option value="Paper I">Paper I (General Aptitude)</option>
                         <option value="Paper II">Paper II (Sociology)</option>
@@ -1187,83 +1716,48 @@ const ManageSet = () => {
                   </form>
                   {editingSetId && (
                     <div className="ms-card">
-                      <h3>Manage Questions ({editingSetQuestions?.length || 0})</h3>
-                      <div className="ms-questions-list" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-                        {(!editingSetQuestions || editingSetQuestions.length === 0) ? (
-                          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-light)', border: '1px dashed var(--border)', borderRadius: '8px' }}>
-                            No questions have been saved to this set yet. Please use the form below to import some!
-                          </div>
-                        ) : editingSetQuestions.map((q, idx) => (
-                          <div key={q.id} className={`ms-q-card ${editingQuestionId === (q.id || q._id) ? 'ms-q-card--editing' : ''}`}>
-                            {editingQuestionId === (q.id || q._id) ? (
-                              renderQuestionForm(true)
-                            ) : (
-                              <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                              <span className="ms-q-title">Q{idx + 1} <span className="ms-q-type">{q.type.replace('-', ' ')}</span></span>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button 
-                                  type="button" 
-                                  className="ms-action-btn ms-action-btn--edit" 
-                                  onClick={() => handleEditQuestion(q)}
-                                >
-                                  Edit
-                                </button>
-                                <button 
-                                  type="button" 
-                                  className="ms-action-btn ms-action-btn--delete" 
-                                  onClick={() => handleDeleteQuestion(q.id || q._id)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                            {q.passage && <div style={{ fontSize: '0.85rem', marginBottom: '8px', fontStyle: 'italic', color: 'var(--text-light)' }}>Passage: {q.passage.substring(0, 50)}...</div>}
-                            {q.assertion && <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}><strong>A:</strong> {q.assertion}</div>}
-                            {q.reason && <div style={{ fontSize: '0.85rem', marginBottom: '8px' }}><strong>R:</strong> {q.reason}</div>}
-                            {q.type === 'match-column' && q.list1 && q.list2 && (
-                              <div style={{ display: 'flex', gap: '20px', fontSize: '0.85rem', marginBottom: '8px', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '4px' }}>
-                                <div>
-                                  <strong>List I</strong>
-                                  <ol type="A" style={{ margin: '4px 0 0 20px', padding: 0 }}>
-                                    {q.list1.map((item, i) => <li key={i}>{item}</li>)}
-                                  </ol>
-                                </div>
-                                <div>
-                                  <strong>List II</strong>
-                                  <ol type="I" style={{ margin: '4px 0 0 20px', padding: 0 }}>
-                                    {q.list2.map((item, i) => <li key={i}>{item}</li>)}
-                                  </ol>
-                                </div>
-                              </div>
-                            )}
-                            {q.type === 'multiple-statement' && q.statements && q.statements.length > 0 && (
-                              <div style={{ fontSize: '0.85rem', marginBottom: '8px', background: 'var(--bg-secondary)', padding: '10px', borderRadius: '4px' }}>
-                                <strong>Statements:</strong>
-                                <ul style={{ listStyleType: 'none', paddingLeft: '10px', margin: '4px 0' }}>
-                                  {q.statements.map((stmt, sIdx) => (
-                                    <li key={sIdx}><strong>{String.fromCharCode(65 + sIdx)}.</strong> {stmt}</li>
-                                  ))}
-                                </ul>
-                                <div style={{ fontWeight: 'bold', marginTop: '6px' }}>{q.subPrompt || 'Choose the correct answer from the options given below:'}</div>
-                              </div>
-                            )}
-                            <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}><strong>Q:</strong> {q.text}</div>
-                            {q.options && q.options.length > 0 && (
-                              <ul style={{ listStyleType: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
-                                {q.options.map((opt, oIdx) => (
-                                  <li key={oIdx} style={{ padding: '4px 0', color: q.correct === (oIdx + 1) ? 'var(--success)' : 'inherit', fontWeight: q.correct === (oIdx + 1) ? 'bold' : 'normal' }}>
-                                    ({oIdx + 1}) {opt}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                            </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <h3>
+                        Manage Questions ({editingSetQuestions?.length || 0} / {newSetCount || (newSetPaperType === 'Paper I' ? 50 : 100)})
+                        <span className="badge" style={{ background: '#e0f2fe', color: '#0284c7', marginLeft: '10px', fontSize: '0.85rem' }}>
+                          {newSetPaperType}
+                        </span>
+                      </h3>
                       
+                      <div className="ms-questions-slots-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
+                        {Array.from({ length: newSetCount || (newSetPaperType === 'Paper I' ? 50 : 100) }).map((_, idx) => {
+                          const qIndex = idx + 1
+                          const question = editingSetQuestions[idx]
+                          return (
+                            <QuestionSlot
+                              key={idx}
+                              index={qIndex}
+                              question={question}
+                              setId={editingSetId}
+                              API_BASE_URL={API_BASE_URL}
+                              onSave={(savedQ, updatedSet) => {
+                                setEditingSetQuestions(prev => {
+                                  const next = [...prev]
+                                  if (idx < prev.length) {
+                                    next[idx] = savedQ
+                                  } else {
+                                    next.push(savedQ)
+                                  }
+                                  return next
+                                })
+                                if (updatedSet) {
+                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                }
+                              }}
+                              onDelete={(deletedId, updatedSet) => {
+                                setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
+                                if (updatedSet) {
+                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                }
+                              }}
+                            />
+                          )
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
