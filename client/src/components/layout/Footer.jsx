@@ -9,10 +9,10 @@ const Footer = () => {
       <div className="footer__container">
         <div className="footer__info">
           <div className="footer__brand">
-            <div className="navbar__logo-icon" style={{ width: '44px', height: '44px' }}>
+            <div className="navbar__logo-icon" style={{ width: '52px', height: '52px' }}>
               <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <span className="footer__logo-text" style={{ color: '#1C2355', marginLeft: '-4px' }}>GC Free Paper</span>
+            <span className="footer__logo-text" style={{ color: '#1C2355', marginLeft: '-5px' }}>GC Free Paper</span>
           </div>
           <p className="footer__desc" style={{ marginBottom: '16px' }}>
             Empowering NTA NET Aspirants with world-class free education tools.
