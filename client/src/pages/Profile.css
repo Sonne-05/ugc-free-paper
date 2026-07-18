@@ -778,3 +778,13 @@
 .student-pane .pane-title {
   color: #1e1b4b; /* Deep Indigo-Blue title */
 }
+
+/* Blog manager custom styling */
+.admin-pane h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}

@@ -29,6 +29,19 @@ const Profile = () => {
   const [pyqSets, setPyqSets] = useState([])
   const [messages, setMessages] = useState([])
 
+  // Blog states
+  const [adminPosts, setAdminPosts] = useState([])
+  const [blogId, setBlogId] = useState(null)
+  const [blogTitle, setBlogTitle] = useState('')
+  const [blogCategory, setBlogCategory] = useState('Strategy')
+  const [blogAuthor, setBlogAuthor] = useState('')
+  const [blogReadTime, setBlogReadTime] = useState('5 min read')
+  const [blogImage, setBlogImage] = useState('/blog/ugc_net_prep.png')
+  const [blogExcerpt, setBlogExcerpt] = useState('')
+  const [blogContent, setBlogContent] = useState('')
+  const [blogIsFeatured, setBlogIsFeatured] = useState(false)
+  const [isBlogFormOpen, setIsBlogFormOpen] = useState(false)
+
   // Form states
   const [newNoteTitle, setNewNoteTitle] = useState('')
 
@@ -47,7 +60,7 @@ const Profile = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '')
-      const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages']
+      const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages', 'blogs']
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       }
@@ -107,6 +120,14 @@ const Profile = () => {
           if (Array.isArray(data)) setMessages(data);
         })
         .catch(err => console.error('Failed to fetch contact messages:', err));
+
+      // 6. Fetch blog posts
+      fetch(`${API_BASE_URL}/api/posts`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setAdminPosts(data);
+        })
+        .catch(err => console.error('Failed to fetch admin blog posts:', err));
     }
   }, [isAdmin])
 
@@ -585,6 +606,100 @@ const Profile = () => {
     } catch (err) {
       console.error(err);
       alert('Network error while updating availability.');
+    }
+  }
+
+  const handleResetBlogForm = () => {
+    setBlogId(null)
+    setBlogTitle('')
+    setBlogCategory('Strategy')
+    setBlogAuthor('')
+    setBlogReadTime('5 min read')
+    setBlogImage('/blog/ugc_net_prep.png')
+    setBlogExcerpt('')
+    setBlogContent('')
+    setBlogIsFeatured(false)
+    setIsBlogFormOpen(false)
+  }
+
+  const handleSaveBlogPost = async (e) => {
+    e.preventDefault()
+    const postData = {
+      title: blogTitle,
+      category: blogCategory,
+      author: blogAuthor,
+      readTime: blogReadTime,
+      image: blogImage,
+      excerpt: blogExcerpt,
+      content: blogContent,
+      isFeatured: blogIsFeatured
+    }
+
+    try {
+      if (blogId) {
+        const res = await fetch(`${API_BASE_URL}/api/posts/${blogId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postData)
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          setAdminPosts(prev => prev.map(p => p._id === blogId ? updated : p))
+          alert('Blog post updated successfully!')
+          handleResetBlogForm()
+        } else {
+          alert('Failed to update blog post.')
+        }
+      } else {
+        const res = await fetch(`${API_BASE_URL}/api/posts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postData)
+        })
+        if (res.ok) {
+          const created = await res.json()
+          setAdminPosts(prev => [created, ...prev])
+          alert('Blog post created successfully!')
+          handleResetBlogForm()
+        } else {
+          alert('Failed to create blog post.')
+        }
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while saving blog post.')
+    }
+  }
+
+  const handleEditBlogPost = (post) => {
+    setBlogId(post._id)
+    setBlogTitle(post.title)
+    setBlogCategory(post.category)
+    setBlogAuthor(post.author)
+    setBlogReadTime(post.readTime)
+    setBlogImage(post.image)
+    setBlogExcerpt(post.excerpt)
+    setBlogContent(post.content)
+    setBlogIsFeatured(post.isFeatured || false)
+    setIsBlogFormOpen(true)
+  }
+
+  const handleDeleteBlogPost = async (id) => {
+    if (window.confirm('Are you sure you want to delete this blog post?')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/posts/${id}`, {
+          method: 'DELETE'
+        })
+        if (res.ok) {
+          setAdminPosts(prev => prev.filter(p => p._id !== id))
+          alert('Blog post deleted successfully!')
+        } else {
+          alert('Failed to delete blog post.')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Network error while deleting blog post.')
+      }
     }
   }
 
@@ -1579,6 +1694,13 @@ const Profile = () => {
                 </span>
               )}
             </button>
+            <button 
+              className={`admin-tab-link ${activeTab === 'blogs' ? 'admin-tab-link--active' : ''}`}
+              onClick={() => setActiveTab('blogs')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              <span>Manage Blogs</span>
+            </button>
           </aside>
 
           {/* Active Tab Panel Content */}
@@ -2482,6 +2604,186 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* 7. MANAGE BLOGS */}
+            {activeTab === 'blogs' && (
+              <div className="admin-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div>
+                    <h2 className="pane-title">Manage Blog Section</h2>
+                    <p className="pane-desc">Create, update, or remove articles shown in the public Blog section.</p>
+                  </div>
+                  {!isBlogFormOpen && (
+                     <button 
+                       className="table-btn table-btn--upload" 
+                       style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                       onClick={() => {
+                         handleResetBlogForm();
+                         setIsBlogFormOpen(true);
+                       }}
+                     >
+                       + Write New Post
+                     </button>
+                  )}
+                </div>
+
+                {isBlogFormOpen ? (
+                  <form className="pane-form" onSubmit={handleSaveBlogPost}>
+                    <h3>{blogId ? 'Edit Blog Post' : 'Write New Blog Post'}</h3>
+                    <div className="form-fields" style={{ gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-field">
+                        <label>Article Title</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. 5 Secrets to Crack UGC NET on First Attempt" 
+                          value={blogTitle}
+                          onChange={(e) => setBlogTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>Category</label>
+                        <select 
+                          className="pane-select"
+                          value={blogCategory}
+                          onChange={(e) => setBlogCategory(e.target.value)}
+                        >
+                          <option value="Strategy">Strategy</option>
+                          <option value="Study Guide">Study Guide</option>
+                          <option value="Tips">Tips</option>
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label>Author Name</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. Prof. Kumar" 
+                          value={blogAuthor}
+                          onChange={(e) => setBlogAuthor(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>Read Time</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. 5 min read" 
+                          value={blogReadTime}
+                          onChange={(e) => setBlogReadTime(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label>Cover Image Path</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. /blog/ugc_net_prep.png" 
+                          value={blogImage}
+                          onChange={(e) => setBlogImage(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
+                        <input 
+                          type="checkbox" 
+                          id="isFeatured"
+                          checked={blogIsFeatured}
+                          onChange={(e) => setBlogIsFeatured(e.target.checked)}
+                          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        />
+                        <label htmlFor="isFeatured" style={{ cursor: 'pointer', userSelect: 'none' }}>Mark as Featured Post</label>
+                      </div>
+                      <div className="form-field full-width">
+                        <label>Short Excerpt</label>
+                        <textarea 
+                          required 
+                          rows="2"
+                          placeholder="A brief 1-2 sentence description of the article..." 
+                          value={blogExcerpt}
+                          onChange={(e) => setBlogExcerpt(e.target.value)}
+                        />
+                      </div>
+                      <div className="form-field full-width">
+                        <label>Article Content (HTML Supported)</label>
+                        <textarea 
+                          required 
+                          rows="8"
+                          placeholder="Use HTML tags like <p>, <h3>, <ul>, <li> to format your article..." 
+                          value={blogContent}
+                          onChange={(e) => setBlogContent(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                      <button type="submit" className="pane-submit-btn">Save Post</button>
+                      <button type="button" className="table-btn" onClick={handleResetBlogForm}>Cancel</button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Title</th>
+                          <th>Category</th>
+                          <th>Author</th>
+                          <th>Date</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminPosts.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>No blog posts found.</td>
+                          </tr>
+                        ) : (
+                          adminPosts.map(post => (
+                            <tr key={post._id}>
+                              <td style={{ fontWeight: 600 }}>
+                                {post.title}
+                                {post.isFeatured && (
+                                  <span style={{ 
+                                    marginLeft: '8px', 
+                                    fontSize: '0.65rem', 
+                                    backgroundColor: '#fff3c7', 
+                                    color: '#d97706', 
+                                    padding: '2px 6px', 
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(217, 119, 6, 0.15)',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    Featured
+                                  </span>
+                                )}
+                              </td>
+                              <td>{post.category}</td>
+                              <td>{post.author}</td>
+                              <td>{post.date}</td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                  <button 
+                                    className="table-btn table-btn--edit" 
+                                    onClick={() => handleEditBlogPost(post)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    className="table-btn table-btn--delete" 
+                                    onClick={() => handleDeleteBlogPost(post._id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </main>
