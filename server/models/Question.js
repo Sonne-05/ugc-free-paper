@@ -39,7 +39,9 @@ const questionSchema = new mongoose.Schema({
   list2: {
     type: [String],
     default: []
-  }
+  },
+  list1Header: String,
+  list2Header: String
 }, { timestamps: true });
 
 // Transform _id to id when sending to frontend

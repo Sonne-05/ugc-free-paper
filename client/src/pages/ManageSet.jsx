@@ -450,10 +450,11 @@ const QuestionSlot = ({
   const [qOpts, setQOpts] = useState(['', '', '', ''])
   const [qCorrect, setQCorrect] = useState(1)
   const [qExplanation, setQExplanation] = useState('')
-  const [qAssertion, setQAssertion] = useState('')
   const [qReason, setQReason] = useState('')
   const [qList1, setQList1] = useState(['', '', '', ''])
   const [qList2, setQList2] = useState(['', '', '', ''])
+  const [qList1Header, setQList1Header] = useState('')
+  const [qList2Header, setQList2Header] = useState('')
   const [qPassage, setQPassage] = useState('')
   const [qStatements, setQStatements] = useState(['', '', '', '', ''])
   const [qSubPrompt, setQSubPrompt] = useState('Choose the correct answer from the options given below:')
@@ -461,7 +462,7 @@ const QuestionSlot = ({
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [pasteText, setPasteText] = useState('')
-
+ 
   // Sync state with question when it changes or opens
   useEffect(() => {
     if (question) {
@@ -474,6 +475,8 @@ const QuestionSlot = ({
       setQReason(question.reason || '')
       setQList1(question.list1 && question.list1.length >= 4 ? question.list1.slice(0, 4) : ['', '', '', ''])
       setQList2(question.list2 && question.list2.length >= 4 ? question.list2.slice(0, 4) : ['', '', '', ''])
+      setQList1Header(question.list1Header || '')
+      setQList2Header(question.list2Header || '')
       setQPassage(question.passage || '')
       setQStatements(question.statements || ['', '', '', '', ''])
       setQSubPrompt(question.subPrompt || 'Choose the correct answer from the options given below:')
@@ -488,6 +491,8 @@ const QuestionSlot = ({
       setQReason('')
       setQList1(['', '', '', ''])
       setQList2(['', '', '', ''])
+      setQList1Header('')
+      setQList2Header('')
       setQPassage('')
       setQStatements(['', '', '', '', ''])
       setQSubPrompt('Choose the correct answer from the options given below:')
@@ -602,7 +607,9 @@ const QuestionSlot = ({
       subPrompt: qSubPrompt,
       explanation: qExplanation,
       list1: qList1,
-      list2: qList2
+      list2: qList2,
+      list1Header: qList1Header,
+      list2Header: qList2Header
     }
 
     try {
@@ -759,6 +766,28 @@ const QuestionSlot = ({
           {qType === 'match-column' && (
             <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: '#f8fafc' }}>
               <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>List I & List II Items</strong>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I Subtitle (Optional)</span>
+                  <input 
+                    style={{ fontSize: '0.8rem', padding: '6px' }}
+                    type="text"
+                    placeholder="e.g. Non-probability sampling"
+                    value={qList1Header}
+                    onChange={(e) => setQList1Header(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List II Subtitle (Optional)</span>
+                  <input 
+                    style={{ fontSize: '0.8rem', padding: '6px' }}
+                    type="text"
+                    placeholder="e.g. Characteristic"
+                    value={qList2Header}
+                    onChange={(e) => setQList2Header(e.target.value)}
+                  />
+                </div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I (A, B, C, D)</span>
@@ -955,6 +984,8 @@ const ManageSet = () => {
   const [newQReason, setNewQReason] = useState('')
   const [newQList1, setNewQList1] = useState(['', '', '', ''])
   const [newQList2, setNewQList2] = useState(['', '', '', ''])
+  const [newQList1Header, setNewQList1Header] = useState('')
+  const [newQList2Header, setNewQList2Header] = useState('')
   const [newQPassage, setNewQPassage] = useState('')
   const [newQStatements, setNewQStatements] = useState(['', '', '', '', ''])
   const [newQSubPrompt, setNewQSubPrompt] = useState('Choose the correct answer from the options given below:')
@@ -1038,6 +1069,8 @@ const ManageSet = () => {
     setNewQReason(q.reason || '')
     setNewQList1(q.list1 || ['', '', '', ''])
     setNewQList2(q.list2 || ['', '', '', ''])
+    setNewQList1Header(q.list1Header || '')
+    setNewQList2Header(q.list2Header || '')
     setNewQPassage(q.passage || '')
     setNewQStatements(q.statements || ['', '', '', '', ''])
     setNewQSubPrompt(q.subPrompt || 'Choose the correct answer from the options given below:')
@@ -1072,6 +1105,8 @@ const ManageSet = () => {
     setNewQReason('')
     setNewQList1(['', '', '', ''])
     setNewQList2(['', '', '', ''])
+    setNewQList1Header('')
+    setNewQList2Header('')
     setNewQPassage('')
     setNewQStatements(['', '', '', '', ''])
     setNewQSubPrompt('Choose the correct answer from the options given below:')
@@ -1347,7 +1382,11 @@ const ManageSet = () => {
       passage: newQPassage,
       statements: newQStatements,
       subPrompt: newQSubPrompt,
-      explanation: newQExplanation
+      explanation: newQExplanation,
+      list1: newQList1,
+      list2: newQList2,
+      list1Header: newQList1Header,
+      list2Header: newQList2Header
     }
 
     try {
@@ -1467,6 +1506,8 @@ const ManageSet = () => {
           correct: 1,
           list1: [],
           list2: [],
+          list1Header: '',
+          list2Header: '',
           statements: [],
           passage: sharedPassage || ''
         }
@@ -1477,16 +1518,26 @@ const ManageSet = () => {
       if (!currentQ) continue
 
       // Detect section headers
-      if (/^list\s*[-–]?\s*i\b/i.test(line) && !/^list\s*[-–]?\s*ii\b/i.test(line)) {
+      const list1Match = line.match(/^list\s*[-–]?\s*i\b[\s\:\-\(\[\]\)]*(.*)/i)
+      if (list1Match && !/^list\s*[-–]?\s*ii\b/i.test(line)) {
         currentQ.type = 'match-column'
         currentSection = 'list1'
         currentQ.text += (currentQ.text ? '\n' : '') + line
+        const subtitle = list1Match[1].trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '')
+        if (subtitle) {
+          currentQ.list1Header = subtitle
+        }
         continue
       }
-      if (/^list\s*[-–]?\s*ii\b/i.test(line)) {
+      const list2Match = line.match(/^list\s*[-–]?\s*ii\b[\s\:\-\(\[\]\)]*(.*)/i)
+      if (list2Match) {
         currentQ.type = 'match-column'
         currentSection = 'list2'
         currentQ.text += (currentQ.text ? '\n' : '') + line
+        const subtitle = list2Match[1].trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '')
+        if (subtitle) {
+          currentQ.list2Header = subtitle
+        }
         continue
       }
       if (/^assertion\s*\(?A\)?/i.test(line)) {
@@ -1569,9 +1620,21 @@ const ManageSet = () => {
 
       // Append to current section
       if (currentSection === 'list1') {
-        currentQ.list1.push(line)
+        if (/^[\(\[]?[a-eA-E][\)\]\.\:\-\,\，\s]/i.test(line)) {
+          currentQ.list1.push(line)
+        } else if (!currentQ.list1Header && currentQ.list1.length === 0) {
+          currentQ.list1Header = line
+        } else {
+          currentQ.list1.push(line)
+        }
       } else if (currentSection === 'list2') {
-        currentQ.list2.push(line)
+        if (/^[\(\[]?([ivxIVX]+|\d+)[\)\]\.\:\-\,\，\s]/i.test(line)) {
+          currentQ.list2.push(line)
+        } else if (!currentQ.list2Header && currentQ.list2.length === 0) {
+          currentQ.list2Header = line
+        } else {
+          currentQ.list2.push(line)
+        }
       } else if (currentSection === 'assertion') {
         currentQ.assertion += ' ' + line
       } else if (currentSection === 'reason') {
@@ -1770,6 +1833,28 @@ const ManageSet = () => {
 {newQType === 'match-column' && (
   <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: 'var(--bg-card)' }}>
     <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>List I & List II Items</strong>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I Subtitle (Optional)</span>
+        <input 
+          style={{ fontSize: '0.8rem', padding: '6px' }}
+          type="text"
+          placeholder="e.g. Non-probability sampling"
+          value={newQList1Header}
+          onChange={(e) => setNewQList1Header(e.target.value)}
+        />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List II Subtitle (Optional)</span>
+        <input 
+          style={{ fontSize: '0.8rem', padding: '6px' }}
+          type="text"
+          placeholder="e.g. Characteristic"
+          value={newQList2Header}
+          onChange={(e) => setNewQList2Header(e.target.value)}
+        />
+      </div>
+    </div>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I (A, B, C, D)</span>

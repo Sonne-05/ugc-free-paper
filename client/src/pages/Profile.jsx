@@ -150,6 +150,8 @@ const Profile = () => {
   
   const [newQList1, setNewQList1] = useState(['', '', '', ''])
   const [newQList2, setNewQList2] = useState(['', '', '', ''])
+  const [newQList1Header, setNewQList1Header] = useState('')
+  const [newQList2Header, setNewQList2Header] = useState('')
   
   const [newQPassage, setNewQPassage] = useState('')
   const [newQStatements, setNewQStatements] = useState(['', '', ''])
@@ -1062,6 +1064,8 @@ const Profile = () => {
       passage: newQPassage,
       list1: newQList1,
       list2: newQList2,
+      list1Header: newQList1Header,
+      list2Header: newQList2Header,
       statements: newQStatements,
       subPrompt: newQSubPrompt,
       explanation: newQExplanation
@@ -1104,6 +1108,8 @@ const Profile = () => {
     setNewQReason('')
     setNewQList1(['', '', '', ''])
     setNewQList2(['', '', '', ''])
+    setNewQList1Header('')
+    setNewQList2Header('')
     setNewQPassage('')
     setNewQStatements(['', '', ''])
     setNewQSubPrompt('Choose the correct answer from the options given below:')
@@ -1191,6 +1197,8 @@ const Profile = () => {
           correct: 1,
           list1: [],
           list2: [],
+          list1Header: '',
+          list2Header: '',
           statements: [],
           passage: sharedPassage || ''
         }
@@ -1201,16 +1209,26 @@ const Profile = () => {
       if (!currentQ) continue
 
       // Detect section headers
-      if (/^list\s*[-–]?\s*i\b/i.test(line) && !/^list\s*[-–]?\s*ii\b/i.test(line)) {
+      const list1Match = line.match(/^list\s*[-–]?\s*i\b[\s\:\-\(\[\]\)]*(.*)/i)
+      if (list1Match && !/^list\s*[-–]?\s*ii\b/i.test(line)) {
         currentQ.type = 'match-column'
         currentSection = 'list1'
         currentQ.text += (currentQ.text ? '\n' : '') + line
+        const subtitle = list1Match[1].trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '')
+        if (subtitle) {
+          currentQ.list1Header = subtitle
+        }
         continue
       }
-      if (/^list\s*[-–]?\s*ii\b/i.test(line)) {
+      const list2Match = line.match(/^list\s*[-–]?\s*ii\b[\s\:\-\(\[\]\)]*(.*)/i)
+      if (list2Match) {
         currentQ.type = 'match-column'
         currentSection = 'list2'
         currentQ.text += (currentQ.text ? '\n' : '') + line
+        const subtitle = list2Match[1].trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '')
+        if (subtitle) {
+          currentQ.list2Header = subtitle
+        }
         continue
       }
       if (/^assertion\s*\(?A\)?/i.test(line)) {
@@ -1293,9 +1311,21 @@ const Profile = () => {
 
       // Append to current section
       if (currentSection === 'list1') {
-        currentQ.list1.push(line)
+        if (/^[\(\[]?[a-eA-E][\)\]\.\:\-\,\，\s]/i.test(line)) {
+          currentQ.list1.push(line)
+        } else if (!currentQ.list1Header && currentQ.list1.length === 0) {
+          currentQ.list1Header = line
+        } else {
+          currentQ.list1.push(line)
+        }
       } else if (currentSection === 'list2') {
-        currentQ.list2.push(line)
+        if (/^[\(\[]?([ivxIVX]+|\d+)[\)\]\.\:\-\,\，\s]/i.test(line)) {
+          currentQ.list2.push(line)
+        } else if (!currentQ.list2Header && currentQ.list2.length === 0) {
+          currentQ.list2Header = line
+        } else {
+          currentQ.list2.push(line)
+        }
       } else if (currentSection === 'assertion') {
         currentQ.assertion += ' ' + line
       } else if (currentSection === 'reason') {
@@ -2257,6 +2287,28 @@ const Profile = () => {
                         {newQType === 'match-column' && (
                           <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: 'var(--bg-card)' }}>
                             <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>List I & List II Items</strong>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I Subtitle (Optional)</span>
+                                <input 
+                                  style={{ fontSize: '0.8rem', padding: '6px' }}
+                                  type="text"
+                                  placeholder="e.g. Non-probability sampling"
+                                  value={newQList1Header}
+                                  onChange={(e) => setNewQList1Header(e.target.value)}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List II Subtitle (Optional)</span>
+                                <input 
+                                  style={{ fontSize: '0.8rem', padding: '6px' }}
+                                  type="text"
+                                  placeholder="e.g. Characteristic"
+                                  value={newQList2Header}
+                                  onChange={(e) => setNewQList2Header(e.target.value)}
+                                />
+                              </div>
+                            </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>List I (A, B, C, D)</span>
