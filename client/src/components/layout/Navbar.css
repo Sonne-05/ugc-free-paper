@@ -232,17 +232,17 @@
   font-size: 0.95rem;
   font-weight: 700;
   color: white;
-  background: var(--primary, #2563eb); /* Brand Blue Pill */
+  background: #3BBED0; /* Turquoise/cyan */
   text-decoration: none;
   border-radius: 999px; /* Fully rounded pill */
   transition: all 0.15s ease;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 2px 4px rgba(59, 190, 208, 0.15);
 }
 
 .navbar__signup-btn:hover {
-  background: var(--primary-dark, #1d4ed8); /* Brand Darker Blue Hover */
+  background: #2CA5B7; /* Darker turquoise hover */
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 12px rgba(59, 190, 208, 0.3);
 }
 
 /* Profile Menu Layout */
@@ -572,7 +572,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: white;
-  background: var(--primary, #2563eb);
+  background: #3BBED0; /* Turquoise/cyan */
   text-decoration: none;
   border-radius: 8px;
   transition: all 0.15s ease;
@@ -581,7 +581,7 @@
 }
 
 .navbar__mobile-cta:hover {
-  background: var(--primary-dark, #1d4ed8);
+  background: #2CA5B7; /* Darker turquoise hover */
 }
 
 .navbar__mobile-cta--logout {
