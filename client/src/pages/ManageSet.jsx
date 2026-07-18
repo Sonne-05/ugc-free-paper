@@ -450,6 +450,7 @@ const QuestionSlot = ({
   const [qOpts, setQOpts] = useState(['', '', '', ''])
   const [qCorrect, setQCorrect] = useState(1)
   const [qExplanation, setQExplanation] = useState('')
+  const [qAssertion, setQAssertion] = useState('')
   const [qReason, setQReason] = useState('')
   const [qList1, setQList1] = useState(['', '', '', ''])
   const [qList2, setQList2] = useState(['', '', '', ''])
