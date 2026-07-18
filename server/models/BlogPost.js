@@ -21,9 +21,6 @@ const BlogPostSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  image: {
-    type: String
-  },
   excerpt: {
     type: String,
     required: true

@@ -36,7 +36,6 @@ const Profile = () => {
   const [blogCategory, setBlogCategory] = useState('Strategy')
   const [blogAuthor, setBlogAuthor] = useState('')
   const [blogReadTime, setBlogReadTime] = useState('5 min read')
-  const [blogImage, setBlogImage] = useState('/blog/ugc_net_prep.png')
   const [blogExcerpt, setBlogExcerpt] = useState('')
   const [blogContent, setBlogContent] = useState('')
   const [blogIsFeatured, setBlogIsFeatured] = useState(false)
@@ -600,7 +599,6 @@ const Profile = () => {
     setBlogCategory('Strategy')
     setBlogAuthor('')
     setBlogReadTime('5 min read')
-    setBlogImage('/blog/ugc_net_prep.png')
     setBlogExcerpt('')
     setBlogContent('')
     setBlogIsFeatured(false)
@@ -614,7 +612,6 @@ const Profile = () => {
       category: blogCategory,
       author: blogAuthor,
       readTime: blogReadTime,
-      image: blogImage,
       excerpt: blogExcerpt,
       content: blogContent,
       isFeatured: blogIsFeatured
@@ -662,7 +659,6 @@ const Profile = () => {
     setBlogCategory(post.category)
     setBlogAuthor(post.author)
     setBlogReadTime(post.readTime)
-    setBlogImage(post.image)
     setBlogExcerpt(post.excerpt)
     setBlogContent(post.content)
     setBlogIsFeatured(post.isFeatured || false)
@@ -2638,16 +2634,7 @@ const Profile = () => {
                           onChange={(e) => setBlogReadTime(e.target.value)}
                         />
                       </div>
-                      <div className="form-field">
-                        <label>Cover Image Path</label>
-                        <input 
-                          type="text" 
-                          required 
-                          placeholder="e.g. /blog/ugc_net_prep.png" 
-                          value={blogImage}
-                          onChange={(e) => setBlogImage(e.target.value)}
-                        />
-                      </div>
+
                       <div className="form-field" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '24px' }}>
                         <input 
                           type="checkbox" 

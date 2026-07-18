@@ -89,9 +89,6 @@ const Blog = () => {
             {/* Featured Post (only shown when 'All' is selected and search is empty) */}
             {selectedCategory === 'All' && !searchTerm && featuredPost && (
               <section className="featured-post">
-                <div className="featured-image-wrapper">
-                  <img src={featuredPost.image} alt={featuredPost.title} className="featured-image" />
-                </div>
                 <div className="featured-content">
                   <span className="post-badge">{featuredPost.category}</span>
                   <h2 className="featured-title" onClick={() => setSelectedPost(featuredPost)}>{featuredPost.title}</h2>
@@ -119,9 +116,6 @@ const Blog = () => {
               {/* Include featured post in the grid if category/search active */}
               {(selectedCategory !== 'All' || searchTerm) && filteredPosts.map(post => (
                 <article key={post._id} className="post-card">
-                  <div className="post-card-image-wrapper">
-                    <img src={post.image} alt={post.title} className="post-card-image" />
-                  </div>
                   <div className="post-card-content">
                     <span className="post-badge">{post.category}</span>
                     <h3 className="post-card-title" onClick={() => setSelectedPost(post)}>{post.title}</h3>
@@ -138,9 +132,6 @@ const Blog = () => {
               {/* Normal grid of other posts when no active filters */}
               {selectedCategory === 'All' && !searchTerm && otherPosts.map(post => (
                 <article key={post._id} className="post-card">
-                  <div className="post-card-image-wrapper">
-                    <img src={post.image} alt={post.title} className="post-card-image" />
-                  </div>
                   <div className="post-card-content">
                     <span className="post-badge">{post.category}</span>
                     <h3 className="post-card-title" onClick={() => setSelectedPost(post)}>{post.title}</h3>
@@ -195,9 +186,6 @@ const Blog = () => {
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
-              <div className="blog-modal-image-wrapper">
-                <img src={selectedPost.image} alt={selectedPost.title} className="blog-modal-image" />
-              </div>
               <div className="blog-modal-content">
                 <span className="post-badge">{selectedPost.category}</span>
                 <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text)', marginTop: '12px', lineHeight: '1.3' }}>{selectedPost.title}</h2>
