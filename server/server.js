@@ -772,6 +772,51 @@ app.delete('/api/contact/:id', async (req, res) => {
   }
 });
 
+// Newsletter Subscription Route
+app.post('/api/subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+
+    // Check if SMTP is configured
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const mailOptions = {
+        from: `"UGC Free Paper Newsletter" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER, // Send email to Zoho account
+        replyTo: email,
+        subject: `New Newsletter Subscription - ${email}`,
+        text: `You have received a new newsletter subscription:\n\nEmail: ${email}\n\nPlease add this email to your newsletter contact list.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">New Newsletter Subscription</h2>
+            <p><strong>Email Address:</strong> <a href="mailto:${email}">${email}</a></p>
+            <p style="font-size: 12px; color: #6b7280; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+              This subscription request was submitted on ugcfreepaper.com.
+            </p>
+          </div>
+        `
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Failed to send subscription notification email:', error);
+        } else {
+          console.log('Subscription notification email sent:', info.messageId);
+        }
+      });
+    } else {
+      console.warn('SMTP email credentials not set. Skipping subscription email notification.');
+    }
+
+    res.status(200).json({ success: true, message: 'Subscription request sent successfully!' });
+  } catch (err) {
+    console.error('Subscription error:', err);
+    res.status(500).json({ message: 'Failed to process subscription', error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Local backend server running on port ${PORT}`);
 });

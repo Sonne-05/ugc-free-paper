@@ -30,11 +30,26 @@ const Blog = () => {
       })
   }, [])
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault()
     if (email) {
-      setSubscribed(true)
-      setEmail('')
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        })
+        if (res.ok) {
+          setSubscribed(true)
+          setEmail('')
+        } else {
+          const errData = await res.json()
+          alert(errData.message || 'Failed to subscribe. Please try again.')
+        }
+      } catch (err) {
+        console.error('Subscription error:', err)
+        alert('Network error. Please check your connection and try again.')
+      }
     }
   }
 
