@@ -1085,8 +1085,8 @@ const MockTest = () => {
                   </div>
                   
                   <div className="question-body">
-                    <p style={{ marginBottom: '15px' }}>
-                      Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):
+                    <p style={{ marginBottom: '15px', whiteSpace: 'pre-line' }}>
+                      {questionsState[activeQuestionIndex].question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):"}
                     </p>
                     <p style={{ marginBottom: '10px' }}>
                       <strong>Assertion (A):</strong> {stripPrefix(questionsState[activeQuestionIndex].assertion, 'assertion')}
@@ -1095,7 +1095,7 @@ const MockTest = () => {
                       <strong>Reason (R):</strong> {stripPrefix(questionsState[activeQuestionIndex].reason, 'reason')}
                     </p>
                     <p style={{ fontWeight: '600', marginBottom: '15px' }}>
-                      In the light of the above statements, choose the most appropriate answer from the options given below:
+                      {questionsState[activeQuestionIndex].subPrompt || "In the light of the above statements, choose the most appropriate answer from the options given below:"}
                     </p>
                   </div>
 

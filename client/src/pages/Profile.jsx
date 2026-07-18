@@ -2165,7 +2165,15 @@ const Profile = () => {
                           <select 
                             className="pane-select"
                             value={newQType}
-                            onChange={(e) => setNewQType(e.target.value)}
+                            onChange={(e) => {
+                              const type = e.target.value
+                              setNewQType(type)
+                              if (type === 'assertion-reason') {
+                                setNewQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+                              } else if (type === 'match-column' || type === 'multiple-statement') {
+                                setNewQSubPrompt('Choose the correct answer from the options given below:')
+                              }
+                            }}
                           >
                             <option value="mcq">Normal MCQ</option>
                             <option value="assertion-reason">Assertion & Reasoning</option>
@@ -2279,6 +2287,17 @@ const Profile = () => {
                                 value={newQReason}
                                 onChange={(e) => setNewQReason(e.target.value)}
                               ></textarea>
+                            </div>
+                            <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+                              <label>Answer Instruction / Sub-prompt</label>
+                              <input 
+                                type="text" 
+                                required 
+                                placeholder="e.g. In the light of the above statements, choose the correct answer..."
+                                value={newQSubPrompt}
+                                onChange={(e) => setNewQSubPrompt(e.target.value)}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box', fontSize: '0.85rem' }}
+                              />
                             </div>
                           </>
                         )}

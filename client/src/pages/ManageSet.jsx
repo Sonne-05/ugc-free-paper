@@ -707,7 +707,15 @@ const QuestionSlot = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div className="ms-form-field">
               <label>Question Type</label>
-              <select className="ms-input" value={qType} onChange={(e) => setQType(e.target.value)}>
+              <select className="ms-input" value={qType} onChange={(e) => {
+                const type = e.target.value
+                setQType(type)
+                if (type === 'assertion-reason') {
+                  setQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+                } else if (type === 'match-column' || type === 'multiple-statement') {
+                  setQSubPrompt('Choose the correct answer from the options given below:')
+                }
+              }}>
                 <option value="mcq">Normal MCQ</option>
                 <option value="assertion-reason">Assertion & Reasoning</option>
                 <option value="match-column">Match the Column</option>
@@ -758,6 +766,17 @@ const QuestionSlot = ({
                   placeholder="Reason statement..."
                   value={qReason}
                   onChange={(e) => setQReason(e.target.value)}
+                  className="ms-input"
+                />
+              </div>
+              <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                <label>Answer Instruction / Sub-prompt</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. In the light of the above statements, choose the correct answer..."
+                  value={qSubPrompt}
+                  onChange={(e) => setQSubPrompt(e.target.value)}
                   className="ms-input"
                 />
               </div>
@@ -1712,7 +1731,15 @@ const ManageSet = () => {
   <select 
     className="ms-input"
     value={newQType}
-    onChange={(e) => setNewQType(e.target.value)}
+    onChange={(e) => {
+      const type = e.target.value
+      setNewQType(type)
+      if (type === 'assertion-reason') {
+        setNewQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+      } else if (type === 'match-column' || type === 'multiple-statement') {
+        setNewQSubPrompt('Choose the correct answer from the options given below:')
+      }
+    }}
   >
     <option value="mcq">Normal MCQ</option>
     <option value="assertion-reason">Assertion & Reasoning</option>
@@ -1826,6 +1853,17 @@ const ManageSet = () => {
         value={newQReason}
         onChange={(e) => setNewQReason(e.target.value)}
       ></textarea>
+    </div>
+    <div className="form-field full-width" style={{ marginBottom: '12px' }}>
+      <label>Answer Instruction / Sub-prompt</label>
+      <input 
+        type="text" 
+        required 
+        placeholder="e.g. In the light of the above statements, choose the correct answer..."
+        value={newQSubPrompt}
+        onChange={(e) => setNewQSubPrompt(e.target.value)}
+        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', boxSizing: 'border-box', fontSize: '0.85rem' }}
+      />
     </div>
   </>
 )}
