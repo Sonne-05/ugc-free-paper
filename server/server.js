@@ -8,7 +8,6 @@ const PyqSet = require('./models/PyqSet');
 const Question = require('./models/Question');
 const Setting = require('./models/Setting');
 const User = require('./models/User');
-const Traffic = require('./models/Traffic');
 const ContactMessage = require('./models/ContactMessage');
 const BlogPost = require('./models/BlogPost');
 const nodemailer = require('nodemailer');
@@ -759,108 +758,6 @@ app.delete('/api/contact/:id', async (req, res) => {
     res.json({ message: 'Message deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete message' });
-  }
-});
-
-// --- Analytics & Traffic Tracking Routes ---
-app.post('/api/analytics/hit', async (req, res) => {
-  try {
-    const { path, referrer, userAgent } = req.body;
-    const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
-    const hit = new Traffic({ path, ip, userAgent, referrer });
-    await hit.save();
-    res.status(201).json({ success: true });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to record hit' });
-  }
-});
-
-app.get('/api/analytics/stats', async (req, res) => {
-  try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const distinctIps = await Traffic.distinct('ip', { timestamp: { $gte: thirtyDaysAgo } });
-    const visitors = distinctIps.length;
-    
-    const pageViews = await Traffic.countDocuments({ timestamp: { $gte: thirtyDaysAgo } });
-    
-    const hitsPerIp = await Traffic.aggregate([
-      { $match: { timestamp: { $gte: thirtyDaysAgo } } },
-      { $group: { _id: '$ip', count: { $sum: 1 } } }
-    ]);
-    
-    const totalIps = hitsPerIp.length;
-    const singleHits = hitsPerIp.filter(item => item.count === 1).length;
-    const bounceRate = totalIps > 0 ? (singleHits / totalIps) * 100 : 0;
-    
-    let avgSessionMinutes = 0;
-    const sessions = await Traffic.aggregate([
-      { $match: { timestamp: { $gte: thirtyDaysAgo } } },
-      { $group: {
-          _id: '$ip',
-          minTime: { $min: '$timestamp' },
-          maxTime: { $max: '$timestamp' }
-        }
-      }
-    ]);
-    
-    let totalDurationMs = 0;
-    let multiHitSessionsCount = 0;
-    sessions.forEach(s => {
-      const diff = s.maxTime - s.minTime;
-      if (diff > 0) {
-        totalDurationMs += diff;
-        multiHitSessionsCount++;
-      }
-    });
-    
-    if (multiHitSessionsCount > 0) {
-      avgSessionMinutes = (totalDurationMs / multiHitSessionsCount) / 1000 / 60;
-    } else {
-      avgSessionMinutes = 2.5; // fallback average
-    }
-    
-    const mins = Math.floor(avgSessionMinutes);
-    const secs = Math.floor((avgSessionMinutes - mins) * 60);
-    const sessionDuration = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    
-    const allHits = await Traffic.find({ timestamp: { $gte: thirtyDaysAgo } });
-    let organicCount = 0;
-    let directCount = 0;
-    let socialCount = 0;
-    let referralCount = 0;
-    const totalHits = allHits.length;
-    
-    allHits.forEach(hit => {
-      const ref = hit.referrer ? hit.referrer.toLowerCase() : '';
-      if (!ref || ref.trim() === '') {
-        directCount++;
-      } else if (ref.includes('google') || ref.includes('bing') || ref.includes('yahoo') || ref.includes('duckduckgo') || ref.includes('search')) {
-        organicCount++;
-      } else if (ref.includes('facebook') || ref.includes('twitter') || ref.includes('t.co') || ref.includes('instagram') || ref.includes('linkedin') || ref.includes('reddit') || ref.includes('youtube')) {
-        socialCount++;
-      } else {
-        referralCount++;
-      }
-    });
-    
-    const sources = {
-      organic: totalHits > 0 ? Math.round((organicCount / totalHits) * 100) : 40,
-      direct: totalHits > 0 ? Math.round((directCount / totalHits) * 100) : 30,
-      social: totalHits > 0 ? Math.round((socialCount / totalHits) * 100) : 20,
-      referral: totalHits > 0 ? Math.round((referralCount / totalHits) * 100) : 10
-    };
-    
-    res.json({
-      visitors,
-      pageViews,
-      sessionDuration,
-      bounceRate,
-      sources
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to calculate analytics' });
   }
 });
 

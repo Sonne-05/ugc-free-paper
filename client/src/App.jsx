@@ -26,17 +26,7 @@ function App() {
   const location = useLocation()
   const isFullPage = location.pathname === '/signin' || location.pathname === '/signup' || location.pathname === '/mocktest' || location.pathname.startsWith('/admin/edit-note')
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/api/analytics/hit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        path: location.pathname,
-        referrer: document.referrer || '',
-        userAgent: navigator.userAgent
-      })
-    }).catch(err => console.error('Failed to log page hit:', err));
-  }, [location.pathname]);
+
 
   useEffect(() => {
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;

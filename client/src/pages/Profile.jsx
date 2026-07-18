@@ -60,7 +60,7 @@ const Profile = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '')
-      const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages', 'blogs']
+      const validTabs = ['settings', 'notes', 'users', 'pyq', 'messages', 'blogs']
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       }
@@ -104,14 +104,6 @@ const Profile = () => {
           if (Array.isArray(data)) setUsers(data);
         })
         .catch(err => console.error('Failed to fetch users:', err));
-
-      // 4. Fetch traffic analytics
-      fetch(`${API_BASE_URL}/api/analytics/stats`)
-        .then(res => res.json())
-        .then(data => {
-          if (data) setTrafficStats(data);
-        })
-        .catch(err => console.error('Failed to fetch traffic stats:', err));
 
       // 5. Fetch contact messages
       fetch(`${API_BASE_URL}/api/contact`)
@@ -222,19 +214,7 @@ const Profile = () => {
     { id: '5', title: 'UGC NET Paper I General (2021)', status: 'Not Started' }
   ])
 
-  // Traffic analytics state
-  const [trafficStats, setTrafficStats] = useState({
-    visitors: 0,
-    pageViews: 0,
-    sessionDuration: '00:00',
-    bounceRate: 0,
-    sources: {
-      organic: 0,
-      direct: 0,
-      social: 0,
-      referral: 0
-    }
-  });
+
 
   const handleToggleUnitProgress = async (id) => {
     const userId = localStorage.getItem('userId')
@@ -1667,13 +1647,6 @@ const Profile = () => {
               <span>PYQ / Quiz Creator</span>
             </button>
             <button 
-              className={`admin-tab-link ${activeTab === 'traffic' ? 'admin-tab-link--active' : ''}`}
-              onClick={() => setActiveTab('traffic')}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-              <span>Website Traffic Analysis</span>
-            </button>
-            <button 
               className={`admin-tab-link ${activeTab === 'messages' ? 'admin-tab-link--active' : ''}`}
               onClick={() => setActiveTab('messages')}
             >
@@ -1705,74 +1678,7 @@ const Profile = () => {
 
           {/* Active Tab Panel Content */}
           <main className="admin-panel-content">
-            {/* 5. WEBSITE TRAFFIC ANALYSIS */}
-            {activeTab === 'traffic' && (
-              <div className="admin-pane">
-                <h2 className="pane-title">Website Traffic Analysis</h2>
-                <p className="pane-desc">Monitor your website's visitor analytics, page views, and user engagement over time.</p>
-                
-                <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                  <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                    <span className="stat-val" style={{ color: 'var(--primary)' }}>{trafficStats.visitors.toLocaleString()}</span>
-                    <span className="stat-lbl">Total Visitors (30d)</span>
-                  </div>
-                  <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                    <span className="stat-val" style={{ color: '#16a34a' }}>{trafficStats.pageViews.toLocaleString()}</span>
-                    <span className="stat-lbl">Page Views (30d)</span>
-                  </div>
-                  <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                    <span className="stat-val" style={{ color: '#ea580c' }}>{trafficStats.sessionDuration}</span>
-                    <span className="stat-lbl">Avg. Session Duration</span>
-                  </div>
-                  <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                    <span className="stat-val" style={{ color: '#dc2626' }}>{trafficStats.bounceRate.toFixed(1)}%</span>
-                    <span className="stat-lbl">Bounce Rate</span>
-                  </div>
-                </div>
 
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', color: '#334155' }}>Traffic Sources</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        <span>Organic Search (Google, Bing)</span>
-                        <span>{trafficStats.sources.organic}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: `${trafficStats.sources.organic}%`, height: '100%', background: '#3b82f6', borderRadius: '99px' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        <span>Direct Traffic</span>
-                        <span>{trafficStats.sources.direct}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: `${trafficStats.sources.direct}%`, height: '100%', background: '#10b981', borderRadius: '99px' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        <span>Social Media (Facebook, Twitter)</span>
-                        <span>{trafficStats.sources.social}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: `${trafficStats.sources.social}%`, height: '100%', background: '#f59e0b', borderRadius: '99px' }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        <span>Referral</span>
-                        <span>{trafficStats.sources.referral}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
-                        <div style={{ width: `${trafficStats.sources.referral}%`, height: '100%', background: '#8b5cf6', borderRadius: '99px' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* 1. PLATFORM SETTINGS */}
             {activeTab === 'settings' && (
