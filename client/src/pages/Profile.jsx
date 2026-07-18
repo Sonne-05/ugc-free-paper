@@ -842,6 +842,25 @@ const Profile = () => {
     }
   }
 
+  const handleTogglePublish = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: newStatus })
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
+      } else {
+        alert('Failed to update publish status')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error updating publish status')
+    }
+  }
+
   const handleOptChange = (idx, val) => {
     setNewQOpts(prev => {
       const next = [...prev]
@@ -1912,9 +1931,9 @@ const Profile = () => {
                                   </span>
                                   <div>
                                     {set.isPublished ? (
-                                      <span className="status-badge status-badge--published">Published</span>
+                                      <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
                                     ) : (
-                                      <span className="status-badge status-badge--draft">Draft</span>
+                                      <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
                                     )}
                                   </div>
                                 </div>
@@ -1967,9 +1986,9 @@ const Profile = () => {
                                   </span>
                                   <div>
                                     {set.isPublished ? (
-                                      <span className="status-badge status-badge--published">Published</span>
+                                      <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
                                     ) : (
-                                      <span className="status-badge status-badge--draft">Draft</span>
+                                      <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
                                     )}
                                   </div>
                                 </div>
