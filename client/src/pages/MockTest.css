@@ -39,11 +39,11 @@
 }
 
 .mt-header__logo-text-dark {
-  color: var(--text);
+  color: #1C2355;
 }
 
 .mt-header__logo-text-primary {
-  color: var(--primary);
+  color: #1C2355;
   margin-left: 5px;
 }
 
