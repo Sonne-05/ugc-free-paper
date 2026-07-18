@@ -1,19 +1,40 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { API_BASE_URL } from '../services/api'
 import './Paper1Notes.css'
 
 const Paper1Notes = () => {
-  const units = [
-    { id: '1', name: 'Teaching Aptitude' },
-    { id: '2', name: 'Research Aptitude' },
-    { id: '3', name: 'Comprehension' },
-    { id: '4', name: 'Communication' },
-    { id: '5', name: 'Mathematical Reasoning & Aptitude' },
-    { id: '6', name: 'Logical Reasoning' },
-    { id: '7', name: 'Data Interpretation' },
-    { id: '8', name: 'Information & Communication Technology (ICT)' },
-    { id: '9', name: 'People, Development & Environment' },
-    { id: '10', name: 'Higher Education System' },
-  ]
+  const [units, setUnits] = useState([
+    { id: '1', name: 'Teaching Aptitude', isAvailable: true },
+    { id: '2', name: 'Research Aptitude', isAvailable: true },
+    { id: '3', name: 'Comprehension', isAvailable: true },
+    { id: '4', name: 'Communication', isAvailable: true },
+    { id: '5', name: 'Mathematical Reasoning & Aptitude', isAvailable: true },
+    { id: '6', name: 'Logical Reasoning', isAvailable: true },
+    { id: '7', name: 'Data Interpretation', isAvailable: true },
+    { id: '8', name: 'Information & Communication Technology (ICT)', isAvailable: true },
+    { id: '9', name: 'People, Development & Environment', isAvailable: true },
+    { id: '10', name: 'Higher Education System', isAvailable: true },
+  ])
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/notes`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setUnits(prevUnits => 
+            prevUnits.map(unit => {
+              const matchedNote = data.find(n => String(n.id) === String(unit.id));
+              return {
+                ...unit,
+                isAvailable: matchedNote ? matchedNote.isAvailable !== false : true
+              };
+            })
+          );
+        }
+      })
+      .catch(err => console.error('Failed to fetch notes availability:', err))
+  }, [])
 
   return (
     <div className="notes-page">
@@ -47,9 +68,15 @@ const Paper1Notes = () => {
                   <td className="notes-table__td font-semibold">Unit {unit.id}</td>
                   <td className="notes-table__td">{unit.name}</td>
                   <td className="notes-table__td">
-                    <Link to={`/paper1-notes/unit-${unit.id}`} className="notes-table__btn-link">
-                      Prepare
-                    </Link>
+                    {unit.isAvailable ? (
+                      <Link to={`/paper1-notes/unit-${unit.id}`} className="notes-table__btn-link">
+                        Prepare
+                      </Link>
+                    ) : (
+                      <button className="notes-table__btn-link notes-table__btn-link--disabled" disabled>
+                        Coming Soon
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

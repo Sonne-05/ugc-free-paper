@@ -483,6 +483,32 @@
   color: #15803d;
 }
 
+.table-btn--status-available {
+  background: transparent;
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.25);
+  font-weight: 700;
+}
+
+.table-btn--status-available:hover {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #15803d;
+}
+
+.table-btn--status-comingsoon {
+  background: transparent;
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.25);
+  font-weight: 700;
+}
+
+.table-btn--status-comingsoon:hover {
+  background: #fffbeb;
+  border-color: #d97706;
+  color: #b45309;
+}
+
 /* Role Badges */
 .role-badge {
   display: inline-flex;

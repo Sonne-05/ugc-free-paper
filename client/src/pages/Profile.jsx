@@ -372,10 +372,28 @@ const Profile = () => {
               hasAttempts: hasAnyAttempts
             });
 
-            setStudentUnits(prev => prev.map(unit => ({
-              ...unit,
-              progress: dbProgress.includes(unit.id) ? 100 : 0
-            })))
+            fetch(`${API_BASE_URL}/api/notes`)
+              .then(res => res.json())
+              .then(notesData => {
+                if (Array.isArray(notesData)) {
+                  setStudentUnits(prev => prev.map(unit => {
+                    const matchedNote = notesData.find(n => String(n.id) === String(unit.id));
+                    return {
+                      ...unit,
+                      progress: dbProgress.includes(unit.id) ? 100 : 0,
+                      isAvailable: matchedNote ? matchedNote.isAvailable !== false : true
+                    };
+                  }));
+                }
+              })
+              .catch(err => {
+                console.error('Failed to fetch notes availability:', err);
+                setStudentUnits(prev => prev.map(unit => ({
+                  ...unit,
+                  progress: dbProgress.includes(unit.id) ? 100 : 0,
+                  isAvailable: true
+                })));
+              });
 
             fetch(`${API_BASE_URL}/api/pyqsets`)
               .then(res => res.json())
@@ -546,6 +564,28 @@ const Profile = () => {
     }))
     
     alert(`Successfully uploaded "${file.name}" for Unit #${id}!`)
+  }
+
+  const handleToggleAvailability = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/notes/${id}/toggle-availability`, {
+        method: 'PATCH'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(prev => prev.map(note => {
+          if (note.id === id) {
+            return { ...note, isAvailable: data.isAvailable };
+          }
+          return note;
+        }));
+      } else {
+        alert('Failed to update availability.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while updating availability.');
+    }
   }
 
   const handleToggleUserRole = async (id) => {
@@ -1316,9 +1356,27 @@ const Profile = () => {
 
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                          <Link to={`/paper1-notes/${unit.id}`} className="table-btn table-btn--role" style={{ flex: 1, textAlign: 'center', display: 'block', textDecoration: 'none', margin: 0 }}>
-                            Study Notes
-                          </Link>
+                          {unit.isAvailable !== false ? (
+                            <Link to={`/paper1-notes/${unit.id}`} className="table-btn table-btn--role" style={{ flex: 1, textAlign: 'center', display: 'block', textDecoration: 'none', margin: 0 }}>
+                              Study Notes
+                            </Link>
+                          ) : (
+                            <button 
+                              className="table-btn" 
+                              disabled 
+                              style={{ 
+                                flex: 1, 
+                                margin: 0, 
+                                background: '#f3f4f6', 
+                                color: '#9ca3af', 
+                                border: '1px solid #e5e7eb', 
+                                fontWeight: 700,
+                                cursor: 'not-allowed'
+                              }}
+                            >
+                              Coming Soon
+                            </button>
+                          )}
                           <button 
                             className="table-btn" 
                             style={{ 
@@ -1685,6 +1743,13 @@ const Profile = () => {
                           )}
                         </td>
                         <td style={{ textAlign: 'right' }}>
+                          <button 
+                            className={`table-btn ${note.isAvailable !== false ? 'table-btn--status-available' : 'table-btn--status-comingsoon'}`} 
+                            style={{ marginRight: '8px', minWidth: '110px' }}
+                            onClick={() => handleToggleAvailability(note.id)}
+                          >
+                            {note.isAvailable !== false ? 'Available' : 'Coming Soon'}
+                          </button>
                           <button 
                             className="table-btn table-btn--upload" 
                             style={{ marginRight: '8px' }}

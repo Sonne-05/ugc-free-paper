@@ -41,6 +41,17 @@ const UnitNotes = () => {
     return <div style={{ padding: '100px', textAlign: 'center' }}>Loading notes...</div>
   }
 
+  // If the notes are marked coming soon, block student access
+  if (customData && customData.isAvailable === false && localStorage.getItem('userRole') !== 'admin') {
+    return (
+      <div className="notes-detail-error">
+        <h2>Coming Soon</h2>
+        <p>The study notes for this unit are currently being prepared and will be available soon.</p>
+        <Link to="/paper1-notes" className="btn-back">Back to Notes Index</Link>
+      </div>
+    )
+  }
+
   // If custom JSON data exists, render the template
   if (customData) {
     return <UnitNotesTemplate data={customData} />

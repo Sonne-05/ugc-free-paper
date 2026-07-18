@@ -252,11 +252,12 @@ app.get('/api/notes', async (req, res) => {
       return numA - numB;
     });
     
-    // Map to match the frontend expectations: { id, title, fileName }
+    // Map to match the frontend expectations: { id, title, fileName, isAvailable }
     const formattedNotes = notes.map(note => ({
       id: note.unitId,
       title: note.unitTitle,
-      fileName: note.htmlContent ? 'Custom Rich Content' : ''
+      fileName: note.htmlContent ? 'Custom Rich Content' : '',
+      isAvailable: note.isAvailable !== false
     }));
     
     res.json(formattedNotes);
@@ -279,16 +280,35 @@ app.post('/api/notes', async (req, res) => {
       unitId: String(newId),
       unitTitle: title,
       subtitle: 'Custom Added Study Guide',
-      htmlContent: ''
+      htmlContent: '',
+      isAvailable: true
     });
     await newNote.save();
     res.status(201).json({
       id: newNote.unitId,
       title: newNote.unitTitle,
-      fileName: ''
+      fileName: '',
+      isAvailable: true
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to create note', error: err.message });
+  }
+});
+
+// Toggle availability for a unit
+app.patch('/api/notes/:unitId/toggle-availability', async (req, res) => {
+  try {
+    const { unitId } = req.params;
+    const note = await Note.findOne({ unitId });
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+    note.isAvailable = note.isAvailable === false ? true : false;
+    await note.save();
+    res.json({ success: true, isAvailable: note.isAvailable });
+  } catch (error) {
+    console.error('Toggle availability error:', error);
+    res.status(500).json({ success: false, message: 'Failed to toggle availability.' });
   }
 });
 
