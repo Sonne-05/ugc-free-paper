@@ -588,8 +588,9 @@ const QuestionSlot = ({
         return
       }
     } else if (qType === 'multiple-statement') {
-      if (!qText.trim() || qStatements.some(s => !s.trim()) || qOpts.some(o => !o.trim())) {
-        alert('Please fill in the question text, all statements, and all options.')
+      const filledStatements = qStatements.filter(s => s.trim() !== '')
+      if (!qText.trim() || filledStatements.length < 2 || qOpts.some(o => !o.trim())) {
+        alert('Please fill in the question text, at least 2 statements, and all options.')
         setIsSaving(false)
         return
       }
@@ -604,7 +605,7 @@ const QuestionSlot = ({
       assertion: qAssertion,
       reason: qReason,
       passage: qPassage,
-      statements: qStatements,
+      statements: qStatements.filter(s => s.trim() !== ''),
       subPrompt: qSubPrompt,
       explanation: qExplanation,
       list1: qList1,
@@ -1380,8 +1381,9 @@ const ManageSet = () => {
         return
       }
     } else if (newQType === 'multiple-statement') {
-      if (!newQText.trim() || newQStatements.some(s => !s.trim()) || newQOpts.some(o => !o.trim())) {
-        alert('Please fill in the question text, all statements, and all options.')
+      const filledStatements = newQStatements.filter(s => s.trim() !== '')
+      if (!newQText.trim() || filledStatements.length < 2 || newQOpts.some(o => !o.trim())) {
+        alert('Please fill in the question text, at least 2 statements, and all options.')
         return
       }
     }
@@ -1400,7 +1402,7 @@ const ManageSet = () => {
       assertion: newQAssertion,
       reason: newQReason,
       passage: newQPassage,
-      statements: newQStatements,
+      statements: newQStatements.filter(s => s.trim() !== ''),
       subPrompt: newQSubPrompt,
       explanation: newQExplanation,
       list1: newQList1,
@@ -1619,7 +1621,6 @@ const ManageSet = () => {
           currentQ.statements.push(stmtMatch[0].trim())
           continue
         }
-
         const optNumMatch = line.match(/^[\(\[]?([1-4])[\)\]]?[\.\:\-\,\，\s]\s*(.*)/i)
         if (optNumMatch) {
            currentSection = 'options'
@@ -1628,14 +1629,14 @@ const ManageSet = () => {
          }
       }
 
-      // Escape hatch for Match the Column options if user forgot "Options:"
-      if ((currentSection === 'list1' || currentSection === 'list2') && line.match(/^[\(\[]?([1-4])[\)\]]?[\.\:\-\,\，]\s*A-/i)) {
-         currentSection = 'options'
-         const optNumMatch = line.match(/^[\(\[]?([1-4])[\)\]]?[\.\:\-\,\，]\s*(.*)/i)
-         if (optNumMatch) {
-           currentQ.options[Number(optNumMatch[1]) - 1] = optNumMatch[2].trim()
-           continue
-         }
+      // Escape hatch for Match the Column or Assertion & Reasoning options if user forgot "Options:"
+      if (['assertion', 'reason', 'list1', 'list2'].includes(currentSection)) {
+        const optNumMatch = line.match(/^[\(\[]?([1-4])[\)\]]?[\.\:\-\,\，\s]\s*(.*)/i)
+        if (optNumMatch) {
+          currentSection = 'options'
+          currentQ.options[Number(optNumMatch[1]) - 1] = optNumMatch[2].trim()
+          continue
+        }
       }
 
       // Append to current section
