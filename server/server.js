@@ -780,6 +780,14 @@ app.post('/api/subscribe', async (req, res) => {
       return res.status(400).json({ message: 'Email address is required' });
     }
 
+    // Save as a Contact Message to MongoDB so it appears in the Admin Dashboard
+    const newSubscriptionMsg = new ContactMessage({
+      name: 'Newsletter Subscriber',
+      email: email,
+      message: `User subscribed to NetPrep Insights newsletter. Email: ${email}`
+    });
+    await newSubscriptionMsg.save();
+
     // Check if SMTP is configured
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       const mailOptions = {
