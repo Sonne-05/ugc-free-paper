@@ -38,6 +38,33 @@ function App() {
     }).catch(err => console.error('Failed to log page hit:', err));
   }, [location.pathname]);
 
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId) {
+      if (!window.gtag) {
+        const scriptId = 'google-analytics';
+        if (!document.getElementById(scriptId)) {
+          const script = document.createElement('script');
+          script.async = true;
+          script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+          script.id = scriptId;
+          document.head.appendChild(script);
+
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () {
+            window.dataLayer.push(arguments);
+          };
+          window.gtag('js', new Date());
+          window.gtag('config', gaId);
+        }
+      } else {
+        window.gtag('config', gaId, {
+          page_path: location.pathname
+        });
+      }
+    }
+  }, [location.pathname]);
+
   return (
     <div className="app">
       {!isFullPage && <Navbar />}
