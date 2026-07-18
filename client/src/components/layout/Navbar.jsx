@@ -62,7 +62,7 @@ const Navbar = () => {
           <div className="navbar__logo-icon">
             <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-          <span className="navbar__logo-text">UGC Free Paper</span>
+          <span className="navbar__logo-text">GC Free Paper</span>
         </Link>
 
         {/* Desktop Center Navigation Menus (ZeptoMail Dropdown Style) */}

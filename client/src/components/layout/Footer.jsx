@@ -12,7 +12,7 @@ const Footer = () => {
             <div className="navbar__logo-icon" style={{ width: '44px', height: '44px' }}>
               <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <span className="footer__logo-text" style={{ color: '#1C2355' }}>UGC Free Paper</span>
+            <span className="footer__logo-text" style={{ color: '#1C2355', marginLeft: '-4px' }}>GC Free Paper</span>
           </div>
           <p className="footer__desc" style={{ marginBottom: '16px' }}>
             Empowering NTA NET Aspirants with world-class free education tools.

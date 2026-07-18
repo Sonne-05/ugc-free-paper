@@ -25,7 +25,7 @@
 .footer__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   margin-bottom: 20px;
 }
 

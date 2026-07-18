@@ -26,7 +26,7 @@
 .navbar__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   text-decoration: none;
 }
 
@@ -48,6 +48,7 @@
   font-weight: 700;
   color: #1C2355;
   letter-spacing: -0.02em;
+  margin-left: -4px;
 }
 
 /* ── Desktop Center Navigation Links ── */
