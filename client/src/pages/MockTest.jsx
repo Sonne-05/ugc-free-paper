@@ -1134,21 +1134,21 @@ const MockTest = () => {
                   <div className="question-body">
                     <p style={{ whiteSpace: 'pre-line', marginBottom: '15px' }}>{questionsState[activeQuestionIndex].question}</p>
                     
-                    <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+                    <table style={{ width: '70%', borderCollapse: 'collapse', margin: '0 auto 20px auto', fontSize: '0.85rem' }}>
                       <thead>
                         <tr>
-                          <th style={{ border: '1px solid var(--border)', padding: '10px', textAlign: 'center', backgroundColor: 'var(--bg-card)' }}>
+                          <th style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center', backgroundColor: 'var(--bg-card)' }}>
                             <div style={{ fontWeight: 'bold' }}>LIST-I</div>
                             {questionsState[activeQuestionIndex].list1Header && (
-                              <div style={{ fontWeight: '500', fontSize: '0.85rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
+                              <div style={{ fontWeight: '500', fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
                                 {questionsState[activeQuestionIndex].list1Header}
                               </div>
                             )}
                           </th>
-                          <th style={{ border: '1px solid var(--border)', padding: '10px', textAlign: 'center', backgroundColor: 'var(--bg-card)' }}>
+                          <th style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center', backgroundColor: 'var(--bg-card)' }}>
                             <div style={{ fontWeight: 'bold' }}>LIST-II</div>
                             {questionsState[activeQuestionIndex].list2Header && (
-                              <div style={{ fontWeight: '500', fontSize: '0.85rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
+                              <div style={{ fontWeight: '500', fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
                                 {questionsState[activeQuestionIndex].list2Header}
                               </div>
                             )}
@@ -1158,13 +1158,13 @@ const MockTest = () => {
                       <tbody>
                         {Array.from({ length: Math.max((questionsState[activeQuestionIndex].list1 || []).length, (questionsState[activeQuestionIndex].list2 || []).length) }).map((_, idx) => (
                           <tr key={idx}>
-                            <td style={{ border: '1px solid var(--border)', padding: '10px', verticalAlign: 'top' }}>
+                            <td style={{ border: '1px solid var(--border)', padding: '6px 10px', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <strong>{String.fromCharCode(65 + idx)}.</strong>
                                 <span>{stripPrefix((questionsState[activeQuestionIndex].list1 || [])[idx] || '', 'letter')}</span>
                               </div>
                             </td>
-                            <td style={{ border: '1px solid var(--border)', padding: '10px', verticalAlign: 'top' }}>
+                            <td style={{ border: '1px solid var(--border)', padding: '6px 10px', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <strong>{['I', 'II', 'III', 'IV', 'V'][idx] || (idx+1)}.</strong>
                                 <span>{stripPrefix((questionsState[activeQuestionIndex].list2 || [])[idx] || '', 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, '')}</span>
