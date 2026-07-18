@@ -1,14 +1,38 @@
 import { useState } from 'react'
+import { API_BASE_URL } from '../services/api'
 import './InfoPages.css'
 
 const Contact = () => {
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (formData.name && formData.email && formData.message) {
-      setSubmitted(true)
+      setLoading(true)
+      setError('')
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/contact`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setSubmitted(true)
+        } else {
+          setError(data.message || 'Failed to send message. Please try again.')
+        }
+      } catch (err) {
+        console.error('Error submitting contact form:', err)
+        setError('Connection error. Please check your internet connection and try again.')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -64,8 +88,9 @@ const Contact = () => {
                 />
               </div>
 
-              <button type="submit" className="contact-form__submit">
-                Send Message
+              {error && <div className="contact-error" style={{ color: '#ef4444', marginBottom: '12px', fontSize: '0.9rem' }}>{error}</div>}
+              <button type="submit" className="contact-form__submit" disabled={loading}>
+                {loading ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           )}

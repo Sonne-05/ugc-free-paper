@@ -9,10 +9,23 @@ const Question = require('./models/Question');
 const Setting = require('./models/Setting');
 const User = require('./models/User');
 const Traffic = require('./models/Traffic');
+const ContactMessage = require('./models/ContactMessage');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const PORT = process.env.PORT || 5000;
+
+// Configure Nodemailer for Zoho SMTP
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || 'smtppro.zoho.com',
+  port: parseInt(process.env.EMAIL_PORT, 10) || 465,
+  secure: (process.env.EMAIL_PORT === '465' || !process.env.EMAIL_PORT), // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 app.use(cors());
 app.use(express.json());
@@ -514,6 +527,96 @@ app.post('/api/users/:id/progress', async (req, res) => {
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update progress', error: err.message });
+  }
+});
+
+// --- Contact Message Routes ---
+
+// Submit contact message
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: 'Name, email, and message are required.' });
+    }
+
+    const newMessage = new ContactMessage({ name, email, message });
+    await newMessage.save();
+
+    // Send email notification via Zoho if credentials are configured
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const mailOptions = {
+        from: `"UGC Free Paper Contact Form" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER, // Send email to yourself (support@ugcfreepaper.com)
+        replyTo: email, // Allow replying directly to the user
+        subject: `New Contact Form Message from ${name}`,
+        text: `You have received a new contact message:\n\nName: ${name}\nEmail: ${email}\nMessage:\n${message}\n\nThis message has also been saved to your dashboard database.`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">New Contact Form Message</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-top: 15px;">
+              <p style="margin: 0; white-space: pre-wrap;">${message}</p>
+            </div>
+            <p style="font-size: 12px; color: #6b7280; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+              This message was sent from the Contact Us form on ugcfreepaper.com and has been stored in your administration dashboard.
+            </p>
+          </div>
+        `
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Failed to send contact notification email:', error);
+        } else {
+          console.log('Contact notification email sent:', info.messageId);
+        }
+      });
+    } else {
+      console.warn('SMTP email credentials not set. Skipping contact email notification.');
+    }
+
+    res.status(201).json({ success: true, message: 'Message saved successfully!' });
+  } catch (err) {
+    console.error('Contact message error:', err);
+    res.status(500).json({ message: 'Failed to process message', error: err.message });
+  }
+});
+
+// Fetch all contact messages (Admin only)
+app.get('/api/contact', async (req, res) => {
+  try {
+    const messages = await ContactMessage.find().sort({ createdAt: -1 });
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch contact messages' });
+  }
+});
+
+// Update contact message status (Admin only)
+app.put('/api/contact/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['unread', 'read', 'archived'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    const updated = await ContactMessage.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!updated) return res.status(404).json({ message: 'Message not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update message status' });
+  }
+});
+
+// Delete contact message (Admin only)
+app.delete('/api/contact/:id', async (req, res) => {
+  try {
+    const deleted = await ContactMessage.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Message not found' });
+    res.json({ message: 'Message deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete message' });
   }
 });
 

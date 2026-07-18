@@ -190,20 +190,39 @@
 
 .admin-tab-link {
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-secondary);
   background: transparent;
   border: none;
-  padding: 16px 20px;
+  padding: 16px 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-align: center;
   transition: all 0.2s ease;
   white-space: nowrap;
   border-bottom: 3px solid transparent;
+}
+
+@media (max-width: 1150px) {
+  .admin-tab-link {
+    padding: 14px 10px;
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-tabs-sidebar {
+    flex-wrap: wrap;
+  }
+  .admin-tab-link {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 12px 8px;
+  }
 }
 
 .admin-tab-link svg {
@@ -486,6 +505,18 @@
   background: #eff6ff;
   color: var(--primary);
   border-color: rgba(37, 99, 235, 0.15);
+}
+
+.role-badge--unread {
+  background: #fef3c7;
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.15);
+}
+
+.role-badge--read {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: rgba(75, 85, 99, 0.15);
 }
 
 /* Status Indicator Dot */
