@@ -34,7 +34,7 @@ const Home = () => {
             </div>
 
             <div className="hero-sec__social-proof" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3BBED0' }} />
               <span className="hero-sec__social-text" style={{ margin: 0, color: '#64748b', fontSize: '0.88rem', fontFamily: 'sans-serif' }}>
                 Joined by <strong style={{ color: '#0f172a', fontWeight: '600' }}>100k+ aspirants</strong> this month
               </span>
