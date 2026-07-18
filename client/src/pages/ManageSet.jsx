@@ -4,6 +4,438 @@ import { API_BASE_URL } from '../services/api'
 import './Profile.css'
 import './ManageSet.css'
 
+const parseRow = (line) => {
+  const trimmed = line.trim()
+  if (trimmed.includes('|')) {
+    const parts = trimmed.split('|').map(p => p.trim())
+    if (parts[0] === '' && parts[parts.length - 1] === '') {
+      return parts.slice(1, -1)
+    }
+    return parts
+  }
+  const hasTabs = trimmed.includes('\t')
+  const separator = hasTabs ? '\t' : /\s{2,}/
+  return trimmed.split(separator).map(p => p.trim())
+}
+
+const parseTableText = (text) => {
+  if (!text) return null
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  if (lines.length < 2) return null
+  
+  const rows = lines
+    .map(line => parseRow(line))
+    .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
+    
+  if (rows.length < 2) return null
+  return rows
+}
+
+const DataInterpretationGroup = ({
+  editingSetQuestions,
+  setId,
+  API_BASE_URL,
+  onSave,
+  onDeleteGroup
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [diMode, setDiMode] = useState('visual')
+  const [localPassage, setLocalPassage] = useState('')
+  const [diTable, setDiTable] = useState([
+    ['Year', 'Product A', 'Product B'],
+    ['2021', '', ''],
+    ['2022', '', '']
+  ])
+
+  const [questions, setQuestions] = useState([
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+  ])
+
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  useEffect(() => {
+    const existingQs = editingSetQuestions.slice(0, 5)
+    
+    if (existingQs[0] && existingQs[0].passage) {
+      setLocalPassage(existingQs[0].passage)
+      
+      const parsedTable = parseTableText(existingQs[0].passage)
+      if (parsedTable) {
+        setDiTable(parsedTable)
+        setDiMode('visual')
+      } else {
+        setDiMode('raw')
+      }
+    } else {
+      setLocalPassage('')
+      setDiTable([
+        ['Year', 'Product A', 'Product B'],
+        ['2021', '', ''],
+        ['2022', '', '']
+      ])
+      setDiMode('visual')
+    }
+
+    const nextQuestions = Array.from({ length: 5 }).map((_, idx) => {
+      const q = existingQs[idx]
+      if (q) {
+        return {
+          id: q.id || q._id,
+          text: q.text || '',
+          options: q.options && q.options.length >= 4 ? q.options.slice(0, 4) : ['', '', '', ''],
+          correct: q.correct || 1,
+          explanation: q.explanation || ''
+        }
+      } else {
+        return {
+          text: '',
+          options: ['', '', '', ''],
+          correct: 1,
+          explanation: ''
+        }
+      }
+    })
+    setQuestions(nextQuestions)
+  }, [editingSetQuestions, isOpen])
+
+  const handleCellChangeLocal = (rIdx, cIdx, val) => {
+    const next = diTable.map((row, r) => {
+      if (r !== rIdx) return row
+      return row.map((cell, c) => (c === cIdx ? val : cell))
+    })
+    setDiTable(next)
+    const serialized = next.map(row => '| ' + row.join(' | ') + ' |').join('\n')
+    setLocalPassage(serialized)
+  }
+
+  const handleAddRowLocal = () => {
+    const next = [...diTable, Array(diTable[0].length).fill('')]
+    setDiTable(next)
+    const serialized = next.map(row => '| ' + row.join(' | ') + ' |').join('\n')
+    setLocalPassage(serialized)
+  }
+
+  const handleAddColumnLocal = () => {
+    const next = diTable.map(row => [...row, ''])
+    setDiTable(next)
+    const serialized = next.map(row => '| ' + row.join(' | ') + ' |').join('\n')
+    setLocalPassage(serialized)
+  }
+
+  const handleRemoveRowLocal = () => {
+    if (diTable.length <= 2) return
+    const next = diTable.slice(0, -1)
+    setDiTable(next)
+    const serialized = next.map(row => '| ' + row.join(' | ') + ' |').join('\n')
+    setLocalPassage(serialized)
+  }
+
+  const handleRemoveColumnLocal = () => {
+    if (diTable[0].length <= 1) return
+    const next = diTable.map(row => row.slice(0, -1))
+    setDiTable(next)
+    const serialized = next.map(row => '| ' + row.join(' | ') + ' |').join('\n')
+    setLocalPassage(serialized)
+  }
+
+  const handleSaveAll = async (e) => {
+    e.preventDefault()
+    setIsSaving(true)
+
+    if (!localPassage.trim()) {
+      alert('Please fill in the Table Data / Passage.')
+      setIsSaving(false)
+      return
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      if (!q.text.trim() || q.options.some(o => !o.trim())) {
+        alert(`Please fill in the Question prompt and all 4 Options for Question ${i + 1}.`)
+        setIsSaving(false)
+        return
+      }
+    }
+
+    try {
+      const promises = questions.map((q, idx) => {
+        const payload = {
+          setId,
+          type: 'di',
+          passage: localPassage,
+          text: q.text,
+          options: q.options,
+          correct: q.correct,
+          explanation: q.explanation
+        }
+        const existing = editingSetQuestions[idx]
+        if (existing && (existing.id || existing._id)) {
+          return fetch(`${API_BASE_URL}/api/questions/${existing.id || existing._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(async r => {
+            const data = await r.json()
+            if (!r.ok) throw new Error(data.message)
+            return data
+          })
+        } else {
+          return fetch(`${API_BASE_URL}/api/questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(async r => {
+            const data = await r.json()
+            if (!r.ok) throw new Error(data.message)
+            return data
+          })
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const lastResult = results[results.length - 1]
+      const updatedSet = lastResult.updatedSet
+      const savedQs = results.map(r => r.question)
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+
+      onSave(savedQs, updatedSet)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save DI questions: ' + err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    const existingQs = editingSetQuestions.slice(0, 5)
+    if (existingQs.length === 0) return
+    if (!window.confirm('Are you sure you want to delete all 5 Data Interpretation questions?')) return
+
+    try {
+      const promises = existingQs.map(q => {
+        return fetch(`${API_BASE_URL}/api/questions/${q.id || q._id}`, {
+          method: 'DELETE'
+        }).then(r => r.json())
+      })
+      const results = await Promise.all(promises)
+      const lastResult = results[results.length - 1]
+      
+      onDeleteGroup(existingQs.map(q => q.id || q._id), lastResult.updatedSet)
+    } catch (err) {
+      console.error(err)
+      alert('Error deleting DI questions')
+    }
+  }
+
+  const isSaved = editingSetQuestions.length > 0 && editingSetQuestions[0].type === 'di'
+
+  return (
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0fdf4' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="ms-q-slot-number" style={{ color: '#166534' }}>Q1 - Q5</span>
+          <span className="ms-q-slot-badge" style={{ background: isSaved ? '#dcfce7' : '#f1f5f9', color: isSaved ? '#166534' : '#64748b' }}>
+            {isSaved ? 'Saved (Data Interpretation)' : 'Empty (DI)'}
+          </span>
+          <span className="ms-q-slot-preview" style={{ color: '#166534', fontWeight: '500' }}>
+            {isSaved ? 'Questions 1 to 5 (Shared Table Data)' : 'Click to add shared table data and 5 questions'}
+          </span>
+        </div>
+        <div className="ms-q-slot-toggle-icon">
+          {isOpen ? '▲' : '▼'}
+        </div>
+      </div>
+
+      {isOpen && (
+        <form className="ms-q-slot-body" onSubmit={handleSaveAll} style={{ background: '#fafdfb' }}>
+          <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ fontWeight: 'bold', color: '#166534' }}>Shared Table Data / Passage (Questions 1 - 5)</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  type="button" 
+                  className={`pane-btn ${diMode === 'visual' ? 'active' : ''}`} 
+                  style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'visual' ? '#166534' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'visual' ? '#fff' : 'var(--text-primary)' }}
+                  onClick={() => setDiMode('visual')}
+                >
+                  Visual Grid
+                </button>
+                <button 
+                  type="button" 
+                  className={`pane-btn ${diMode === 'raw' ? 'active' : ''}`} 
+                  style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'raw' ? '#166534' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'raw' ? '#fff' : 'var(--text-primary)' }}
+                  onClick={() => setDiMode('raw')}
+                >
+                  Raw Text
+                </button>
+              </div>
+            </div>
+
+            {diMode === 'visual' ? (
+              <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: '#fff', overflowX: 'auto' }}>
+                <table style={{ borderCollapse: 'collapse', marginBottom: '10px', width: '100%' }}>
+                  <tbody>
+                    {diTable.map((row, rIdx) => (
+                      <tr key={rIdx}>
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '2px' }}>
+                            <input 
+                              type="text" 
+                              style={{ 
+                                width: '100%', 
+                                border: 'none', 
+                                padding: '6px', 
+                                fontSize: '0.8rem', 
+                                outline: 'none', 
+                                background: 'transparent',
+                                fontWeight: rIdx === 0 ? '600' : 'normal',
+                                textAlign: 'center',
+                                color: 'var(--text-primary)'
+                              }}
+                              placeholder={rIdx === 0 ? `Header ${cIdx + 1}` : `Row ${rIdx}, Col ${cIdx + 1}`}
+                              value={cell}
+                              onChange={(e) => handleCellChangeLocal(rIdx, cIdx, e.target.value)}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button type="button" className="pane-btn" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={handleAddRowLocal}>+ Add Row</button>
+                  <button type="button" className="pane-btn" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={handleAddColumnLocal}>+ Add Column</button>
+                  {diTable.length > 2 && (
+                    <button type="button" className="pane-btn" style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#ef4444', color: '#fff' }} onClick={handleRemoveRowLocal}>Remove Row</button>
+                  )}
+                  {diTable[0].length > 2 && (
+                    <button type="button" className="pane-btn" style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#ef4444', color: '#fff' }} onClick={handleRemoveColumnLocal}>Remove Col</button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <textarea 
+                required 
+                rows="4" 
+                placeholder="Paste table data (space/tab/pipe separated)..."
+                value={localPassage}
+                onChange={(e) => setLocalPassage(e.target.value)}
+                className="ms-input"
+              />
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
+            {questions.map((dq, qIdx) => (
+              <div key={qIdx} style={{ border: '1px solid #cbd5e1', padding: '15px', borderRadius: '8px', background: '#fff' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#166534', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', fontSize: '0.90rem', fontWeight: 'bold' }}>
+                  Question {qIdx + 1} of 5 (Q{qIdx + 1} Slot)
+                </h4>
+                
+                <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
+                  <textarea 
+                    required 
+                    rows="2" 
+                    placeholder={`Type question ${qIdx + 1} text here...`}
+                    value={dq.text}
+                    onChange={(e) => {
+                      const next = [...questions]
+                      next[qIdx] = { ...next[qIdx], text: e.target.value }
+                      setQuestions(next)
+                    }}
+                    className="ms-input"
+                  />
+                </div>
+
+                <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {dq.options.map((opt, oIdx) => (
+                    <div className="ms-form-field" key={oIdx}>
+                      <label style={{ fontSize: '0.8rem' }}>Option {oIdx + 1}</label>
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder={`Enter Option ${oIdx + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          const next = [...questions]
+                          const nextOpts = [...next[qIdx].options]
+                          nextOpts[oIdx] = e.target.value
+                          next[qIdx] = { ...next[qIdx], options: nextOpts }
+                          setQuestions(next)
+                        }}
+                        className="ms-input"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="ms-form-field">
+                    <label style={{ fontSize: '0.8rem' }}>Correct Answer Option</label>
+                    <select 
+                      className="ms-input"
+                      value={dq.correct}
+                      onChange={(e) => {
+                        const next = [...questions]
+                        next[qIdx] = { ...next[qIdx], correct: Number(e.target.value) }
+                        setQuestions(next)
+                      }}
+                    >
+                      <option value="1">Option 1</option>
+                      <option value="2">Option 2</option>
+                      <option value="3">Option 3</option>
+                      <option value="4">Option 4</option>
+                    </select>
+                  </div>
+                  <div className="ms-form-field">
+                    <label style={{ fontSize: '0.8rem' }}>Explanation (Optional)</label>
+                    <input 
+                      type="text"
+                      className="ms-input"
+                      placeholder="Explanation..."
+                      value={dq.explanation || ''}
+                      onChange={(e) => {
+                        const next = [...questions]
+                        next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                        setQuestions(next)
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            <button type="submit" disabled={isSaving} className="ms-btn ms-btn-primary" style={{ flex: 1, background: '#166534' }}>
+              {isSaving ? 'Saving...' : (isSaved ? 'Update All 5 DI Questions' : 'Save All 5 DI Questions')}
+            </button>
+            {isSaved && (
+              <button type="button" className="ms-btn ms-btn-secondary" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={handleDeleteAll}>
+                Delete DI Set
+              </button>
+            )}
+            {saveSuccess && (
+              <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                ✓ Saved!
+              </div>
+            )}
+          </div>
+        </form>
+      )}
+    </div>
+  )
+}
+
 const QuestionSlot = ({ 
   index, 
   question, 
@@ -594,32 +1026,6 @@ const ManageSet = () => {
     }
   }
 
-  const parseRow = (line) => {
-    const trimmed = line.trim()
-    if (trimmed.includes('|')) {
-      const parts = trimmed.split('|').map(p => p.trim())
-      if (parts[0] === '' && parts[parts.length - 1] === '') {
-        return parts.slice(1, -1)
-      }
-      return parts
-    }
-    const hasTabs = trimmed.includes('\t')
-    const separator = hasTabs ? '\t' : /\s{2,}/
-    return trimmed.split(separator).map(p => p.trim())
-  }
-
-  const parseTableText = (text) => {
-    if (!text) return null
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length < 2) return null
-    
-    const rows = lines
-      .map(line => parseRow(line))
-      .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
-      
-    if (rows.length < 2) return null
-    return rows
-  }
 
   const handleEditQuestion = (q) => {
     setEditingQuestionId(q.id || q._id)
@@ -1724,23 +2130,17 @@ const ManageSet = () => {
                       </h3>
                       
                       <div className="ms-questions-slots-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
-                        {Array.from({ length: newSetCount || (newSetPaperType === 'Paper I' ? 50 : 100) }).map((_, idx) => {
-                          const qIndex = idx + 1
-                          const question = editingSetQuestions[idx]
-                          return (
-                            <QuestionSlot
-                              key={idx}
-                              index={qIndex}
-                              question={question}
+                        {newSetPaperType === 'Paper I' ? (
+                          <>
+                            <DataInterpretationGroup
+                              editingSetQuestions={editingSetQuestions}
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
-                              onSave={(savedQ, updatedSet) => {
+                              onSave={(savedQs, updatedSet) => {
                                 setEditingSetQuestions(prev => {
                                   const next = [...prev]
-                                  if (idx < prev.length) {
-                                    next[idx] = savedQ
-                                  } else {
-                                    next.push(savedQ)
+                                  for (let i = 0; i < 5; i++) {
+                                    next[i] = savedQs[i]
                                   }
                                   return next
                                 })
@@ -1748,15 +2148,74 @@ const ManageSet = () => {
                                   setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
                                 }
                               }}
-                              onDelete={(deletedId, updatedSet) => {
-                                setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
+                              onDeleteGroup={(deletedIds, updatedSet) => {
+                                setEditingSetQuestions(prev => prev.filter(q => !deletedIds.includes(q.id || q._id)))
                                 if (updatedSet) {
                                   setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
                                 }
                               }}
                             />
-                          )
-                        })}
+                            {Array.from({ length: 45 }).map((_, idx) => {
+                              const qIndex = idx + 6
+                              const question = editingSetQuestions[idx + 5]
+                              return (
+                                <QuestionSlot
+                                  key={qIndex}
+                                  index={qIndex}
+                                  question={question}
+                                  setId={editingSetId}
+                                  API_BASE_URL={API_BASE_URL}
+                                  onSave={(savedQ, updatedSet) => {
+                                    setEditingSetQuestions(prev => {
+                                      const next = [...prev]
+                                      next[idx + 5] = savedQ
+                                      return next
+                                    })
+                                    if (updatedSet) {
+                                      setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                    }
+                                  }}
+                                  onDelete={(deletedId, updatedSet) => {
+                                    setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
+                                    if (updatedSet) {
+                                      setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                    }
+                                  }}
+                                />
+                              )
+                            })}
+                          </>
+                        ) : (
+                          Array.from({ length: newSetCount || 100 }).map((_, idx) => {
+                            const qIndex = idx + 1
+                            const question = editingSetQuestions[idx]
+                            return (
+                              <QuestionSlot
+                                key={qIndex}
+                                index={qIndex}
+                                question={question}
+                                setId={editingSetId}
+                                API_BASE_URL={API_BASE_URL}
+                                onSave={(savedQ, updatedSet) => {
+                                  setEditingSetQuestions(prev => {
+                                    const next = [...prev]
+                                    next[idx] = savedQ
+                                    return next
+                                  })
+                                  if (updatedSet) {
+                                    setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                  }
+                                }}
+                                onDelete={(deletedId, updatedSet) => {
+                                  setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
+                                  if (updatedSet) {
+                                    setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                  }
+                                }}
+                              />
+                            )
+                          })
+                        )}
                       </div>
                     </div>
                   )}
