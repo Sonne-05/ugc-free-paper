@@ -16,9 +16,14 @@ const Paper1PYQ = () => {
           const grouped = {}
           paper1Sets.forEach(set => {
             if (!grouped[set.year]) grouped[set.year] = []
+            
+            const cleanedCycle = set.subtitle
+              ? set.subtitle.replace(/^General\s+Paper\s+\d{4}\s*/i, '').replace(/^General\s+Paper\s*/i, '')
+              : ''
+
             grouped[set.year].push({
               id: set.id,
-              cycle: set.subtitle,
+              cycle: cleanedCycle,
               questions: set.questionsCount,
               title: set.title
             })
