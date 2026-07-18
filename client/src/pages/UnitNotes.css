@@ -54,7 +54,6 @@
   font-size: 1.1rem;
   color: var(--text-secondary);
   line-height: 1.7;
-  text-align: justify;
 }
 
 .unit-notes__section {
@@ -100,7 +99,6 @@
   font-size: 0.95rem;
   color: var(--text-secondary);
   line-height: 1.6;
-  text-align: justify;
 }
 
 .unit-notes__section--tips {
@@ -123,7 +121,6 @@
   color: var(--text);
   line-height: 1.6;
   font-weight: 500;
-  text-align: justify;
 }
 
 .unit-notes__q-card {

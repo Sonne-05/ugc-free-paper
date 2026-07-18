@@ -48,7 +48,6 @@
 
 .info-page__content p {
   margin-bottom: 20px;
-  text-align: justify;
 }
 
 .info-page__content ul {
@@ -59,7 +58,6 @@
 
 .info-page__content li {
   margin-bottom: 8px;
-  text-align: justify;
 }
 
 /* Contact Page Form */
