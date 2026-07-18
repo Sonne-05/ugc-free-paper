@@ -1,6 +1,6 @@
 // MockTest.jsx
 import { useState, useEffect, useRef } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import './MockTest.css'
 
@@ -691,10 +691,12 @@ const MockTest = () => {
       {step !== STEP_RESULTS && (
         <header className="mt-header">
           <div className="mt-header__left">
-            <div className="mt-header__logo">
-              <span className="mt-header__logo-text-dark">UGC Free</span>
-              <span className="mt-header__logo-text-primary">Paper</span>
-            </div>
+            <Link to="/" className="mt-header__logo" style={{ textDecoration: 'none' }}>
+              <div className="navbar__logo-icon" style={{ width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+              <span className="mt-header__logo-text-dark" style={{ marginLeft: '-5px' }}>GC Free Paper</span>
+            </Link>
             <div className="mt-header__title">
               {paperDetails.title} {paperDetails.subtitle && `- ${paperDetails.subtitle}`}
             </div>
