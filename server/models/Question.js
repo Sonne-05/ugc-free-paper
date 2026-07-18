@@ -6,6 +6,9 @@ const questionSchema = new mongoose.Schema({
     ref: 'PyqSet',
     required: true
   },
+  qIndex: {
+    type: Number
+  },
   type: {
     type: String,
     enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'],

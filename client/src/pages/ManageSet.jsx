@@ -59,12 +59,17 @@ const DataInterpretationGroup = ({
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   useEffect(() => {
-    const existingQs = editingSetQuestions.slice(0, 5)
+    const existingQs = Array.from({ length: 5 }).map((_, idx) => {
+      const qIndex = idx + 1
+      return editingSetQuestions.find(q => q.qIndex === qIndex)
+    })
     
-    if (existingQs[0] && existingQs[0].passage) {
-      setLocalPassage(existingQs[0].passage)
+    const firstQWithPassage = existingQs.find(q => q && q.passage)
+    
+    if (firstQWithPassage && firstQWithPassage.passage) {
+      setLocalPassage(firstQWithPassage.passage)
       
-      const parsedTable = parseTableText(existingQs[0].passage)
+      const parsedTable = parseTableText(firstQWithPassage.passage)
       if (parsedTable) {
         setDiTable(parsedTable)
         setDiMode('visual')
@@ -167,13 +172,14 @@ const DataInterpretationGroup = ({
         const payload = {
           setId,
           type: 'di',
+          qIndex: idx + 1,
           passage: localPassage,
           text: q.text,
           options: q.options,
           correct: q.correct,
           explanation: q.explanation
         }
-        const existing = editingSetQuestions[idx]
+        const existing = editingSetQuestions.find(eq => eq.qIndex === idx + 1)
         if (existing && (existing.id || existing._id)) {
           return fetch(`${API_BASE_URL}/api/questions/${existing.id || existing._id}`, {
             method: 'PUT',
@@ -215,7 +221,10 @@ const DataInterpretationGroup = ({
   }
 
   const handleDeleteAll = async () => {
-    const existingQs = editingSetQuestions.slice(0, 5)
+    const existingQs = Array.from({ length: 5 }).map((_, idx) => {
+      const qIndex = idx + 1
+      return editingSetQuestions.find(q => q.qIndex === qIndex)
+    }).filter(Boolean)
     if (existingQs.length === 0) return
     if (!window.confirm('Are you sure you want to delete all 5 Data Interpretation questions?')) return
 
@@ -235,7 +244,7 @@ const DataInterpretationGroup = ({
     }
   }
 
-  const isSaved = editingSetQuestions.length > 0 && editingSetQuestions[0].type === 'di'
+  const isSaved = editingSetQuestions.some(q => q.qIndex === 1 && q.type === 'di')
 
   return (
     <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
@@ -600,6 +609,7 @@ const QuestionSlot = ({
       setId,
       type: qType,
       text: qText,
+      qIndex: index,
       options: qOpts,
       correct: qCorrect,
       assertion: qAssertion,
@@ -1393,9 +1403,24 @@ const ManageSet = () => {
       alert('Error: Please select a valid PYQ Set first.')
       return
     }
+
+    const getFirstEmptySlotIndex = (questions, paperType, maxCount) => {
+      const limit = maxCount || (paperType === 'Paper I' ? 50 : 100)
+      const existingIndices = new Set(questions.map(q => q.qIndex).filter(Boolean))
+      for (let i = 1; i <= limit; i++) {
+        if (!existingIndices.has(i)) {
+          return i
+        }
+      }
+      return limit + 1
+    }
+
+    const qIndex = getFirstEmptySlotIndex(editingSetQuestions, newSetPaperType, newSetCount)
+
     const questionPayload = {
       setId: selectedSetId,
       type: newQType,
+      qIndex,
       text: newQText,
       options: newQOpts,
       correct: newQCorrect,
@@ -1680,10 +1705,29 @@ const ManageSet = () => {
       return
     }
     try {
+      const getFirstEmptySlotIndex = (questions, paperType, maxCount) => {
+        const limit = maxCount || (paperType === 'Paper I' ? 50 : 100)
+        const existingIndices = new Set(questions.map(q => q.qIndex).filter(Boolean))
+        for (let i = 1; i <= limit; i++) {
+          if (!existingIndices.has(i)) {
+            return i
+          }
+        }
+        return limit + 1
+      }
+
+      let tempQuestions = [...editingSetQuestions]
+      const questionsWithIndex = parsedQuestions.map((q) => {
+        const qIndex = getFirstEmptySlotIndex(tempQuestions, targetSet.paperType, targetSet.questionsCount)
+        const updatedQ = { ...q, qIndex }
+        tempQuestions.push(updatedQ)
+        return updatedQ
+      })
+
       const res = await fetch(`${API_BASE_URL}/api/questions/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setId: selectedSetId, questions: parsedQuestions })
+        body: JSON.stringify({ setId: selectedSetId, questions: questionsWithIndex })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message)
@@ -2264,9 +2308,14 @@ const ManageSet = () => {
                               onSave={(savedQs, updatedSet) => {
                                 setEditingSetQuestions(prev => {
                                   const next = [...prev]
-                                  for (let i = 0; i < 5; i++) {
-                                    next[i] = savedQs[i]
-                                  }
+                                  savedQs.forEach(savedQ => {
+                                    const idx = next.findIndex(q => (q.id || q._id) === (savedQ.id || savedQ._id) || q.qIndex === savedQ.qIndex)
+                                    if (idx >= 0) {
+                                      next[idx] = savedQ
+                                    } else {
+                                      next.push(savedQ)
+                                    }
+                                  })
                                   return next
                                 })
                                 if (updatedSet) {
@@ -2282,7 +2331,7 @@ const ManageSet = () => {
                             />
                             {Array.from({ length: 45 }).map((_, idx) => {
                               const qIndex = idx + 6
-                              const question = editingSetQuestions[idx + 5]
+                              const question = editingSetQuestions.find(q => q.qIndex === qIndex)
                               return (
                                 <QuestionSlot
                                   key={qIndex}
@@ -2292,9 +2341,12 @@ const ManageSet = () => {
                                   API_BASE_URL={API_BASE_URL}
                                   onSave={(savedQ, updatedSet) => {
                                     setEditingSetQuestions(prev => {
-                                      const next = [...prev]
-                                      next[idx + 5] = savedQ
-                                      return next
+                                      const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
+                                      if (exists) {
+                                        return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
+                                      } else {
+                                        return [...prev, savedQ]
+                                      }
                                     })
                                     if (updatedSet) {
                                       setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
@@ -2313,7 +2365,7 @@ const ManageSet = () => {
                         ) : (
                           Array.from({ length: newSetCount || 100 }).map((_, idx) => {
                             const qIndex = idx + 1
-                            const question = editingSetQuestions[idx]
+                            const question = editingSetQuestions.find(q => q.qIndex === qIndex)
                             return (
                               <QuestionSlot
                                 key={qIndex}
@@ -2323,9 +2375,12 @@ const ManageSet = () => {
                                 API_BASE_URL={API_BASE_URL}
                                 onSave={(savedQ, updatedSet) => {
                                   setEditingSetQuestions(prev => {
-                                    const next = [...prev]
-                                    next[idx] = savedQ
-                                    return next
+                                    const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
+                                    if (exists) {
+                                      return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
+                                    } else {
+                                      return [...prev, savedQ]
+                                    }
                                   })
                                   if (updatedSet) {
                                     setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))

@@ -1054,9 +1054,24 @@ const Profile = () => {
       alert('Error: Please select a valid PYQ Set first.')
       return
     }
+
+    const getFirstEmptySlotIndex = (questions, paperType, maxCount) => {
+      const limit = maxCount || (paperType === 'Paper I' ? 50 : 100)
+      const existingIndices = new Set(questions.map(q => q.qIndex).filter(Boolean))
+      for (let i = 1; i <= limit; i++) {
+        if (!existingIndices.has(i)) {
+          return i
+        }
+      }
+      return limit + 1
+    }
+
+    const qIndex = getFirstEmptySlotIndex(editingSetQuestions, targetSet.paperType, targetSet.questionsCount)
+
     const questionPayload = {
       setId: selectedSetId,
       type: newQType,
+      qIndex,
       text: newQText,
       options: newQOpts,
       correct: newQCorrect,
@@ -1351,10 +1366,29 @@ const Profile = () => {
       return
     }
     try {
+      const getFirstEmptySlotIndex = (questions, paperType, maxCount) => {
+        const limit = maxCount || (paperType === 'Paper I' ? 50 : 100)
+        const existingIndices = new Set(questions.map(q => q.qIndex).filter(Boolean))
+        for (let i = 1; i <= limit; i++) {
+          if (!existingIndices.has(i)) {
+            return i
+          }
+        }
+        return limit + 1
+      }
+
+      let tempQuestions = [...editingSetQuestions]
+      const questionsWithIndex = parsedQuestions.map((q) => {
+        const qIndex = getFirstEmptySlotIndex(tempQuestions, targetSet.paperType, targetSet.questionsCount)
+        const updatedQ = { ...q, qIndex }
+        tempQuestions.push(updatedQ)
+        return updatedQ
+      })
+
       const res = await fetch(`${API_BASE_URL}/api/questions/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setId: selectedSetId, questions: parsedQuestions })
+        body: JSON.stringify({ setId: selectedSetId, questions: questionsWithIndex })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.message)

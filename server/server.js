@@ -140,7 +140,7 @@ app.delete('/api/pyqsets/:id', async (req, res) => {
 // Get all questions for a set
 app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   try {
-    const questions = await Question.find({ setId: req.params.setId }).sort({ createdAt: 1 });
+    const questions = await Question.find({ setId: req.params.setId }).sort({ qIndex: 1, createdAt: 1 });
     res.json(questions);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch questions' });
