@@ -50,6 +50,7 @@ const Profile = () => {
   const [newSetYear, setNewSetYear] = useState('')
   const [newSetSubtitle, setNewSetSubtitle] = useState('')
   const [newSetCount, setNewSetCount] = useState(100)
+  const [newSetIsPublished, setNewSetIsPublished] = useState(false)
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
 
@@ -70,7 +71,11 @@ const Profile = () => {
   }, [])
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/pyqsets`)
+    const role = localStorage.getItem('userRole')
+    const url = role === 'admin'
+      ? `${API_BASE_URL}/api/pyqsets?admin=true`
+      : `${API_BASE_URL}/api/pyqsets`
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setPyqSets(data)
@@ -744,6 +749,7 @@ const Profile = () => {
     setNewSetYear('')
     setNewSetSubtitle('')
     setNewSetCount(50)
+    setNewSetIsPublished(false)
   }
 
   const handleDeleteQuestion = async (questionId) => {
@@ -791,7 +797,8 @@ const Profile = () => {
       paperType: newSetPaperType,
       year: newSetYear,
       questionsCount: Number(newSetCount),
-      questionsLoaded: 0
+      questionsLoaded: 0,
+      isPublished: newSetIsPublished
     }
 
     try {
@@ -1899,9 +1906,18 @@ const Profile = () => {
                               </td>
                               <td>{set.year}</td>
                               <td>
-                                <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                  {set.questionsLoaded} / {set.questionsCount} Qs
-                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                    {set.questionsLoaded} / {set.questionsCount} Qs
+                                  </span>
+                                  <div>
+                                    {set.isPublished ? (
+                                      <span className="status-badge status-badge--published">Published</span>
+                                    ) : (
+                                      <span className="status-badge status-badge--draft">Draft</span>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
@@ -1945,9 +1961,18 @@ const Profile = () => {
                               </td>
                               <td>{set.year}</td>
                               <td>
-                                <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                  {set.questionsLoaded} / {set.questionsCount} Qs
-                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                    {set.questionsLoaded} / {set.questionsCount} Qs
+                                  </span>
+                                  <div>
+                                    {set.isPublished ? (
+                                      <span className="status-badge status-badge--published">Published</span>
+                                    ) : (
+                                      <span className="status-badge status-badge--draft">Draft</span>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
@@ -2011,6 +2036,19 @@ const Profile = () => {
                       </select>
                     </div>
 
+                    <div className="form-field-checkbox" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="publishSetProfile"
+                        checked={newSetIsPublished}
+                        onChange={(e) => setNewSetIsPublished(e.target.checked)}
+                        style={{ width: 'auto', margin: 0 }}
+                      />
+                      <label htmlFor="publishSetProfile" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        Publish this set (make it visible to users)
+                      </label>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button type="submit" className="pane-btn pane-btn--primary">
                         {editingSetId ? 'Update Set Details' : 'Create Exam Set'}
@@ -2072,7 +2110,7 @@ const Profile = () => {
                             onChange={(e) => setSelectedSetId(e.target.value)}
                           >
                             {pyqSets.map(s => (
-                              <option key={s.id} value={s.id}>{s.title}</option>
+                              <option key={s.id} value={s.id}>{s.title} {s.isPublished ? '(Published)' : '(Draft)'}</option>
                             ))}
                           </select>
                         </div>

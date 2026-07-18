@@ -31,8 +31,20 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI).then(() => {
+mongoose.connect(process.env.MONGODB_URI).then(async () => {
   console.log('Connected to MongoDB');
+  // Migrate existing PYQ sets to have isPublished: true if not specified
+  try {
+    const result = await PyqSet.updateMany(
+      { isPublished: { $exists: false } },
+      { $set: { isPublished: true } }
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`Migrated ${result.modifiedCount} existing PYQ sets to isPublished: true`);
+    }
+  } catch (err) {
+    console.error('Migration error:', err);
+  }
 }).catch(err => {
   console.error('MongoDB connection error:', err);
 });
@@ -76,7 +88,11 @@ app.post('/api/notes/:unitId', async (req, res) => {
 // Get all PYQ sets
 app.get('/api/pyqsets', async (req, res) => {
   try {
-    const sets = await PyqSet.find().sort({ createdAt: 1 });
+    const filter = {};
+    if (req.query.admin !== 'true') {
+      filter.isPublished = true;
+    }
+    const sets = await PyqSet.find(filter).sort({ createdAt: 1 });
     res.json(sets);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch PYQ sets' });

@@ -15,6 +15,7 @@ const ManageSet = () => {
   const [newSetYear, setNewSetYear] = useState('')
   const [newSetSubtitle, setNewSetSubtitle] = useState('')
   const [newSetCount, setNewSetCount] = useState(50)
+  const [newSetIsPublished, setNewSetIsPublished] = useState(false)
   
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
@@ -58,7 +59,7 @@ const ManageSet = () => {
     }
     setIsAdmin(true)
     
-    fetch(`${API_BASE_URL}/api/pyqsets`)
+    fetch(`${API_BASE_URL}/api/pyqsets?admin=true`)
       .then(res => res.json())
       .then(data => {
         setPyqSets(Array.isArray(data) ? data : [])
@@ -71,6 +72,7 @@ const ManageSet = () => {
             setNewSetYear(target.year)
             setNewSetSubtitle(target.subtitle)
             setNewSetCount(target.questionsCount)
+            setNewSetIsPublished(target.isPublished || false)
             loadQuestionsForSet(setId)
           }
         }
@@ -228,7 +230,8 @@ const ManageSet = () => {
       paperType: newSetPaperType,
       year: newSetYear,
       questionsCount: Number(newSetCount),
-      questionsLoaded: 0
+      questionsLoaded: 0,
+      isPublished: newSetIsPublished
     }
 
     try {
@@ -730,7 +733,7 @@ const ManageSet = () => {
     onChange={(e) => setSelectedSetId(e.target.value)}
   >
     {pyqSets.map(s => (
-      <option key={s.id} value={s.id}>{s.title}</option>
+      <option key={s.id} value={s.id}>{s.title} {s.isPublished ? '(Published)' : '(Draft)'}</option>
     ))}
   </select>
       </div>
@@ -1146,7 +1149,7 @@ const ManageSet = () => {
                       />
                     </div>
 
-                    <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+                    <div className="ms-form-field" style={{ marginBottom: '12px' }}>
                       <label>Total Questions Count</label>
                       <select 
                         className="ms-input"
@@ -1156,6 +1159,19 @@ const ManageSet = () => {
                         <option value="50">50 Questions (Standard Paper I)</option>
                         <option value="100">100 Questions (Standard Paper II)</option>
                       </select>
+                    </div>
+
+                    <div className="ms-form-field-checkbox" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="publishSetManage"
+                        checked={newSetIsPublished}
+                        onChange={(e) => setNewSetIsPublished(e.target.checked)}
+                        style={{ width: 'auto', margin: 0 }}
+                      />
+                      <label htmlFor="publishSetManage" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        Publish this set (make it visible to users)
+                      </label>
                     </div>
 
                     <div style={{ display: 'flex', gap: '10px' }}>

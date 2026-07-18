@@ -26,6 +26,10 @@ const pyqSetSchema = new mongoose.Schema({
   questionsLoaded: {
     type: Number,
     default: 0
+  },
+  isPublished: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
