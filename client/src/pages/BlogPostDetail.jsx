@@ -52,16 +52,7 @@ const BlogPostDetail = () => {
     <div className="blog-detail-page">
       <div className="blog-detail-container">
         
-        {/* Navigation back */}
-        <div className="blog-detail-nav">
-          <Link to="/blog" className="back-link">
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Articles
-          </Link>
-        </div>
+
 
         {/* Layout Wrapper */}
         <div className="blog-detail-layout">
@@ -88,28 +79,13 @@ const BlogPostDetail = () => {
 
             <div className="detail-divider" />
 
-            {/* Bottom Advertisement Placeholder */}
-            <div className="blog-ad-placeholder bottom-ad">
-              <div className="ad-label">Advertisement</div>
-              <div className="ad-content">
-                <p>Google AdSense / custom banner ad space (horizontal banner)</p>
-                <span className="ad-hint">Paste your ad snippet code here in <code>BlogPostDetail.jsx</code></span>
-              </div>
-            </div>
           </article>
 
           {/* Sidebar column with advertisement */}
           <aside className="blog-detail-sidebar">
             <div className="sidebar-sticky-wrapper">
               
-              {/* Sidebar Advertisement Placeholder */}
-              <div className="blog-ad-placeholder sidebar-ad">
-                <div className="ad-label">Advertisement</div>
-                <div className="ad-content">
-                  <p>Google AdSense / custom display ad space (skyscraper/square format)</p>
-                  <span className="ad-hint">Paste your sidebar ad snippet code here in <code>BlogPostDetail.jsx</code></span>
-                </div>
-              </div>
+
 
               {/* Related/Newsletter block */}
               <div className="sidebar-promo-box">
