@@ -203,6 +203,14 @@ const MockTest = () => {
     return `${idx + 1}. ${option}`
   }
 
+  const renderTextHtml = (str) => {
+    if (!str) return '';
+    const formatted = str
+      .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
+      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>');
+    return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+  }
+
   const parseRow = (line) => {
     const trimmed = line.trim()
     if (trimmed.includes('|')) {
@@ -1002,7 +1010,7 @@ const MockTest = () => {
                     </div>
                     
                     <div className="question-body">
-                      {questionsState[activeQuestionIndex].question}
+                      {renderTextHtml(questionsState[activeQuestionIndex].question)}
                     </div>
 
                     <div className="options-list">
@@ -1019,7 +1027,7 @@ const MockTest = () => {
                             onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                             disabled={isReviewMode}
                           />
-                          <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                          <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                         </div>
                       ))}
                     </div>
@@ -1048,7 +1056,7 @@ const MockTest = () => {
                       </div>
                     )}
                     <div style={{ whiteSpace: 'pre-line', marginTop: '15px', fontWeight: '500' }}>
-                      {questionsState[activeQuestionIndex].question}
+                      {renderTextHtml(questionsState[activeQuestionIndex].question)}
                     </div>
                   </div>
 
@@ -1066,7 +1074,7 @@ const MockTest = () => {
                           onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                           disabled={isReviewMode}
                         />
-                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                        <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                       </div>
                     ))}
                   </div>
@@ -1086,16 +1094,16 @@ const MockTest = () => {
                   
                   <div className="question-body">
                     <p style={{ marginBottom: '15px', whiteSpace: 'pre-line' }}>
-                      {questionsState[activeQuestionIndex].question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):"}
+                      {renderTextHtml(questionsState[activeQuestionIndex].question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):")}
                     </p>
                     <p style={{ marginBottom: '10px' }}>
-                      <strong>Assertion (A):</strong> {stripPrefix(questionsState[activeQuestionIndex].assertion, 'assertion')}
+                      <strong>Assertion (A):</strong> {renderTextHtml(stripPrefix(questionsState[activeQuestionIndex].assertion, 'assertion'))}
                     </p>
                     <p style={{ marginBottom: '20px' }}>
-                      <strong>Reason (R):</strong> {stripPrefix(questionsState[activeQuestionIndex].reason, 'reason')}
+                      <strong>Reason (R):</strong> {renderTextHtml(stripPrefix(questionsState[activeQuestionIndex].reason, 'reason'))}
                     </p>
                     <p style={{ fontWeight: '600', marginBottom: '15px' }}>
-                      {questionsState[activeQuestionIndex].subPrompt || "In the light of the above statements, choose the most appropriate answer from the options given below:"}
+                      {renderTextHtml(questionsState[activeQuestionIndex].subPrompt || "In the light of the above statements, choose the most appropriate answer from the options given below:")}
                     </p>
                   </div>
 
@@ -1113,7 +1121,7 @@ const MockTest = () => {
                           onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                           disabled={isReviewMode}
                         />
-                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                        <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                       </div>
                     ))}
                   </div>
@@ -1132,7 +1140,7 @@ const MockTest = () => {
                   </div>
 
                   <div className="question-body">
-                    <p style={{ whiteSpace: 'pre-line', marginBottom: '15px' }}>{questionsState[activeQuestionIndex].question}</p>
+                    <p style={{ whiteSpace: 'pre-line', marginBottom: '15px' }}>{renderTextHtml(questionsState[activeQuestionIndex].question)}</p>
                     
                     <table style={{ width: '70%', borderCollapse: 'collapse', margin: '0 auto 20px auto', fontSize: '0.85rem' }}>
                       <thead>
@@ -1141,7 +1149,7 @@ const MockTest = () => {
                             <div style={{ fontWeight: 'bold' }}>LIST-I</div>
                             {questionsState[activeQuestionIndex].list1Header && (
                               <div style={{ fontWeight: '500', fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
-                                {questionsState[activeQuestionIndex].list1Header}
+                                {renderTextHtml(questionsState[activeQuestionIndex].list1Header)}
                               </div>
                             )}
                           </th>
@@ -1149,7 +1157,7 @@ const MockTest = () => {
                             <div style={{ fontWeight: 'bold' }}>LIST-II</div>
                             {questionsState[activeQuestionIndex].list2Header && (
                               <div style={{ fontWeight: '500', fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
-                                {questionsState[activeQuestionIndex].list2Header}
+                                {renderTextHtml(questionsState[activeQuestionIndex].list2Header)}
                               </div>
                             )}
                           </th>
@@ -1161,13 +1169,13 @@ const MockTest = () => {
                             <td style={{ border: '1px solid var(--border)', padding: '6px 10px', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <strong>{String.fromCharCode(65 + idx)}.</strong>
-                                <span>{stripPrefix((questionsState[activeQuestionIndex].list1 || [])[idx] || '', 'letter')}</span>
+                                <span>{renderTextHtml(stripPrefix((questionsState[activeQuestionIndex].list1 || [])[idx] || '', 'letter'))}</span>
                               </div>
                             </td>
                             <td style={{ border: '1px solid var(--border)', padding: '6px 10px', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <strong>{['I', 'II', 'III', 'IV', 'V'][idx] || (idx+1)}.</strong>
-                                <span>{stripPrefix((questionsState[activeQuestionIndex].list2 || [])[idx] || '', 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, '')}</span>
+                                <span>{renderTextHtml(stripPrefix((questionsState[activeQuestionIndex].list2 || [])[idx] || '', 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, ''))}</span>
                               </div>
                             </td>
                           </tr>
@@ -1194,7 +1202,7 @@ const MockTest = () => {
                           onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                           disabled={isReviewMode}
                         />
-                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                        <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                       </div>
                     ))}
                   </div>
@@ -1214,20 +1222,20 @@ const MockTest = () => {
 
                   <div className="question-body">
                     <div style={{ whiteSpace: 'pre-line', marginBottom: '15px' }}>
-                      {questionsState[activeQuestionIndex].question}
+                      {renderTextHtml(questionsState[activeQuestionIndex].question)}
                     </div>
                     
                     <div style={{ marginLeft: '10px', marginBottom: '20px' }}>
                       {(questionsState[activeQuestionIndex].statements || []).map((item, idx) => (
                         <div key={idx} style={{ marginBottom: '8px', display: 'flex', gap: '8px' }}>
                           <span style={{ fontWeight: 600 }}>{String.fromCharCode(65 + idx)}.</span>
-                          <span>{stripPrefix(item, 'letter')}</span>
+                          <span>{renderTextHtml(stripPrefix(item, 'letter'))}</span>
                         </div>
                       ))}
                     </div>
 
                     <p style={{ fontWeight: '600', marginBottom: '15px' }}>
-                      {questionsState[activeQuestionIndex].subPrompt || 'Choose the correct answer from the options given below:'}
+                      {renderTextHtml(questionsState[activeQuestionIndex].subPrompt || 'Choose the correct answer from the options given below:')}
                     </p>
                   </div>
 
@@ -1245,7 +1253,7 @@ const MockTest = () => {
                           onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                           disabled={isReviewMode}
                         />
-                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                        <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                       </div>
                     ))}
                   </div>
@@ -1264,7 +1272,7 @@ const MockTest = () => {
                   </div>
 
                   <div className="question-body" style={{ whiteSpace: 'pre-line' }}>
-                    {questionsState[activeQuestionIndex].question}
+                    {renderTextHtml(questionsState[activeQuestionIndex].question)}
                   </div>
 
                   <div className="options-list">
@@ -1281,7 +1289,7 @@ const MockTest = () => {
                           onChange={() => { if (!isReviewMode) setSelectedOption(idx + 1) }}
                           disabled={isReviewMode}
                         />
-                        <span className="option-text">{formatOptionLabel(option, idx)}</span>
+                        <span className="option-text">{renderTextHtml(formatOptionLabel(option, idx))}</span>
                       </div>
                     ))}
                   </div>
@@ -1329,8 +1337,8 @@ const MockTest = () => {
                     <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(questionsState[activeQuestionIndex], activeQuestionIndex)}</strong>.
                   </p>
                   <p>
-                    <strong>Explanation:</strong> {questionsState[activeQuestionIndex].explanation || `Option ${questionsState[activeQuestionIndex].correct} is correct. Let's analyze:
-                    The question tests our understanding of the core concept. By evaluating the given facts, Option ${questionsState[activeQuestionIndex].correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`}
+                    <strong>Explanation:</strong> {renderTextHtml(questionsState[activeQuestionIndex].explanation || `Option ${questionsState[activeQuestionIndex].correct} is correct. Let's analyze:
+                    The question tests our understanding of the core concept. By evaluating the given facts, Option ${questionsState[activeQuestionIndex].correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`)}
                   </p>
                 </div>
               </div>
@@ -1895,8 +1903,8 @@ const MockTest = () => {
                     {/* Render prompt based on type */}
                     {q.type === 'assertion-reason' && (
                       <div>
-                        <p style={{ marginBottom: '5px' }}><strong>Assertion (A):</strong> {stripPrefix(q.assertion, 'assertion')}</p>
-                        <p style={{ marginBottom: '5px' }}><strong>Reason (R):</strong> {stripPrefix(q.reason, 'reason')}</p>
+                        <p style={{ marginBottom: '5px' }}><strong>Assertion (A):</strong> {renderTextHtml(stripPrefix(q.assertion, 'assertion'))}</p>
+                        <p style={{ marginBottom: '5px' }}><strong>Reason (R):</strong> {renderTextHtml(stripPrefix(q.reason, 'reason'))}</p>
                       </div>
                     )}
                     {(q.type === 'comprehension' || q.type === 'di') && (
@@ -1904,33 +1912,33 @@ const MockTest = () => {
                         <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderLeft: '3px solid #3b82f6', marginBottom: '8px', fontSize: '0.85rem' }}>
                           {renderPassageWithTable(q.passage)}
                         </div>
-                        <p>{q.question}</p>
+                        <p>{renderTextHtml(q.question)}</p>
                       </div>
                     )}
                     {q.type === 'match-column' && (
                       <div>
-                        <p style={{ marginBottom: '8px' }}>{q.question}</p>
+                        <p style={{ marginBottom: '8px' }}>{renderTextHtml(q.question)}</p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px', fontSize: '0.85rem' }}>
                           <div>
                             <strong>LIST I</strong>
                             {q.list1Header && (
                               <div style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                {q.list1Header}
+                                {renderTextHtml(q.list1Header)}
                               </div>
                             )}
                             {(q.list1 || []).map((l1, lIdx) => (
-                              <div key={lIdx}>{String.fromCharCode(65 + lIdx)}. {stripPrefix(l1, 'letter')}</div>
+                              <div key={lIdx}>{String.fromCharCode(65 + lIdx)}. {renderTextHtml(stripPrefix(l1, 'letter'))}</div>
                             ))}
                           </div>
                           <div>
                             <strong>LIST II</strong>
                             {q.list2Header && (
                               <div style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                {q.list2Header}
+                                {renderTextHtml(q.list2Header)}
                               </div>
                             )}
                             {(q.list2 || []).map((l2, lIdx) => (
-                              <div key={lIdx}>{['I', 'II', 'III', 'IV', 'V'][lIdx] || (lIdx+1)}. {stripPrefix(l2, 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, '')}</div>
+                              <div key={lIdx}>{['I', 'II', 'III', 'IV', 'V'][lIdx] || (lIdx+1)}. {renderTextHtml(stripPrefix(l2, 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, ''))}</div>
                             ))}
                           </div>
                         </div>
@@ -1938,19 +1946,19 @@ const MockTest = () => {
                     )}
                     {q.type === 'multiple-statement' && (
                       <div>
-                        <p style={{ marginBottom: '8px' }}>{q.question}</p>
+                        <p style={{ marginBottom: '8px' }}>{renderTextHtml(q.question)}</p>
                         <div style={{ marginBottom: '8px', fontSize: '0.85rem', paddingLeft: '10px' }}>
                           {(q.statements || []).map((stmt, sIdx) => (
-                            <div key={sIdx}><strong>{String.fromCharCode(65 + sIdx)}.</strong> {stripPrefix(stmt, 'letter')}</div>
+                            <div key={sIdx}><strong>{String.fromCharCode(65 + sIdx)}.</strong> {renderTextHtml(stripPrefix(stmt, 'letter'))}</div>
                           ))}
                         </div>
                         <p style={{ fontWeight: '600', fontSize: '0.85rem', margin: '4px 0 8px 0' }}>
-                          {q.subPrompt || 'Choose the correct answer from the options given below:'}
+                          {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
                         </p>
                       </div>
                     )}
                     {(!q.type || q.type === 'mcq') && (
-                      <p>{q.question}</p>
+                      <p>{renderTextHtml(q.question)}</p>
                     )}
                   </div>
                   
@@ -1958,7 +1966,7 @@ const MockTest = () => {
                   <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingLeft: '15px'}}>
                     {q.options.map((opt, oIdx) => (
                       <div key={oIdx} style={{fontSize: '0.85rem', color: '#475569'}}>
-                        {formatOptionLabel(opt, oIdx)}
+                        {renderTextHtml(formatOptionLabel(opt, oIdx))}
                       </div>
                     ))}
                   </div>
