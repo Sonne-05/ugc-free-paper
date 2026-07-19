@@ -9,6 +9,7 @@ const questionSchema = new mongoose.Schema({
   qIndex: {
     type: Number
   },
+  unit: String,
   type: {
     type: String,
     enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'],

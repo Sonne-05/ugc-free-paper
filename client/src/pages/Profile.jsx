@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import RichExplanationEditor from '../components/RichExplanationEditor'
+import { PAPER1_UNITS } from '../constants/paper1Units'
 import './Profile.css'
 import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 
@@ -141,6 +142,7 @@ const Profile = () => {
   }, [pyqSets, selectedSetId])
   const [rawImportText, setRawImportText] = useState('')
   const [newQType, setNewQType] = useState('mcq') // 'mcq', 'assertion-reason', 'match-column', 'comprehension'
+  const [newQUnit, setNewQUnit] = useState('Unit 1: Teaching Aptitude')
   const [newQText, setNewQText] = useState('')
   const [newQOpts, setNewQOpts] = useState(['', '', '', ''])
   const [newQCorrect, setNewQCorrect] = useState(1)
@@ -965,6 +967,7 @@ const Profile = () => {
 
       const questions = diQuestions.map(dq => ({
         type: 'di',
+        unit: dq.unit || newQUnit || 'Unit 7: Data Interpretation',
         text: dq.text,
         options: dq.options,
         correct: dq.correct,
@@ -1072,6 +1075,7 @@ const Profile = () => {
     const questionPayload = {
       setId: selectedSetId,
       type: newQType,
+      unit: newQUnit,
       qIndex,
       text: newQText,
       options: newQOpts,
@@ -2209,6 +2213,8 @@ const Profile = () => {
                               } else if (type === 'match-column' || type === 'multiple-statement') {
                                 setNewQSubPrompt('Choose the correct answer from the options given below:')
                               }
+                              if (type === 'di') setNewQUnit('Unit 7: Data Interpretation')
+                              if (type === 'comprehension') setNewQUnit('Unit 3: Comprehension')
                             }}
                           >
                             <option value="mcq">Normal MCQ</option>
@@ -2217,6 +2223,19 @@ const Profile = () => {
                             <option value="comprehension">Comprehension / Passage</option>
                             <option value="di">Data Interpretation / Table Data</option>
                             <option value="multiple-statement">Multiple Statements MCQ</option>
+                          </select>
+                        </div>
+
+                        <div className="form-field" style={{ marginBottom: '12px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Syllabus Unit (Paper I)</label>
+                          <select 
+                            className="pane-select"
+                            value={newQUnit}
+                            onChange={(e) => setNewQUnit(e.target.value)}
+                          >
+                            {PAPER1_UNITS.map(u => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
                           </select>
                         </div>
 

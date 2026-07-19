@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import RichExplanationEditor from '../components/RichExplanationEditor'
+import { PAPER1_UNITS } from '../constants/paper1Units'
 import './Profile.css'
 import './ManageSet.css'
 
@@ -467,6 +468,7 @@ const QuestionSlot = ({
   const [qPassage, setQPassage] = useState('')
   const [qStatements, setQStatements] = useState(['', '', '', '', ''])
   const [qSubPrompt, setQSubPrompt] = useState('Choose the correct answer from the options given below:')
+  const [qUnit, setQUnit] = useState('Unit 1: Teaching Aptitude')
   
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -489,6 +491,7 @@ const QuestionSlot = ({
       setQPassage(question.passage || '')
       setQStatements(question.statements || ['', '', '', '', ''])
       setQSubPrompt(question.subPrompt || 'Choose the correct answer from the options given below:')
+      setQUnit(question.unit || 'Unit 1: Teaching Aptitude')
     } else {
       // Clear fields for empty slots
       setQType('mcq')
@@ -505,6 +508,7 @@ const QuestionSlot = ({
       setQPassage('')
       setQStatements(['', '', '', '', ''])
       setQSubPrompt('Choose the correct answer from the options given below:')
+      setQUnit('Unit 1: Teaching Aptitude')
     }
   }, [question, isOpen])
 
@@ -617,6 +621,7 @@ const QuestionSlot = ({
       statements: qStatements.filter(s => s.trim() !== ''),
       subPrompt: qSubPrompt,
       explanation: qExplanation,
+      unit: qUnit,
       list1: qList1,
       list2: qList2,
       list1Header: qList1Header,
@@ -685,6 +690,11 @@ const QuestionSlot = ({
           <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
             {isSaved ? `Saved (${qType.replace('-', ' ')})` : 'Empty'}
           </span>
+          {isSaved && qUnit && (
+            <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+              {qUnit.split(':')[0]}
+            </span>
+          )}
           <span className="ms-q-slot-preview" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
             {qText ? (qText.length > 60 ? qText.substring(0, 60) + '...' : qText) : 'Click to add question content'}
           </span>
@@ -725,6 +735,8 @@ const QuestionSlot = ({
                 } else if (type === 'match-column' || type === 'multiple-statement') {
                   setQSubPrompt('Choose the correct answer from the options given below:')
                 }
+                if (type === 'di') setQUnit('Unit 7: Data Interpretation')
+                if (type === 'comprehension') setQUnit('Unit 3: Comprehension')
               }}>
                 <option value="mcq">Normal MCQ</option>
                 <option value="assertion-reason">Assertion & Reasoning</option>
@@ -734,11 +746,14 @@ const QuestionSlot = ({
                 <option value="multiple-statement">Multiple Statements</option>
               </select>
             </div>
-            {qType === 'di' && (
-              <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '8px', borderRadius: '6px' }}>
-                Note: Creating a new DI table is easiest in the right pane DI bulk tool. Editing existing DI in this slot works below.
-              </div>
-            )}
+            <div className="ms-form-field">
+              <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Syllabus Unit (Paper I)</label>
+              <select className="ms-input" value={qUnit} onChange={(e) => setQUnit(e.target.value)}>
+                {PAPER1_UNITS.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {(qType === 'comprehension' || qType === 'di') && (
@@ -1014,6 +1029,7 @@ const ManageSet = () => {
   
   const [editingQuestionId, setEditingQuestionId] = useState(null)
   const [newQType, setNewQType] = useState('mcq')
+  const [newQUnit, setNewQUnit] = useState('Unit 1: Teaching Aptitude')
   const [newQText, setNewQText] = useState('')
   const [newQOpts, setNewQOpts] = useState(['', '', '', ''])
   const [newQCorrect, setNewQCorrect] = useState(1)
@@ -1340,6 +1356,7 @@ const ManageSet = () => {
 
       const questions = diQuestions.map(dq => ({
         type: 'di',
+        unit: dq.unit || newQUnit || 'Unit 7: Data Interpretation',
         text: dq.text,
         options: dq.options,
         correct: dq.correct,
@@ -1427,6 +1444,7 @@ const ManageSet = () => {
     const questionPayload = {
       setId: selectedSetId,
       type: newQType,
+      unit: newQUnit,
       qIndex,
       text: newQText,
       options: newQOpts,
@@ -1791,6 +1809,8 @@ const ManageSet = () => {
       } else if (type === 'match-column' || type === 'multiple-statement') {
         setNewQSubPrompt('Choose the correct answer from the options given below:')
       }
+      if (type === 'di') setNewQUnit('Unit 7: Data Interpretation')
+      if (type === 'comprehension') setNewQUnit('Unit 3: Comprehension')
     }}
   >
     <option value="mcq">Normal MCQ</option>
@@ -1799,6 +1819,19 @@ const ManageSet = () => {
     <option value="comprehension">Comprehension / Passage</option>
     <option value="di">Data Interpretation / Table Data</option>
     <option value="multiple-statement">Multiple Statements</option>
+  </select>
+</div>
+
+<div className="ms-form-field" style={{ marginBottom: '12px' }}>
+  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Syllabus Unit (Paper I)</label>
+  <select 
+    className="ms-input"
+    value={newQUnit}
+    onChange={(e) => setNewQUnit(e.target.value)}
+  >
+    {PAPER1_UNITS.map(u => (
+      <option key={u} value={u}>{u}</option>
+    ))}
   </select>
 </div>
 

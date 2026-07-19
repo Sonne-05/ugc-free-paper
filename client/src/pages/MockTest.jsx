@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
+import { getQuestionUnit as getUnitFromHelper } from '../constants/paper1Units'
 import './MockTest.css'
 
 // 5 Rich sample questions for UGC NET Paper I (General teaching & research aptitude)
@@ -313,54 +314,7 @@ const MockTest = () => {
   const userInitial = userName.charAt(0).toUpperCase()
 
   const getQuestionUnit = (q, index) => {
-    if (q.unit) return q.unit;
-    const text = (q.text || '').toLowerCase();
-    const passage = (q.passage || '').toLowerCase();
-    
-    if (q.type === 'di' || text.includes('table') || text.includes('di') || passage.includes('table')) {
-      return 'Unit 7: Data Interpretation';
-    }
-    if (q.type === 'comprehension' || text.includes('passage') || text.includes('comprehension')) {
-      return 'Unit 3: Comprehension';
-    }
-    if (text.includes('teach') || text.includes('classroom') || text.includes('student') || text.includes('evaluation')) {
-      return 'Unit 1: Teaching Aptitude';
-    }
-    if (text.includes('research') || text.includes('hypothesis') || text.includes('thesis') || text.includes('variables')) {
-      return 'Unit 2: Research Aptitude';
-    }
-    if (text.includes('communicat') || text.includes('message') || text.includes('barrier') || text.includes('media')) {
-      return 'Unit 4: Communication';
-    }
-    if (text.includes('series') || text.includes('ratio') || text.includes('interest') || text.includes('coding-decoding') || text.includes('percentage')) {
-      return 'Unit 5: Mathematical Reasoning and Aptitude';
-    }
-    if (text.includes('syllogism') || text.includes('argument') || text.includes('fallacy') || text.includes('pramana') || text.includes('vyapti')) {
-      return 'Unit 6: Logical Reasoning';
-    }
-    if (text.includes('ict') || text.includes('internet') || text.includes('ram') || text.includes('email') || text.includes('computer')) {
-      return 'Unit 8: Information and Communication Technology (ICT)';
-    }
-    if (text.includes('pollution') || text.includes('climate') || text.includes('environment') || text.includes('energy') || text.includes('disaster')) {
-      return 'Unit 9: People, Development and Environment';
-    }
-    if (text.includes('university') || text.includes('higher education') || text.includes('governance') || text.includes('nep') || text.includes('policy')) {
-      return 'Unit 10: Higher Education System';
-    }
-    
-    const units = [
-      'Unit 1: Teaching Aptitude',
-      'Unit 2: Research Aptitude',
-      'Unit 3: Comprehension',
-      'Unit 4: Communication',
-      'Unit 5: Mathematical Reasoning and Aptitude',
-      'Unit 6: Logical Reasoning',
-      'Unit 7: Data Interpretation',
-      'Unit 8: Information and Communication Technology (ICT)',
-      'Unit 9: People, Development and Environment',
-      'Unit 10: Higher Education System'
-    ];
-    return units[index % 10];
+    return getUnitFromHelper(q, index);
   };
 
   const getOptionClassName = (idx) => {
