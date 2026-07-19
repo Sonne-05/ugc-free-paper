@@ -1,0 +1,103 @@
+QUICK PASTE / AUTO-FILL HELPER - ALL QUESTION FORMATS
+=====================================================
+
+HOW QUICK PASTE / AUTO-FILL PARSING WORKS:
+- Options: Any line starting with (A), (B), (C), (D), A., B., 1., 2., [A], A:, A - auto-populates Options 1-4.
+- Correct Answer: Any line matching Answer: A, Ans: 2, Correct Answer: B sets the correct answer choice.
+- Question Prompt: All other lines are parsed as the main question text.
+
+=====================================================
+1. STANDARD MCQ (mcq)
+=====================================================
+Q1. Which of the following is the main objective of teaching?
+(A) To give information related to the syllabus.
+(B) To develop thinking power and critical analytical ability in students.
+(C) To dictate notes to students in classroom sessions.
+(D) To prepare students to pass the examination with high percentages.
+Answer: B
+
+=====================================================
+2. ASSERTION & REASONING (assertion-reason)
+=====================================================
+Q2. Assertion (A): Format and styles of referencing in a thesis are standardized across academic disciplines.
+Reason (R): Standardization ensures uniformity, clarity, and ease of cross-referencing for researchers.
+(A) Both (A) and (R) are true and (R) is the correct explanation of (A)
+(B) Both (A) and (R) are true but (R) is NOT the correct explanation of (A)
+(C) (A) is true but (R) is false
+(D) (A) is false but (R) is true
+Answer: A
+
+=====================================================
+3. MATCH THE COLUMN (match-column)
+=====================================================
+Q3. Match List I with List II
+List I List II
+(a) Concentric Zone Model (I) Homer Hoyt
+(b) Sector Model (II) Harris and Ullman
+(c) Multiple-nuclei Model (III) Amos Hawley
+(d) Ecological Analysis (IV) Burgess
+Choose the correct answer from the options given below:
+(A) (a)-(IV), (b)-(I), (c)-(II), (d)-(III)
+(B) (a)-(II), (b)-(IV), (c)-(I), (d)-(III)
+(C) (a)-(IV), (b)-(I), (c)-(III), (d)-(II)
+(D) (a)-(I), (b)-(II), (c)-(III), (d)-(IV)
+Answer: A
+
+=====================================================
+4. MULTIPLE STATEMENTS (multiple-statement)
+=====================================================
+Q4. Following scholars have written extensively on the relationship between caste and politics in India:
+(a) Rajni Kothari
+(b) Norman Palmer
+(c) D. Miller
+(d) Colin Campbell
+(e) Key
+Choose the correct answer from the options given below:
+(A) (a), (b) and (c) only.
+(B) (d) and (e) only.
+(C) (a), (b), (c), (d) and (e)
+(D) (b), (c) and (d) only.
+Answer: A
+
+=====================================================
+5. READING COMPREHENSION (comprehension)
+=====================================================
+Question Label : Comprehension
+Read the passage given below and answer the questions:
+Digital initiatives of the Government of India are transforming higher education. SWAYAM provides massive open online courses (MOOCs) for learners. National Digital Library hosts millions of academic resources.
+
+Sub questions
+
+Question Number : 1 Question Id : 1001 Question Type : MCQ
+Which digital initiative is specifically designed for providing MOOCs?
+1. National Digital Library
+2. Virtual Labs
+3. SWAYAM
+4. Swayam Prabha
+Answer: 3
+
+=====================================================
+6. DATA INTERPRETATION (di)
+=====================================================
+Question Label : Comprehension
+Study carefully the table given below and answer the questions:
+In this table, number (in thousands) of manufactured products is shown:
+Year | Product A | Product B | Product C
+2021 | 29 | 45 | 26
+2022 | 32 | 52 | 58
+2023 | 28 | 54 | 92
+
+Sub questions
+
+Question Number : 1 Question Id : 2001 Question Type : MCQ
+During which year was manufacturing of product A the lowest?
+1. 2021
+2. 2022
+3. 2023
+4. None
+Answer: 3
+
+=====================================================
+SUMMARY OF ACCEPTED PREFIXES & ANSWER PATTERNS:
+- Option Prefixes: (A), (B), (C), (D), A., B., 1., 2., [A], A:, A -
+- Answer Formats: Answer: A, Ans: B, Correct Answer: C, Answer: 1, Ans - 3

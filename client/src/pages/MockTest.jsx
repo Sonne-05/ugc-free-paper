@@ -401,6 +401,61 @@ const MockTest = () => {
     return selectedOption === idx + 1 ? 'option-item--selected' : '';
   };
 
+  const renderReviewExplanationPane = () => {
+    if (!isReviewMode) return null;
+    const currentQ = questionsState[activeQuestionIndex];
+    if (!currentQ) return null;
+
+    return (
+      <div className="review-explanation-pane" style={{
+        marginTop: '20px',
+        padding: '20px',
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        borderLeft: '4px solid #22c55e',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+      }}>
+        <h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700' }}>
+          <svg style={{ width: '18px', height: '18px', color: '#22c55e' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Detailed Explanation & Concept Review
+        </h4>
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '15px', fontSize: '0.88rem' }}>
+          <div>
+            <strong>Your Response:</strong>{' '}
+            {currentQ.userAnswer ? (
+              <span style={{ 
+                color: currentQ.userAnswer === currentQ.correct ? '#16a34a' : '#dc2626',
+                fontWeight: 600
+              }}>
+                Option {currentQ.userAnswer} ({currentQ.userAnswer === currentQ.correct ? 'Correct' : 'Incorrect'})
+              </span>
+            ) : (
+              <span style={{ color: '#64748b', fontWeight: 600 }}>Unattempted</span>
+            )}
+          </div>
+          <div>
+            <strong>Correct Answer:</strong>{' '}
+            <span style={{ color: '#16a34a', fontWeight: 600 }}>
+              Option {currentQ.correct}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
+          <p style={{ marginBottom: '8px' }}>
+            <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(currentQ, activeQuestionIndex)}</strong>.
+          </p>
+          <p>
+            <strong>Explanation:</strong> {renderTextHtml(currentQ.explanation || `Option ${currentQ.correct} is correct. Let's analyze:
+            The question tests our understanding of the core concept. By evaluating the given facts, Option ${currentQ.correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`)}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   // Initialize questions
   useEffect(() => {
     if (!paperDetails.paperId) return;
@@ -1052,6 +1107,7 @@ const MockTest = () => {
                         </div>
                       ))}
                     </div>
+                    {renderReviewExplanationPane()}
                   </div>
                 </div>
               )}
@@ -1099,6 +1155,7 @@ const MockTest = () => {
                       </div>
                     ))}
                   </div>
+                  {renderReviewExplanationPane()}
                 </div>
               )}
 
@@ -1146,6 +1203,7 @@ const MockTest = () => {
                       </div>
                     ))}
                   </div>
+                  {renderReviewExplanationPane()}
                 </div>
               )}
 
@@ -1227,6 +1285,7 @@ const MockTest = () => {
                       </div>
                     ))}
                   </div>
+                  {renderReviewExplanationPane()}
                 </div>
               )}
 
@@ -1278,6 +1337,7 @@ const MockTest = () => {
                       </div>
                     ))}
                   </div>
+                  {renderReviewExplanationPane()}
                 </div>
               )}
 
@@ -1314,56 +1374,9 @@ const MockTest = () => {
                       </div>
                     ))}
                   </div>
+                  {renderReviewExplanationPane()}
                 </div>
               )}
-            {isReviewMode && (
-              <div className="review-explanation-pane" style={{
-                marginTop: '20px',
-                padding: '20px',
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                borderLeft: '4px solid #22c55e',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-              }}>
-                <h4 style={{ margin: '0 0 10px', color: '#1e293b', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700' }}>
-                  <svg style={{ width: '18px', height: '18px', color: '#22c55e' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                  Detailed Explanation & Concept Review
-                </h4>
-                
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '15px', fontSize: '0.88rem' }}>
-                  <div>
-                    <strong>Your Response:</strong>{' '}
-                    {questionsState[activeQuestionIndex].userAnswer ? (
-                      <span style={{ 
-                        color: questionsState[activeQuestionIndex].userAnswer === questionsState[activeQuestionIndex].correct ? '#16a34a' : '#dc2626',
-                        fontWeight: 600
-                      }}>
-                        Option {questionsState[activeQuestionIndex].userAnswer} ({questionsState[activeQuestionIndex].userAnswer === questionsState[activeQuestionIndex].correct ? 'Correct' : 'Incorrect'})
-                      </span>
-                    ) : (
-                      <span style={{ color: '#64748b', fontWeight: 600 }}>Unattempted</span>
-                    )}
-                  </div>
-                  <div>
-                    <strong>Correct Answer:</strong>{' '}
-                    <span style={{ color: '#16a34a', fontWeight: 600 }}>
-                      Option {questionsState[activeQuestionIndex].correct}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                  <p style={{ marginBottom: '8px' }}>
-                    <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(questionsState[activeQuestionIndex], activeQuestionIndex)}</strong>.
-                  </p>
-                  <p>
-                    <strong>Explanation:</strong> {renderTextHtml(questionsState[activeQuestionIndex].explanation || `Option ${questionsState[activeQuestionIndex].correct} is correct. Let's analyze:
-                    The question tests our understanding of the core concept. By evaluating the given facts, Option ${questionsState[activeQuestionIndex].correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`)}
-                  </p>
-                </div>
-              </div>
-            )}
             </div>
 
             {/* Bottom action bar */}
