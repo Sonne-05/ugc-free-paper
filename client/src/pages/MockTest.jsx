@@ -251,12 +251,12 @@ const MockTest = () => {
   const renderTableData = (tableData, key = 0) => {
     if (!tableData || !tableData.length) return null
     return (
-      <div key={key} className="di-table-wrapper" style={{ margin: '15px 0', overflowX: 'auto' }}>
-        <table className="di-table" style={{ width: '100%', maxWidth: '750px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid #cbd5e1', fontSize: '0.85rem', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+      <div key={key} className="di-table-wrapper" style={{ margin: '20px 0', overflowX: 'auto' }}>
+        <table className="di-table" style={{ width: '80%', maxWidth: '750px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '0.88rem', backgroundColor: '#ffffff', borderRadius: '4px', overflow: 'hidden' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+            <tr style={{ backgroundColor: '#ffffff' }}>
               {tableData[0].map((cell, cIdx) => (
-                <th key={cIdx} style={{ border: '1px solid #cbd5e1', padding: '8px 12px', fontWeight: '600', textAlign: 'center', color: '#1e293b' }}>
+                <th key={cIdx} style={{ border: '1px solid #e2e8f0', padding: '10px 16px', fontWeight: '700', textAlign: 'center', color: '#1e293b', fontSize: '0.9rem' }}>
                   {renderTextHtml(cell)}
                 </th>
               ))}
@@ -264,9 +264,9 @@ const MockTest = () => {
           </thead>
           <tbody>
             {tableData.slice(1).map((row, rIdx) => (
-              <tr key={rIdx} style={{ backgroundColor: rIdx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+              <tr key={rIdx} style={{ backgroundColor: '#ffffff' }}>
                 {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ border: '1px solid #cbd5e1', padding: '8px 12px', textAlign: 'center', color: '#334155' }}>
+                  <td key={cIdx} style={{ border: '1px solid #e2e8f0', padding: '10px 16px', textAlign: 'center', color: '#334155' }}>
                     {renderTextHtml(cell)}
                   </td>
                 ))}
