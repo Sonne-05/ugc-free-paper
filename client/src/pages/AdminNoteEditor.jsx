@@ -290,61 +290,64 @@ const AdminNoteEditor = () => {
 
   return (
     <div className="ms-word-editor-page">
-      {/* MS Word Top Header */}
-      <div className="ms-word-header">
-        <div className="ms-word-header-title">
-          <div className="ms-word-icon">W</div>
-          <div className="ms-word-header-text">
-            <h1>Unit {unitId} Note Editor - Word View</h1>
+      {/* Top Fixed Section */}
+      <div className="ms-word-top-section">
+        {/* MS Word Top Header */}
+        <div className="ms-word-header">
+          <div className="ms-word-header-title">
+            <div className="ms-word-icon">W</div>
+            <div className="ms-word-header-text">
+              <h1>Unit {unitId} Note Editor - Word View</h1>
+            </div>
+          </div>
+          <div className="ms-word-header-actions">
+            <button onClick={() => navigate('/profile')} className="ms-word-btn-cancel">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving} className="ms-word-btn-save">
+              {saving ? 'Saving...' : 'Save & Publish'}
+            </button>
           </div>
         </div>
-        <div className="ms-word-header-actions">
-          <button onClick={() => navigate('/profile')} className="ms-word-btn-cancel">
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving} className="ms-word-btn-save">
-            {saving ? 'Saving...' : 'Save & Publish'}
-          </button>
-        </div>
-      </div>
 
-      {/* Metadata Bar */}
-      <div className="ms-word-metadata-bar">
-        <div className="ms-word-input-group">
-          <label>Unit Title</label>
-          <input 
-            type="text" 
-            value={unitTitle} 
-            onChange={(e) => setUnitTitle(e.target.value)} 
-            placeholder="e.g. Teaching Aptitude Notes"
-            className="ms-word-input"
-          />
+        {/* Metadata Bar */}
+        <div className="ms-word-metadata-bar">
+          <div className="ms-word-input-group">
+            <label>Unit Title</label>
+            <input 
+              type="text" 
+              value={unitTitle} 
+              onChange={(e) => setUnitTitle(e.target.value)} 
+              placeholder="e.g. Teaching Aptitude Notes"
+              className="ms-word-input"
+            />
+          </div>
+          <div className="ms-word-input-group">
+            <label>Subtitle / Intro Overview</label>
+            <input 
+              type="text" 
+              value={subtitle} 
+              onChange={(e) => setSubtitle(e.target.value)} 
+              placeholder="e.g. Complete study guide and breakdown"
+              className="ms-word-input"
+            />
+          </div>
         </div>
-        <div className="ms-word-input-group">
-          <label>Subtitle / Intro Overview</label>
-          <input 
-            type="text" 
-            value={subtitle} 
-            onChange={(e) => setSubtitle(e.target.value)} 
-            placeholder="e.g. Complete study guide and breakdown"
-            className="ms-word-input"
-          />
-        </div>
-      </div>
 
-      {/* Ribbon Shortcuts Guide */}
-      <div className="ms-word-shortcuts-ribbon">
-        <strong>⚡ MS Word Shortcuts:</strong>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">1</kbd> Heading 1</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">2</kbd> Heading 2</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">3</kbd> Heading 3</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">4</kbd> Heading 4</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">0</kbd> Normal</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">B</kbd> Bold</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">I</kbd> Italic</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">U</kbd> Underline</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">S</kbd> Strikethrough</span>
-        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">L</kbd> Bullets</span>
+        {/* Ribbon Shortcuts Guide */}
+        <div className="ms-word-shortcuts-ribbon">
+          <strong>⚡ MS Word Shortcuts:</strong>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">1</kbd> Heading 1</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">2</kbd> Heading 2</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">3</kbd> Heading 3</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">4</kbd> Heading 4</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">0</kbd> Normal</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">B</kbd> Bold</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">I</kbd> Italic</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">U</kbd> Underline</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">S</kbd> Strikethrough</span>
+          <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">L</kbd> Bullets</span>
+        </div>
       </div>
 
       {/* Main Canvas with A4 Paper Sheet */}
