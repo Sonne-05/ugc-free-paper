@@ -469,6 +469,13 @@ const QuestionSlot = ({
   const [qStatements, setQStatements] = useState(['', '', '', '', ''])
   const [qSubPrompt, setQSubPrompt] = useState('Choose the correct answer from the options given below:')
   const [qUnit, setQUnit] = useState('Unit 1: Teaching Aptitude')
+  const [slotDiQuestions, setSlotDiQuestions] = useState([
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+  ])
   
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -574,7 +581,53 @@ const QuestionSlot = ({
   const handleSave = async (e) => {
     e.preventDefault()
     setIsSaving(true)
-    
+    setSaveSuccess(false)
+
+    // If empty slot and selecting bulk passage type (comprehension or di)
+    if (!question && (qType === 'comprehension' || qType === 'di')) {
+      if (!qPassage.trim()) {
+        alert(`Please fill in the ${qType === 'di' ? 'table data / passage' : 'comprehension passage'}.`)
+        setIsSaving(false)
+        return
+      }
+      for (let i = 0; i < slotDiQuestions.length; i++) {
+        const sq = slotDiQuestions[i]
+        if (!sq.text.trim() || sq.options.some(o => !o.trim())) {
+          alert(`Please fill in question text and all 4 options for Question ${i + 1} of 5.`)
+          setIsSaving(false)
+          return
+        }
+      }
+      const questions = slotDiQuestions.map(sq => ({
+        type: qType,
+        unit: qUnit || (qType === 'di' ? 'Unit 7: Data Interpretation' : 'Unit 3: Comprehension'),
+        text: sq.text,
+        options: sq.options,
+        correct: sq.correct,
+        passage: qPassage,
+        explanation: sq.explanation
+      }))
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/questions/bulk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setId, questions })
+        })
+        if (res.ok) {
+          setSaveSuccess(true)
+          if (typeof onSave === 'function') onSave()
+        } else {
+          alert('Failed to save passage questions')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Error saving passage questions')
+      } finally {
+        setIsSaving(false)
+      }
+      return
+    }
+
     if (qType === 'mcq') {
       if (!qText.trim() || qOpts.some(o => !o.trim())) {
         alert('Please fill in the question prompt and all 4 options.')
@@ -926,74 +979,169 @@ const QuestionSlot = ({
             </div>
           )}
 
-          <div className="ms-form-field" style={{ marginBottom: '12px' }}>
-            <label>Question Prompt / Text</label>
-            <textarea 
-              required 
-              rows="2" 
-              placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
-              value={qText}
-              onChange={(e) => setQText(e.target.value)}
-              className="ms-input"
-            />
-          </div>
+          {!question && (qType === 'comprehension' || qType === 'di') ? (
+            <div className="slot-di-questions-sequence" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px', marginBottom: '16px' }}>
+              <div style={{ background: '#e0f2fe', color: '#0369a1', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600' }}>
+                💡 Fill in the passage above, and enter the 5 questions (Q{index} to Q{index + 4}) below:
+              </div>
+              {slotDiQuestions.map((sq, qIdx) => (
+                <div key={qIdx} style={{ border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', background: '#f8fafc' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', fontSize: '0.88rem', fontWeight: 'bold' }}>
+                    Question {qIdx + 1} of 5 (Q{index + qIdx})
+                  </h4>
+                  <div className="ms-form-field" style={{ marginBottom: '10px' }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
+                    <textarea
+                      required
+                      rows="2"
+                      className="ms-input"
+                      placeholder={`Type question text for Q${index + qIdx}...`}
+                      value={sq.text}
+                      onChange={(e) => {
+                        setSlotDiQuestions(prev => {
+                          const next = [...prev]
+                          next[qIdx] = { ...next[qIdx], text: e.target.value }
+                          return next
+                        })
+                      }}
+                    />
+                  </div>
 
-          <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {qOpts.map((opt, idx) => (
-              <div className="ms-form-field" key={idx}>
-                <label>Option {idx + 1}</label>
-                <input 
-                  type="text" 
+                  <div className="ms-options-grid">
+                    {sq.options.map((opt, oIdx) => (
+                      <div className="ms-form-field" key={oIdx}>
+                        <label style={{ fontSize: '0.78rem' }}>Option {oIdx + 1}</label>
+                        <input
+                          type="text"
+                          required
+                          className="ms-input"
+                          placeholder={`Option ${oIdx + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            setSlotDiQuestions(prev => {
+                              const next = [...prev]
+                              const nextOpts = [...next[qIdx].options]
+                              nextOpts[oIdx] = e.target.value
+                              next[qIdx] = { ...next[qIdx], options: nextOpts }
+                              return next
+                            })
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div className="ms-form-field">
+                      <label style={{ fontSize: '0.78rem', fontWeight: '600' }}>Correct Answer Option</label>
+                      <select
+                        className="ms-input"
+                        value={sq.correct}
+                        onChange={(e) => {
+                          setSlotDiQuestions(prev => {
+                            const next = [...prev]
+                            next[qIdx] = { ...next[qIdx], correct: Number(e.target.value) }
+                            return next
+                          })
+                        }}
+                      >
+                        <option value="1">Option 1</option>
+                        <option value="2">Option 2</option>
+                        <option value="3">Option 3</option>
+                        <option value="4">Option 4</option>
+                      </select>
+                    </div>
+
+                    <div className="ms-form-field">
+                      <label style={{ fontSize: '0.78rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
+                      <RichExplanationEditor
+                        placeholder="Explanation..."
+                        value={sq.explanation || ''}
+                        onChange={(val) => {
+                          setSlotDiQuestions(prev => {
+                            const next = [...prev]
+                            next[qIdx] = { ...next[qIdx], explanation: val }
+                            return next
+                          })
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                <label>Question Prompt / Text</label>
+                <textarea 
                   required 
-                  placeholder={qType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
-                  value={opt}
-                  onChange={(e) => {
-                    const next = [...qOpts]
-                    next[idx] = e.target.value
-                    setQOpts(next)
-                  }}
+                  rows="2" 
+                  placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
+                  value={qText}
+                  onChange={(e) => setQText(e.target.value)}
                   className="ms-input"
                 />
               </div>
-            ))}
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-            <div className="ms-form-field">
-              <label>Correct Answer Option</label>
-              <select 
-                className="ms-input"
-                value={qCorrect}
-                onChange={(e) => setQCorrect(Number(e.target.value))}
-              >
-                <option value="1">Option 1</option>
-                <option value="2">Option 2</option>
-                <option value="3">Option 3</option>
-                <option value="4">Option 4</option>
-              </select>
-            </div>
-            
-            {isSaved && (
-              <div className="ms-form-field" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" className="ms-btn ms-btn-secondary" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={handleDelete}>
-                  Delete Question
-                </button>
+              <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {qOpts.map((opt, idx) => (
+                  <div className="ms-form-field" key={idx}>
+                    <label>Option {idx + 1}</label>
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder={qType === 'match-column' ? 'e.g. A-I, B-II, C-III, D-IV' : `Enter Option ${idx + 1}`}
+                      value={opt}
+                      onChange={(e) => {
+                        const next = [...qOpts]
+                        next[idx] = e.target.value
+                        setQOpts(next)
+                      }}
+                      className="ms-input"
+                    />
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
 
-          <div className="ms-form-field" style={{ marginBottom: '16px' }}>
-            <label>Detailed Explanation (Optional)</label>
-            <RichExplanationEditor 
-              placeholder="Enter detailed explanation of the concept and why this option is correct"
-              value={qExplanation}
-              onChange={(val) => setQExplanation(val)}
-            />
-          </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div className="ms-form-field">
+                  <label>Correct Answer Option</label>
+                  <select 
+                    className="ms-input"
+                    value={qCorrect}
+                    onChange={(e) => setQCorrect(Number(e.target.value))}
+                  >
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                    <option value="4">Option 4</option>
+                  </select>
+                </div>
+                
+                {isSaved && (
+                  <div className="ms-form-field" style={{ justifyContent: 'flex-end' }}>
+                    <button type="button" className="ms-btn ms-btn-secondary" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={handleDelete}>
+                      Delete Question
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+                <label>Detailed Explanation (Optional)</label>
+                <RichExplanationEditor 
+                  placeholder="Enter detailed explanation of the concept and why this option is correct"
+                  value={qExplanation}
+                  onChange={(val) => setQExplanation(val)}
+                />
+              </div>
+            </>
+          )}
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" disabled={isSaving} className="ms-btn ms-btn-primary" style={{ flex: 1 }}>
-              {isSaving ? 'Saving...' : (isSaved ? 'Update Question' : 'Save to Database')}
+              {isSaving ? 'Saving...' : (!question && (qType === 'comprehension' || qType === 'di') ? `Save 5 ${qType === 'di' ? 'DI' : 'Comprehension'} Questions` : (isSaved ? 'Update Question' : 'Save to Database'))}
             </button>
             {saveSuccess && (
               <div style={{ display: 'flex', alignItems: 'center', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem' }}>
