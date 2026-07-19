@@ -2509,10 +2509,10 @@ const Profile = () => {
                                   </div>
                                   <div className="form-field">
                                     <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
-                                    <input 
-                                      type="text"
+                                    <textarea 
                                       className="pane-input"
                                       placeholder="Explanation..."
+                                      rows={2}
                                       value={dq.explanation || ''}
                                       onChange={(e) => {
                                         setDiQuestions(prev => {
@@ -2521,7 +2521,7 @@ const Profile = () => {
                                           return next
                                         })
                                       }}
-                                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px' }}
                                     />
                                   </div>
                                 </div>

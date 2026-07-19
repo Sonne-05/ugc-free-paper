@@ -407,10 +407,11 @@ const DataInterpretationGroup = ({
                   </div>
                   <div className="ms-form-field">
                     <label style={{ fontSize: '0.8rem' }}>Explanation (Optional)</label>
-                    <input 
-                      type="text"
+                    <textarea 
                       className="ms-input"
                       placeholder="Explanation..."
+                      rows={2}
+                      style={{ resize: 'vertical', minHeight: '60px', fontFamily: 'inherit', fontSize: '0.88rem' }}
                       value={dq.explanation || ''}
                       onChange={(e) => {
                         const next = [...questions]
@@ -2086,10 +2087,11 @@ const ManageSet = () => {
           </div>
           <div className="ms-form-field">
             <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
-            <input 
-              type="text"
+            <textarea 
               className="ms-input"
               placeholder="Explanation..."
+              rows={2}
+              style={{ resize: 'vertical', minHeight: '60px', fontFamily: 'inherit', fontSize: '0.88rem' }}
               value={dq.explanation || ''}
               onChange={(e) => {
                 setDiQuestions(prev => {
