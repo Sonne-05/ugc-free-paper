@@ -213,13 +213,13 @@ const MockTest = () => {
   }
 
   const parseRow = (line) => {
+    if (!line) return []
     const trimmed = line.trim()
     if (trimmed.includes('|')) {
       const parts = trimmed.split('|').map(p => p.trim())
-      if (parts[0] === '' && parts[parts.length - 1] === '') {
-        return parts.slice(1, -1)
-      }
-      return parts
+      const startIdx = parts[0] === '' ? 1 : 0
+      const endIdx = parts[parts.length - 1] === '' ? parts.length - 1 : parts.length
+      return parts.slice(startIdx, endIdx)
     }
     const hasTabs = trimmed.includes('\t')
     const separator = hasTabs ? '\t' : /\s{2,}/
@@ -227,28 +227,103 @@ const MockTest = () => {
   }
 
   const parseTableText = (text) => {
-    if (!text) return null
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length < 2) return null
-    
-    const rows = lines
+    if (!text || typeof text !== 'string') return null
+    const trimmedText = text.trim()
+    if (!trimmedText) return null
+
+    let rawLines = []
+    if (trimmedText.includes('||')) {
+      rawLines = trimmedText.split('||').map(l => l.trim()).filter(Boolean)
+    } else {
+      rawLines = trimmedText.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    }
+
+    if (rawLines.length < 2) return null
+
+    const rows = rawLines
       .map(line => parseRow(line))
       .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
-      
+
     if (rows.length < 2) return null
     return rows
+  }
+
+  const renderTableData = (tableData, key = 0) => {
+    if (!tableData || !tableData.length) return null
+    return (
+      <div key={key} className="di-table-wrapper" style={{ margin: '15px 0', overflowX: 'auto' }}>
+        <table className="di-table" style={{ width: '100%', maxWidth: '750px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid #cbd5e1', fontSize: '0.85rem', backgroundColor: '#ffffff', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+              {tableData[0].map((cell, cIdx) => (
+                <th key={cIdx} style={{ border: '1px solid #cbd5e1', padding: '8px 12px', fontWeight: '600', textAlign: 'center', color: '#1e293b' }}>
+                  {renderTextHtml(cell)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.slice(1).map((row, rIdx) => (
+              <tr key={rIdx} style={{ backgroundColor: rIdx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                {row.map((cell, cIdx) => (
+                  <td key={cIdx} style={{ border: '1px solid #cbd5e1', padding: '8px 12px', textAlign: 'center', color: '#334155' }}>
+                    {renderTextHtml(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
   }
 
   const renderPassageWithTable = (passage) => {
     if (!passage) return null
 
-    // Un-wrap single PDF copy-paste line breaks while keeping paragraph breaks (\n\n)
-    let cleaned = passage
-    if (!passage.includes('<p>') && !passage.includes('<div>')) {
-      cleaned = passage.replace(/\r\n/g, '\n')
-      cleaned = cleaned.replace(/([^\n])\n([^\n])/g, '$1 $2').replace(/ +/g, ' ')
+    if (typeof passage === 'string' && (passage.includes('<p>') || passage.includes('<div>') || passage.includes('<table>'))) {
+      return <div dangerouslySetInnerHTML={{ __html: passage }} />
     }
 
+    let cleaned = String(passage).replace(/\r\n/g, '\n')
+
+    // If passage contains '||', extract pre-table text, table data, and post-table text
+    if (cleaned.includes('||')) {
+      const firstPipe = cleaned.indexOf('|')
+      const lastPipe = cleaned.lastIndexOf('|')
+      if (firstPipe !== -1 && lastPipe > firstPipe) {
+        const beforeText = cleaned.substring(0, firstPipe).trim()
+        const tableStr = cleaned.substring(firstPipe, lastPipe + 1).trim()
+        const afterText = cleaned.substring(lastPipe + 1).trim()
+
+        const tableData = parseTableText(tableStr)
+        if (tableData) {
+          return (
+            <div>
+              {beforeText && (
+                <p style={{ textAlign: 'left', lineHeight: '1.65', marginBottom: '10px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                  {renderTextHtml(beforeText)}
+                </p>
+              )}
+              {renderTableData(tableData)}
+              {afterText && (
+                <p style={{ textAlign: 'left', lineHeight: '1.65', marginTop: '12px', marginBottom: '14px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                  {renderTextHtml(afterText)}
+                </p>
+              )}
+            </div>
+          )
+        }
+      }
+    }
+
+    // Try parsing entire cleaned text directly as table
+    const directTable = parseTableText(cleaned)
+    if (directTable) {
+      return renderTableData(directTable)
+    }
+
+    // Otherwise split by double-newlines
     const paragraphs = cleaned.split(/\n\s*\n/)
     return paragraphs.map((para, pIdx) => {
       const trimmedPara = para.trim()
@@ -256,36 +331,13 @@ const MockTest = () => {
 
       const tableData = parseTableText(trimmedPara)
       if (tableData) {
-        return (
-          <div key={pIdx} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
-            <table style={{ width: '70%', maxWidth: '420px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid var(--border)', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: 'var(--bg-card)' }}>
-                  {tableData[0].map((cell, cIdx) => (
-                    <th key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', fontWeight: '600', textAlign: 'center' }}>
-                      {cell}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.slice(1).map((row, rIdx) => (
-                  <tr key={rIdx} style={{ backgroundColor: rIdx % 2 === 0 ? 'transparent' : 'var(--bg-card)', opacity: 0.9 }}>
-                    {row.map((cell, cIdx) => (
-                      <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
+        return renderTableData(tableData, pIdx)
       }
+
+      const unwrapped = trimmedPara.replace(/([^\n])\n([^\n])/g, '$1 $2').replace(/ +/g, ' ')
       return (
         <p key={pIdx} style={{ textAlign: 'left', lineHeight: '1.65', marginBottom: '14px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-          {trimmedPara}
+          {renderTextHtml(unwrapped)}
         </p>
       )
     })

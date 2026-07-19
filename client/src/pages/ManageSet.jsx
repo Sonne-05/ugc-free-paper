@@ -21,14 +21,23 @@ const parseRow = (line) => {
 }
 
 const parseTableText = (text) => {
-  if (!text) return null
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  if (lines.length < 2) return null
-  
-  const rows = lines
+  if (!text || typeof text !== 'string') return null
+  const trimmedText = text.trim()
+  if (!trimmedText) return null
+
+  let rawLines = []
+  if (trimmedText.includes('||')) {
+    rawLines = trimmedText.split('||').map(l => l.trim()).filter(Boolean)
+  } else {
+    rawLines = trimmedText.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  }
+
+  if (rawLines.length < 2) return null
+
+  const rows = rawLines
     .map(line => parseRow(line))
     .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
-    
+
   if (rows.length < 2) return null
   return rows
 }
