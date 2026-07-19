@@ -445,6 +445,303 @@ const DataInterpretationGroup = ({
   )
 }
 
+const ReadingComprehensionGroup = ({
+  editingSetQuestions,
+  setId,
+  API_BASE_URL,
+  onSave,
+  onDeleteGroup
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [localPassage, setLocalPassage] = useState('')
+
+  const [questions, setQuestions] = useState([
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+  ])
+
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  useEffect(() => {
+    const existingQs = Array.from({ length: 5 }).map((_, idx) => {
+      const qIndex = 46 + idx
+      return editingSetQuestions.find(q => q.qIndex === qIndex)
+    })
+    
+    const firstQWithPassage = existingQs.find(q => q && q.passage)
+    
+    if (firstQWithPassage && firstQWithPassage.passage) {
+      setLocalPassage(firstQWithPassage.passage)
+    } else {
+      setLocalPassage('')
+    }
+
+    const nextQuestions = Array.from({ length: 5 }).map((_, idx) => {
+      const q = existingQs[idx]
+      if (q) {
+        return {
+          id: q.id || q._id,
+          text: q.text || '',
+          options: q.options && q.options.length >= 4 ? q.options.slice(0, 4) : ['', '', '', ''],
+          correct: q.correct || 1,
+          explanation: q.explanation || ''
+        }
+      } else {
+        return {
+          text: '',
+          options: ['', '', '', ''],
+          correct: 1,
+          explanation: ''
+        }
+      }
+    })
+    setQuestions(nextQuestions)
+  }, [editingSetQuestions, isOpen])
+
+  const handleSaveAll = async (e) => {
+    e.preventDefault()
+    setIsSaving(true)
+
+    if (!localPassage.trim()) {
+      alert('Please fill in the Comprehension Passage.')
+      setIsSaving(false)
+      return
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      if (!q.text.trim() || q.options.some(o => !o.trim())) {
+        alert(`Please fill in the Question prompt and all 4 Options for Question ${i + 1} (Q${46 + i}).`)
+        setIsSaving(false)
+        return
+      }
+    }
+
+    try {
+      const promises = questions.map((q, idx) => {
+        const payload = {
+          setId,
+          type: 'comprehension',
+          unit: 'Unit 3: Comprehension',
+          qIndex: 46 + idx,
+          passage: localPassage,
+          text: q.text,
+          options: q.options,
+          correct: q.correct,
+          explanation: q.explanation
+        }
+        const existing = editingSetQuestions.find(eq => eq.qIndex === 46 + idx)
+        if (existing && (existing.id || existing._id)) {
+          return fetch(`${API_BASE_URL}/api/questions/${existing.id || existing._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(async r => {
+            const data = await r.json()
+            if (!r.ok) throw new Error(data.message)
+            return data
+          })
+        } else {
+          return fetch(`${API_BASE_URL}/api/questions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(async r => {
+            const data = await r.json()
+            if (!r.ok) throw new Error(data.message)
+            return data
+          })
+        }
+      })
+
+      const results = await Promise.all(promises)
+      const lastResult = results[results.length - 1]
+      const updatedSet = lastResult.updatedSet
+      const savedQs = results.map(r => r.question)
+
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+
+      onSave(savedQs, updatedSet)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to save Comprehension questions: ' + err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    const existingQs = Array.from({ length: 5 }).map((_, idx) => {
+      const qIndex = 46 + idx
+      return editingSetQuestions.find(q => q.qIndex === qIndex)
+    }).filter(Boolean)
+    if (existingQs.length === 0) return
+    if (!window.confirm('Are you sure you want to delete all 5 Comprehension questions (Q46-Q50)?')) return
+
+    try {
+      const promises = existingQs.map(q => {
+        return fetch(`${API_BASE_URL}/api/questions/${q.id || q._id}`, {
+          method: 'DELETE'
+        }).then(r => r.json())
+      })
+      const results = await Promise.all(promises)
+      const lastResult = results[results.length - 1]
+      
+      onDeleteGroup(existingQs.map(q => q.id || q._id), lastResult.updatedSet)
+    } catch (err) {
+      console.error(err)
+      alert('Error deleting Comprehension questions')
+    }
+  }
+
+  const isSaved = editingSetQuestions.some(q => q.qIndex >= 46 && q.qIndex <= 50 && q.type === 'comprehension')
+
+  return (
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0f9ff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="ms-q-slot-number" style={{ color: '#0369a1' }}>Q46 - Q50</span>
+          <span className="ms-q-slot-badge" style={{ background: isSaved ? '#e0f2fe' : '#f1f5f9', color: isSaved ? '#0369a1' : '#64748b' }}>
+            {isSaved ? 'Saved (Reading Comprehension)' : 'Empty (Comprehension)'}
+          </span>
+          <span className="ms-q-slot-preview" style={{ color: '#0369a1', fontWeight: '500' }}>
+            {isSaved ? 'Questions 46 to 50 (Shared Passage)' : 'Click to add shared comprehension passage and 5 questions'}
+          </span>
+        </div>
+        <div className="ms-q-slot-toggle-icon">
+          {isOpen ? '▲' : '▼'}
+        </div>
+      </div>
+
+      {isOpen && (
+        <form className="ms-q-slot-body" onSubmit={handleSaveAll} style={{ background: '#f8fafc' }}>
+          <div className="ms-form-field" style={{ marginBottom: '16px' }}>
+            <label style={{ fontWeight: 'bold', color: '#0369a1' }}>Comprehension Passage (Questions 46 - 50)</label>
+            <textarea
+              required
+              rows="5"
+              placeholder="Paste reading comprehension passage here..."
+              value={localPassage}
+              onChange={(e) => setLocalPassage(e.target.value)}
+              className="ms-input"
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+            {questions.map((q, qIdx) => (
+              <div key={qIdx} style={{ border: '1px solid #cbd5e1', padding: '14px', borderRadius: '8px', background: '#fff' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', fontSize: '0.88rem', fontWeight: 'bold' }}>
+                  Question {qIdx + 1} of 5 (Q{46 + qIdx})
+                </h4>
+
+                <div className="ms-form-field" style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
+                  <textarea
+                    required
+                    rows="2"
+                    className="ms-input"
+                    placeholder={`Type question text for Q${46 + qIdx}...`}
+                    value={q.text}
+                    onChange={(e) => {
+                      setQuestions(prev => {
+                        const next = [...prev]
+                        next[qIdx] = { ...next[qIdx], text: e.target.value }
+                        return next
+                      })
+                    }}
+                  />
+                </div>
+
+                <div className="ms-options-grid">
+                  {q.options.map((opt, oIdx) => (
+                    <div className="ms-form-field" key={oIdx}>
+                      <label style={{ fontSize: '0.78rem' }}>Option {oIdx + 1}</label>
+                      <input
+                        type="text"
+                        required
+                        className="ms-input"
+                        placeholder={`Option ${oIdx + 1}`}
+                        value={opt}
+                        onChange={(e) => {
+                          setQuestions(prev => {
+                            const next = [...prev]
+                            const nextOpts = [...next[qIdx].options]
+                            nextOpts[oIdx] = e.target.value
+                            next[qIdx] = { ...next[qIdx], options: nextOpts }
+                            return next
+                          })
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="ms-form-field">
+                    <label style={{ fontSize: '0.78rem', fontWeight: '600' }}>Correct Answer Option</label>
+                    <select
+                      className="ms-input"
+                      value={q.correct}
+                      onChange={(e) => {
+                        setQuestions(prev => {
+                          const next = [...prev]
+                          next[qIdx] = { ...next[qIdx], correct: Number(e.target.value) }
+                          return next
+                        })
+                      }}
+                    >
+                      <option value="1">Option 1</option>
+                      <option value="2">Option 2</option>
+                      <option value="3">Option 3</option>
+                      <option value="4">Option 4</option>
+                    </select>
+                  </div>
+
+                  <div className="ms-form-field">
+                    <label style={{ fontSize: '0.78rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
+                    <RichExplanationEditor
+                      placeholder="Explanation..."
+                      value={q.explanation || ''}
+                      onChange={(val) => {
+                        setQuestions(prev => {
+                          const next = [...prev]
+                          next[qIdx] = { ...next[qIdx], explanation: val }
+                          return next
+                        })
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" disabled={isSaving} className="ms-btn ms-btn-primary" style={{ flex: 1 }}>
+              {isSaving ? 'Saving...' : 'Save All 5 Comprehension Questions'}
+            </button>
+            {isSaved && (
+              <button type="button" className="ms-btn ms-btn-secondary" style={{ background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5' }} onClick={handleDeleteAll}>
+                Delete Group
+              </button>
+            )}
+          </div>
+          {saveSuccess && (
+            <div style={{ color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '8px' }}>
+              ✓ Saved all 5 Comprehension questions!
+            </div>
+          )}
+        </form>
+      )}
+    </div>
+  )
+}
+
 const QuestionSlot = ({ 
   index, 
   question, 
@@ -2522,7 +2819,7 @@ const ManageSet = () => {
                                 }
                               }}
                             />
-                            {Array.from({ length: 45 }).map((_, idx) => {
+                            {Array.from({ length: 40 }).map((_, idx) => {
                               const qIndex = idx + 6
                               const question = editingSetQuestions.find(q => q.qIndex === qIndex)
                               return (
@@ -2554,6 +2851,35 @@ const ManageSet = () => {
                                 />
                               )
                             })}
+
+                            <ReadingComprehensionGroup
+                              editingSetQuestions={editingSetQuestions}
+                              setId={editingSetId}
+                              API_BASE_URL={API_BASE_URL}
+                              onSave={(savedQs, updatedSet) => {
+                                setEditingSetQuestions(prev => {
+                                  const next = [...prev]
+                                  savedQs.forEach(savedQ => {
+                                    const idx = next.findIndex(q => (q.id || q._id) === (savedQ.id || savedQ._id) || q.qIndex === savedQ.qIndex)
+                                    if (idx >= 0) {
+                                      next[idx] = savedQ
+                                    } else {
+                                      next.push(savedQ)
+                                    }
+                                  })
+                                  return next
+                                })
+                                if (updatedSet) {
+                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                }
+                              }}
+                              onDeleteGroup={(deletedIds, updatedSet) => {
+                                setEditingSetQuestions(prev => prev.filter(q => !deletedIds.includes(q.id || q._id)))
+                                if (updatedSet) {
+                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                }
+                              }}
+                            />
                           </>
                         ) : (
                           Array.from({ length: newSetCount || 100 }).map((_, idx) => {
