@@ -205,10 +205,35 @@
   border-radius: 4px !important;
 }
 
-/* Jodit Toolbar static at top of document paper */
+/* Docked Sticky Formatting Ribbon in Top Fixed Section */
+.ms-word-toolbar-dock {
+  background: #faf9f8;
+  border-bottom: 1px solid #e1dfdd;
+  padding: 3px 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 38px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.ms-word-toolbar-dock .jodit-toolbar__box {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 1200px !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.ms-word-toolbar-dock .jodit-toolbar-editor-collection {
+  justify-content: center !important;
+}
+
+/* Jodit Toolbar inside document paper */
 .ms-word-document-paper .jodit-toolbar__box {
-  position: static !important;
-  top: auto !important;
   background: #f8fafc !important;
   border-bottom: 1px solid #e2e8f0 !important;
   border-top-left-radius: 4px !important;
