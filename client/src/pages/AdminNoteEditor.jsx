@@ -293,19 +293,32 @@ const AdminNoteEditor = () => {
     <div className="ms-word-editor-page">
       {/* Top Fixed Section */}
       <div className="ms-word-top-section">
-        {/* MS Word Top Header */}
+        {/* MS Word Single Compact Header */}
         <div className="ms-word-header">
-          <div className="ms-word-header-title">
-            <div className="ms-word-icon">W</div>
-            <div className="ms-word-header-text">
-              <h1>Unit {unitId} Note Editor - Word View</h1>
+          <div className="ms-word-header-left">
+            <div className="ms-word-icon" title={`Unit ${unitId} Notes`}>W</div>
+            <div className="ms-word-header-inputs">
+              <input 
+                type="text" 
+                value={unitTitle} 
+                onChange={(e) => setUnitTitle(e.target.value)} 
+                placeholder="Unit Title (e.g. Teaching Aptitude Notes)"
+                className="ms-word-header-input title-input"
+              />
+              <input 
+                type="text" 
+                value={subtitle} 
+                onChange={(e) => setSubtitle(e.target.value)} 
+                placeholder="Subtitle / Overview..."
+                className="ms-word-header-input subtitle-input"
+              />
             </div>
           </div>
           <div className="ms-word-header-actions">
             <button 
               onClick={() => setShowShortcuts(!showShortcuts)} 
               className="ms-word-btn-cancel"
-              style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
               title="Toggle Shortcuts Help"
             >
               ⚡ Shortcuts {showShortcuts ? '▲' : '▼'}
@@ -316,30 +329,6 @@ const AdminNoteEditor = () => {
             <button onClick={handleSave} disabled={saving} className="ms-word-btn-save">
               {saving ? 'Saving...' : 'Save & Publish'}
             </button>
-          </div>
-        </div>
-
-        {/* Metadata Bar */}
-        <div className="ms-word-metadata-bar">
-          <div className="ms-word-input-group">
-            <label>Unit Title</label>
-            <input 
-              type="text" 
-              value={unitTitle} 
-              onChange={(e) => setUnitTitle(e.target.value)} 
-              placeholder="e.g. Teaching Aptitude Notes"
-              className="ms-word-input"
-            />
-          </div>
-          <div className="ms-word-input-group">
-            <label>Subtitle / Intro Overview</label>
-            <input 
-              type="text" 
-              value={subtitle} 
-              onChange={(e) => setSubtitle(e.target.value)} 
-              placeholder="e.g. Complete study guide and breakdown"
-              className="ms-word-input"
-            />
           </div>
         </div>
 
