@@ -92,9 +92,19 @@ const AdminNoteEditor = () => {
     setSaving(false);
   };
 
+  const kbdStyle = {
+    background: '#e2e8f0',
+    color: '#1e293b',
+    padding: '2px 5px',
+    borderRadius: '3px',
+    fontSize: '0.75rem',
+    fontFamily: 'monospace',
+    border: '1px solid #cbd5e1'
+  };
+
   const config = {
     readonly: false,
-    height: 500,
+    height: 550,
     toolbarAdaptive: false,
     uploader: {
       insertImageAsBase64URI: true
@@ -111,25 +121,123 @@ const AdminNoteEditor = () => {
     controls: {
       paragraph: {
         list: {
-          p: 'Normal',
-          h1: 'Heading 1',
-          h2: 'Heading 2',
-          h3: 'Heading 3',
-          h4: 'Heading 4'
+          p: 'Normal (Ctrl+Shift+0)',
+          h1: 'Heading 1 (Ctrl+Shift+1)',
+          h2: 'Heading 2 (Ctrl+Shift+2)',
+          h3: 'Heading 3 (Ctrl+Shift+3)',
+          h4: 'Heading 4 (Ctrl+Shift+4)'
         }
       }
     },
-    commandToHotkeys: {
-      'formatH1': 'ctrl+shift+1',
-      'formatH2': 'ctrl+shift+2',
-      'formatH3': 'ctrl+shift+3',
-      'formatH4': 'ctrl+shift+4'
-    },
     events: {
-      beforeCommand: function (command) {
-        if (['formatH1', 'formatH2', 'formatH3', 'formatH4'].includes(command)) {
-          const tag = command.substring(6).toLowerCase(); // 'h1', 'h2'
-          this.execCommand('formatBlock', false, tag);
+      keydown: function (event) {
+        const isCtrl = event.ctrlKey || event.metaKey;
+        const isShift = event.shiftKey;
+        const isAlt = event.altKey;
+        const code = event.code;
+        const key = event.key ? event.key.toLowerCase() : '';
+
+        // Headings: Ctrl + Shift + 1/2/3/4/0 (or Ctrl + Alt + 1/2/3/4/0 or Ctrl + 1/2/3/4/0)
+        if (isCtrl && (isShift || isAlt)) {
+          if (code === 'Digit1' || key === '1' || key === '!') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h1');
+            return false;
+          }
+          if (code === 'Digit2' || key === '2' || key === '@') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h2');
+            return false;
+          }
+          if (code === 'Digit3' || key === '3' || key === '#') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h3');
+            return false;
+          }
+          if (code === 'Digit4' || key === '4' || key === '$') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h4');
+            return false;
+          }
+          if (code === 'Digit0' || key === '0' || key === ')') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'p');
+            return false;
+          }
+        } else if (isCtrl && !isShift && !isAlt) {
+          if (code === 'Digit1' || key === '1') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h1');
+            return false;
+          }
+          if (code === 'Digit2' || key === '2') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h2');
+            return false;
+          }
+          if (code === 'Digit3' || key === '3') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h3');
+            return false;
+          }
+          if (code === 'Digit4' || key === '4') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'h4');
+            return false;
+          }
+          if (code === 'Digit0' || key === '0') {
+            event.preventDefault();
+            this.execCommand('formatBlock', false, 'p');
+            return false;
+          }
+        }
+
+        // Bold: Ctrl+B
+        if (isCtrl && !isShift && !isAlt && key === 'b') {
+          event.preventDefault();
+          this.execCommand('bold');
+          return false;
+        }
+
+        // Italic: Ctrl+I
+        if (isCtrl && !isShift && !isAlt && key === 'i') {
+          event.preventDefault();
+          this.execCommand('italic');
+          return false;
+        }
+
+        // Underline: Ctrl+U
+        if (isCtrl && !isShift && !isAlt && key === 'u') {
+          event.preventDefault();
+          this.execCommand('underline');
+          return false;
+        }
+
+        // Strikethrough: Ctrl+Shift+S or Ctrl+Alt+5
+        if ((isCtrl && isShift && key === 's') || (isCtrl && isAlt && (code === 'Digit5' || key === '5'))) {
+          event.preventDefault();
+          this.execCommand('strikethrough');
+          return false;
+        }
+
+        // Bulleted List: Ctrl+Shift+L or Ctrl+Shift+7
+        if (isCtrl && isShift && (key === 'l' || code === 'Digit7' || key === '&' || key === '7')) {
+          event.preventDefault();
+          this.execCommand('insertUnorderedList');
+          return false;
+        }
+
+        // Numbered List: Ctrl+Shift+O or Ctrl+Shift+8
+        if (isCtrl && isShift && (key === 'o' || key === 'n' || code === 'Digit8' || key === '*' || key === '8')) {
+          event.preventDefault();
+          this.execCommand('insertOrderedList');
+          return false;
+        }
+
+        // Clear Formatting: Ctrl+Shift+C or Ctrl+\
+        if ((isCtrl && isShift && key === 'c') || (isCtrl && key === '\\')) {
+          event.preventDefault();
+          this.execCommand('removeFormat');
           return false;
         }
       }
@@ -184,13 +292,42 @@ const AdminNoteEditor = () => {
         </div>
       </div>
 
+      {/* Keyboard Shortcuts Helper Banner */}
+      <div style={{
+        background: '#f8fafc',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        padding: '8px 12px',
+        marginBottom: '12px',
+        fontSize: '0.78rem',
+        color: '#334155',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px 14px',
+        alignItems: 'center'
+      }}>
+        <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          ⚡ MS Word Keyboard Shortcuts:
+        </strong>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>1</kbd> Heading 1</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>2</kbd> Heading 2</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>3</kbd> Heading 3</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>4</kbd> Heading 4</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>0</kbd> Normal</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>B</kbd> Bold</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>I</kbd> Italic</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>U</kbd> Underline</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>S</kbd> Strikethrough</span>
+        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>L</kbd> Bullets</span>
+      </div>
+
       <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
         <JoditEditor
           value={content}
           config={config}
           tabIndex={1}
           onBlur={newContent => setContent(newContent)}
-          onChange={newContent => {}} // preferred to use onBlur for performance, but we can do both if needed
+          onChange={newContent => {}}
         />
       </div>
     </div>
