@@ -93,7 +93,23 @@ app.get('/api/pyqsets', async (req, res) => {
       filter.isPublished = true;
     }
     const sets = await PyqSet.find(filter).sort({ createdAt: 1 });
-    res.json(sets);
+
+    const counts = await Question.aggregate([
+      { $group: { _id: '$setId', count: { $sum: 1 } } }
+    ]);
+    const countMap = {};
+    counts.forEach(c => {
+      if (c._id) countMap[c._id.toString()] = c.count;
+    });
+
+    const updatedSets = sets.map(set => {
+      const actualCount = countMap[set._id.toString()] || 0;
+      const setObj = set.toJSON();
+      setObj.questionsLoaded = actualCount;
+      return setObj;
+    });
+
+    res.json(updatedSets);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch PYQ sets' });
   }
@@ -113,7 +129,13 @@ app.post('/api/pyqsets', async (req, res) => {
 // Update a PYQ set
 app.put('/api/pyqsets/:id', async (req, res) => {
   try {
-    const updatedSet = await PyqSet.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    delete updateData.questionsLoaded;
+
+    const count = await Question.countDocuments({ setId: req.params.id });
+    updateData.questionsLoaded = count;
+
+    const updatedSet = await PyqSet.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!updatedSet) return res.status(404).json({ message: 'Set not found' });
     res.json(updatedSet);
   } catch (err) {

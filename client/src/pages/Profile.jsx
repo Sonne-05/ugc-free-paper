@@ -792,34 +792,42 @@ const Profile = () => {
       finalSubtitle = `${newSetPaperType === 'Paper II' ? 'Sociology' : 'General Paper'} ${newSetYear} ${newSetSubtitle}`
     }
 
-    const setPayload = {
-      title,
-      subtitle: finalSubtitle,
-      paperType: newSetPaperType,
-      year: newSetYear,
-      questionsCount: Number(newSetCount),
-      questionsLoaded: 0,
-      isPublished: newSetIsPublished
-    }
-
     try {
       if (editingSetId) {
+        const updatePayload = {
+          title,
+          subtitle: finalSubtitle,
+          paperType: newSetPaperType,
+          year: newSetYear,
+          questionsCount: Number(newSetCount),
+          isPublished: newSetIsPublished
+        }
         const res = await fetch(`${API_BASE_URL}/api/pyqsets/${editingSetId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(setPayload)
+          body: JSON.stringify(updatePayload)
         })
         const updatedSet = await res.json()
-        setPyqSets(prev => prev.map(s => s.id === editingSetId ? updatedSet : s))
+        setPyqSets(prev => prev.map(s => (s.id === editingSetId || s._id === editingSetId) ? updatedSet : s))
         alert('Successfully updated PYQ Set!')
         cancelEditSet()
         return
       }
 
+      const createPayload = {
+        title,
+        subtitle: finalSubtitle,
+        paperType: newSetPaperType,
+        year: newSetYear,
+        questionsCount: Number(newSetCount),
+        questionsLoaded: 0,
+        isPublished: newSetIsPublished
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/pyqsets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(setPayload)
+        body: JSON.stringify(createPayload)
       })
       const newSet = await res.json()
       setPyqSets(prev => [...prev, newSet])
