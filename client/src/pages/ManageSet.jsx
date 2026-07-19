@@ -1334,10 +1334,10 @@ const ManageSet = () => {
   const handleCreateQuestion = async (e) => {
     e.preventDefault()
 
-    // Handle bulk DI question creation
-    if (newQType === 'di' && !editingQuestionId) {
+    // Handle bulk DI & Comprehension question creation
+    if ((newQType === 'di' || newQType === 'comprehension') && !editingQuestionId) {
       if (!newQPassage.trim()) {
-        alert('Please fill in the table data / passage.')
+        alert(`Please fill in the ${newQType === 'di' ? 'table data / passage' : 'comprehension passage'}.`)
         return
       }
       for (let i = 0; i < diQuestions.length; i++) {
@@ -1355,8 +1355,8 @@ const ManageSet = () => {
       }
 
       const questions = diQuestions.map(dq => ({
-        type: 'di',
-        unit: dq.unit || newQUnit || 'Unit 7: Data Interpretation',
+        type: newQType,
+        unit: dq.unit || newQUnit || (newQType === 'di' ? 'Unit 7: Data Interpretation' : 'Unit 3: Comprehension'),
         text: dq.text,
         options: dq.options,
         correct: dq.correct,
@@ -1384,7 +1384,7 @@ const ManageSet = () => {
           loadQuestionsForSet(selectedSetId)
         }
 
-        alert(`Successfully added 5 Data Interpretation questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
+        alert(`Successfully added 5 ${newQType === 'di' ? 'Data Interpretation' : 'Comprehension'} questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
         cancelEditQuestion()
       } catch (err) {
         console.error(err)
@@ -2061,8 +2061,8 @@ const ManageSet = () => {
   </div>
 )}
 
-{/* 5 DI QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
-{newQType === 'di' && !editingQuestionId ? (
+{/* 5 DI OR COMPREHENSION QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
+{(newQType === 'di' || newQType === 'comprehension') && !editingQuestionId ? (
   <div className="di-questions-sequence" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
     {diQuestions.map((dq, qIdx) => (
       <div key={qIdx} style={{ border: '1px solid var(--border)', padding: '15px', borderRadius: '8px', background: 'var(--bg-card)' }}>
@@ -2210,7 +2210,7 @@ const ManageSet = () => {
 )}
 
 <button type="submit" className="ms-btn ms-btn-primary" style={{ width: '100%' }}>
-  {editingQuestionId ? 'Update Question' : (newQType === 'di' ? 'Add 5 DI Questions to Selected Set' : 'Add Question to Selected Set')}
+  {editingQuestionId ? 'Update Question' : ((newQType === 'di' || newQType === 'comprehension') ? `Add 5 ${newQType === 'di' ? 'DI' : 'Comprehension'} Questions to Selected Set` : 'Add Question to Selected Set')}
 </button>
 {editingQuestionId && (
   <button type="button" className="ms-btn ms-btn-secondary" style={{ width: '100%', marginTop: '10px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }} onClick={cancelEditQuestion}>

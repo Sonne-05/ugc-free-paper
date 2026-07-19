@@ -945,10 +945,10 @@ const Profile = () => {
   const handleCreateQuestion = async (e) => {
     e.preventDefault()
 
-    // Handle bulk DI question creation
-    if (newQType === 'di') {
+    // Handle bulk DI & Comprehension question creation
+    if (newQType === 'di' || newQType === 'comprehension') {
       if (!newQPassage.trim()) {
-        alert('Please fill in the table data / passage.')
+        alert(`Please fill in the ${newQType === 'di' ? 'table data / passage' : 'comprehension passage'}.`)
         return
       }
       for (let i = 0; i < diQuestions.length; i++) {
@@ -966,8 +966,8 @@ const Profile = () => {
       }
 
       const questions = diQuestions.map(dq => ({
-        type: 'di',
-        unit: dq.unit || newQUnit || 'Unit 7: Data Interpretation',
+        type: newQType,
+        unit: dq.unit || newQUnit || (newQType === 'di' ? 'Unit 7: Data Interpretation' : 'Unit 3: Comprehension'),
         text: dq.text,
         options: dq.options,
         correct: dq.correct,
@@ -991,7 +991,7 @@ const Profile = () => {
           return s
         }))
 
-        alert(`Successfully added 5 Data Interpretation questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
+        alert(`Successfully added 5 ${newQType === 'di' ? 'Data Interpretation' : 'Comprehension'} questions to:\n"${targetSet.title || 'Selected Set'}"!\nTotal loaded now: ${data.updatedSet.questionsLoaded} Qs.`)
         
         // Reset Form Fields
         setNewQText('')
@@ -2463,8 +2463,8 @@ const Profile = () => {
                           </div>
                         )}
 
-                        {/* 5 DI QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
-                        {newQType === 'di' ? (
+                        {/* 5 DI OR COMPREHENSION QUESTIONS SEQUENCE OR SINGLE QUESTION FIELDS */}
+                        {(newQType === 'di' || newQType === 'comprehension') ? (
                           <div className="di-questions-sequence" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
                             {diQuestions.map((dq, qIdx) => (
                               <div key={qIdx} style={{ border: '1px solid var(--border)', padding: '15px', borderRadius: '8px', background: 'var(--bg-card)' }}>
@@ -2611,7 +2611,7 @@ const Profile = () => {
                         )}
 
                         <button type="submit" className="pane-submit-btn" style={{ width: '100%' }}>
-                          {newQType === 'di' ? 'Add 5 DI Questions to Selected Set' : 'Add Question to Selected Set'}
+                          {(newQType === 'di' || newQType === 'comprehension') ? `Add 5 ${newQType === 'di' ? 'DI' : 'Comprehension'} Questions to Selected Set` : 'Add Question to Selected Set'}
                         </button>
                       </form>
                   </div>
