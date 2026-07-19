@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import JoditEditor from 'jodit-react';
 import { paper1NotesData } from '../data/paper1NotesData';
@@ -8,6 +8,7 @@ import './AdminNoteEditor.css';
 const AdminNoteEditor = () => {
   const { unitId } = useParams();
   const navigate = useNavigate();
+  const editorRef = useRef(null);
   
   const [unitTitle, setUnitTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -100,11 +101,12 @@ const AdminNoteEditor = () => {
     return text.split(/\s+/).filter(Boolean).length;
   };
 
-  const config = {
+  const config = useMemo(() => ({
     readonly: false,
-    height: 750,
+    height: 'auto',
+    minHeight: 500,
     toolbarAdaptive: false,
-    toolbarSticky: true,
+    toolbarSticky: false,
     toolbarStickyOffset: 0,
     uploader: {
       insertImageAsBase64URI: true
@@ -285,7 +287,7 @@ const AdminNoteEditor = () => {
         }
       }
     }
-  };
+  }), []);
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f2f1', fontFamily: 'Segoe UI', color: '#185abd', fontWeight: 600 }}>Loading MS Word Editor...</div>;
 
@@ -354,11 +356,12 @@ const AdminNoteEditor = () => {
       <div className="ms-word-canvas">
         <div className="ms-word-document-paper">
           <JoditEditor
+            ref={editorRef}
             value={content}
             config={config}
             tabIndex={1}
             onBlur={newContent => setContent(newContent)}
-            onChange={newContent => {}}
+            onChange={() => {}}
           />
         </div>
       </div>
