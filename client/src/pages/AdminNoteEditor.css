@@ -172,18 +172,19 @@
 }
 
 .ms-word-document-paper {
-  background: #ffffff;
+  background: #ffffff !important;
   width: 100%;
   max-width: 1100px;
   min-height: calc(100vh - 100px);
+  height: auto !important;
   box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06);
   border-radius: 4px;
   border: 1px solid #e1dfdd;
   padding: 0 !important;
+  margin-bottom: 30px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: auto !important;
   overflow: visible !important;
 }
 
@@ -191,14 +192,17 @@
 .ms-word-document-paper .jodit-container {
   border: none !important;
   box-shadow: none !important;
-  background: transparent !important;
+  background: #ffffff !important;
   font-family: 'Segoe UI', Aptos, Calibri, sans-serif !important;
   position: relative !important;
   overflow: visible !important;
-  flex: 1 !important;
+  flex: 1 1 auto !important;
   display: flex !important;
   flex-direction: column !important;
   height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  border-radius: 4px !important;
 }
 
 /* Jodit Toolbar static at top of document paper */
@@ -214,22 +218,24 @@
 }
 
 .ms-word-document-paper .jodit-workplace {
-  flex: 1 !important;
-  background: transparent !important;
+  flex: 1 1 auto !important;
+  background: #ffffff !important;
   border: none !important;
   height: auto !important;
-  min-height: calc(100vh - 180px) !important;
+  min-height: auto !important;
+  max-height: none !important;
   overflow: visible !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg {
-  padding: 18px 24px !important;
+  padding: 20px 28px !important;
   font-size: 0.9rem !important;
   line-height: 1.5 !important;
   color: #201f1e !important;
-  background: transparent !important;
+  background: #ffffff !important;
   height: auto !important;
   min-height: calc(100vh - 200px) !important;
+  max-height: none !important;
   overflow: visible !important;
 }
 
