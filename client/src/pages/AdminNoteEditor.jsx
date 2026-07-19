@@ -101,8 +101,10 @@ const AdminNoteEditor = () => {
 
   const config = {
     readonly: false,
-    height: 700,
+    height: 750,
     toolbarAdaptive: false,
+    toolbarSticky: true,
+    toolbarStickyOffset: 0,
     uploader: {
       insertImageAsBase64URI: true
     },

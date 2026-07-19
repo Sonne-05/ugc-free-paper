@@ -189,13 +189,19 @@
   border: none !important;
   box-shadow: none !important;
   font-family: 'Segoe UI', Aptos, Calibri, sans-serif !important;
+  position: relative !important;
 }
 
+/* Make Jodit Toolbar Sticky at Top so it NEVER hides on scroll */
 .ms-word-document-paper .jodit-toolbar__box {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
   background: #faf9f8 !important;
   border-bottom: 1px solid #e1dfdd !important;
   border-radius: 4px 4px 0 0 !important;
   margin-bottom: 16px !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
 }
 
 .ms-word-document-paper .jodit-workplace {
