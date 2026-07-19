@@ -164,7 +164,7 @@
 /* Main Workspace Canvas (A4 Paper Container) */
 .ms-word-canvas {
   flex: 1;
-  padding: 10px 15px 20px 15px;
+  padding: 0 15px 30px 15px;
   display: flex;
   justify-content: center;
   overflow-y: auto !important;
@@ -205,41 +205,18 @@
   border-radius: 4px !important;
 }
 
-/* Docked Sticky Formatting Ribbon in Top Fixed Section */
-.ms-word-toolbar-dock {
-  background: #faf9f8;
-  border-bottom: 1px solid #e1dfdd;
-  padding: 3px 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 38px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-}
-
-.ms-word-toolbar-dock .jodit-toolbar__box {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-  max-width: 1200px !important;
-  display: flex !important;
-  justify-content: center !important;
-}
-
-.ms-word-toolbar-dock .jodit-toolbar-editor-collection {
-  justify-content: center !important;
-}
-
-/* Jodit Toolbar inside document paper */
+/* Make Jodit Toolbar Sticky at Top 0 of Canvas directly under top header */
 .ms-word-document-paper .jodit-toolbar__box {
-  background: #f8fafc !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 990 !important;
+  background: #faf9f8 !important;
+  border-bottom: 1px solid #e1dfdd !important;
   border-top-left-radius: 4px !important;
   border-top-right-radius: 4px !important;
   margin: 0 !important;
-  box-shadow: none !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 .ms-word-document-paper .jodit-workplace {

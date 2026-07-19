@@ -285,19 +285,6 @@ const AdminNoteEditor = () => {
         if (editor.events) {
           editor.events.on('keydown', handleShortcutKey);
         }
-
-        // Dock toolbar to top fixed section
-        setTimeout(() => {
-          try {
-            const dock = document.getElementById('ms-word-toolbar-dock');
-            const toolbarBox = editor.container ? editor.container.querySelector('.jodit-toolbar__box') : null;
-            if (dock && toolbarBox && toolbarBox.parentNode !== dock) {
-              dock.appendChild(toolbarBox);
-            }
-          } catch (e) {
-            console.error('Toolbar dock error:', e);
-          }
-        }, 50);
       }
     }
   }), []);
@@ -363,9 +350,6 @@ const AdminNoteEditor = () => {
             <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">L</kbd> Bullets</span>
           </div>
         )}
-
-        {/* Fixed Formatting Toolbar Ribbon Dock */}
-        <div id="ms-word-toolbar-dock" className="ms-word-toolbar-dock"></div>
       </div>
 
       {/* Main Canvas with A4 Paper Sheet */}
