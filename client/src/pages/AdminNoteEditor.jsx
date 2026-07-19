@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import JoditEditor from 'jodit-react';
 import { paper1NotesData } from '../data/paper1NotesData';
 import { API_BASE_URL } from '../services/api';
+import './AdminNoteEditor.css';
 
 const AdminNoteEditor = () => {
   const { unitId } = useParams();
@@ -35,7 +36,6 @@ const AdminNoteEditor = () => {
           setUnitTitle(existingData.title || '');
           setSubtitle(existingData.overview || '');
           
-          // Construct HTML from JSON topics and tips
           let initialHtml = '';
           if (existingData.overview) {
             initialHtml += `<h2>Overview</h2><p>${existingData.overview}</p>`;
@@ -92,19 +92,16 @@ const AdminNoteEditor = () => {
     setSaving(false);
   };
 
-  const kbdStyle = {
-    background: '#e2e8f0',
-    color: '#1e293b',
-    padding: '2px 5px',
-    borderRadius: '3px',
-    fontSize: '0.75rem',
-    fontFamily: 'monospace',
-    border: '1px solid #cbd5e1'
+  const getWordCount = (html) => {
+    if (!html) return 0;
+    const text = html.replace(/<[^>]*>/g, ' ').trim();
+    if (!text) return 0;
+    return text.split(/\s+/).filter(Boolean).length;
   };
 
   const config = {
     readonly: false,
-    height: 550,
+    height: 700,
     toolbarAdaptive: false,
     uploader: {
       insertImageAsBase64URI: true
@@ -234,91 +231,84 @@ const AdminNoteEditor = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading Editor...</div>;
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f2f1', fontFamily: 'Segoe UI', color: '#185abd', fontWeight: 600 }}>Loading MS Word Editor...</div>;
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0, fontFamily: 'Outfit', color: '#0f172a' }}>
-          Edit Note <span style={{ color: '#7c3aed' }}>Unit {unitId}</span>
-        </h1>
-        <div>
-          <button 
-            onClick={() => navigate('/profile')} 
-            style={{ padding: '8px 16px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '4px', cursor: 'pointer', marginRight: '10px' }}
-          >
+    <div className="ms-word-editor-page">
+      {/* MS Word Top Header */}
+      <div className="ms-word-header">
+        <div className="ms-word-header-title">
+          <div className="ms-word-icon">W</div>
+          <div className="ms-word-header-text">
+            <h1>Unit {unitId} Note Editor - Word View</h1>
+          </div>
+        </div>
+        <div className="ms-word-header-actions">
+          <button onClick={() => navigate('/profile')} className="ms-word-btn-cancel">
             Cancel
           </button>
-          <button 
-            onClick={handleSave} 
-            disabled={saving}
-            style={{ padding: '8px 16px', border: 'none', background: '#2563eb', color: '#fff', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
-          >
+          <button onClick={handleSave} disabled={saving} className="ms-word-btn-save">
             {saving ? 'Saving...' : 'Save & Publish'}
           </button>
         </div>
       </div>
 
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem' }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Unit Title</label>
+      {/* Metadata Bar */}
+      <div className="ms-word-metadata-bar">
+        <div className="ms-word-input-group">
+          <label>Unit Title</label>
           <input 
             type="text" 
             value={unitTitle} 
             onChange={(e) => setUnitTitle(e.target.value)} 
-            placeholder="e.g. Research Aptitude"
-            style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+            placeholder="e.g. Teaching Aptitude Notes"
+            className="ms-word-input"
           />
         </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Subtitle / Intro</label>
+        <div className="ms-word-input-group">
+          <label>Subtitle / Intro Overview</label>
           <input 
             type="text" 
             value={subtitle} 
             onChange={(e) => setSubtitle(e.target.value)} 
-            placeholder="e.g. Complete topic-wise breakdown"
-            style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+            placeholder="e.g. Complete study guide and breakdown"
+            className="ms-word-input"
           />
         </div>
       </div>
 
-      {/* Keyboard Shortcuts Helper Banner */}
-      <div style={{
-        background: '#f8fafc',
-        border: '1px solid #cbd5e1',
-        borderRadius: '6px',
-        padding: '8px 12px',
-        marginBottom: '12px',
-        fontSize: '0.78rem',
-        color: '#334155',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '6px 14px',
-        alignItems: 'center'
-      }}>
-        <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          ⚡ MS Word Keyboard Shortcuts:
-        </strong>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>1</kbd> Heading 1</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>2</kbd> Heading 2</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>3</kbd> Heading 3</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>4</kbd> Heading 4</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>0</kbd> Normal</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>B</kbd> Bold</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>I</kbd> Italic</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>U</kbd> Underline</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>S</kbd> Strikethrough</span>
-        <span><kbd style={kbdStyle}>Ctrl</kbd>+<kbd style={kbdStyle}>Shift</kbd>+<kbd style={kbdStyle}>L</kbd> Bullets</span>
+      {/* Ribbon Shortcuts Guide */}
+      <div className="ms-word-shortcuts-ribbon">
+        <strong>⚡ MS Word Shortcuts:</strong>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">1</kbd> Heading 1</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">2</kbd> Heading 2</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">3</kbd> Heading 3</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">4</kbd> Heading 4</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">0</kbd> Normal</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">B</kbd> Bold</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">I</kbd> Italic</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">U</kbd> Underline</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">S</kbd> Strikethrough</span>
+        <span><kbd className="ms-word-kbd">Ctrl</kbd>+<kbd className="ms-word-kbd">Shift</kbd>+<kbd className="ms-word-kbd">L</kbd> Bullets</span>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-        <JoditEditor
-          value={content}
-          config={config}
-          tabIndex={1}
-          onBlur={newContent => setContent(newContent)}
-          onChange={newContent => {}}
-        />
+      {/* Main Canvas with A4 Paper Sheet */}
+      <div className="ms-word-canvas">
+        <div className="ms-word-document-paper">
+          <JoditEditor
+            value={content}
+            config={config}
+            tabIndex={1}
+            onBlur={newContent => setContent(newContent)}
+            onChange={newContent => {}}
+          />
+        </div>
+      </div>
+
+      {/* MS Word Bottom Status Bar */}
+      <div className="ms-word-status-bar">
+        <div>Page 1 of 1 &nbsp;|&nbsp; Words: {getWordCount(content)}</div>
+        <div>UGC NET Unit {unitId} Notes &nbsp;|&nbsp; MS Word Full Screen Mode</div>
       </div>
     </div>
   );

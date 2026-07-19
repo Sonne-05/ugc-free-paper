@@ -1,0 +1,223 @@
+/* MS Word Style Fullscreen Editor */
+.ms-word-editor-page {
+  min-height: 100vh;
+  background-color: #f3f2f1;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* MS Word Top Header / Ribbon Bar */
+.ms-word-header {
+  background: #185abd;
+  color: #ffffff;
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.ms-word-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ms-word-icon {
+  background: #ffffff;
+  color: #185abd;
+  font-weight: 900;
+  font-size: 1.15rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ms-word-header-text h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.ms-word-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.ms-word-btn-cancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  padding: 7px 18px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ms-word-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.ms-word-btn-save {
+  background: #107c41;
+  color: #ffffff;
+  border: none;
+  padding: 8px 22px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.2s;
+}
+
+.ms-word-btn-save:hover {
+  background: #0b5a2f;
+}
+
+/* Metadata Bar (Unit Title & Subtitle) */
+.ms-word-metadata-bar {
+  background: #ffffff;
+  border-bottom: 1px solid #e1dfdd;
+  padding: 14px 28px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.ms-word-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ms-word-input-group label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #605e5c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ms-word-input {
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  padding: 9px 14px;
+  font-size: 0.92rem;
+  color: #323130;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #faf9f8;
+}
+
+.ms-word-input:focus {
+  background: #ffffff;
+  border-color: #185abd;
+  box-shadow: 0 0 0 2px rgba(24, 90, 189, 0.2);
+}
+
+/* MS Word Ribbon Shortcuts Bar */
+.ms-word-shortcuts-ribbon {
+  background: #faf9f8;
+  border-bottom: 1px solid #e1dfdd;
+  padding: 8px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: 0.78rem;
+  color: #484644;
+}
+
+.ms-word-shortcuts-ribbon strong {
+  color: #185abd;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ms-word-kbd {
+  background: #ffffff;
+  border: 1px solid #c8c6c4;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 0.73rem;
+  color: #201f1e;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+}
+
+/* Main Workspace Canvas (A4 Paper Container) */
+.ms-word-canvas {
+  flex: 1;
+  padding: 30px 20px 50px 20px;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.ms-word-document-paper {
+  background: #ffffff;
+  width: 100%;
+  max-width: 960px;
+  min-height: 850px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08);
+  border-radius: 3px;
+  border: 1px solid #e1dfdd;
+  padding: 28px 36px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom Jodit styling inside MS Word document paper */
+.ms-word-document-paper .jodit-container {
+  border: none !important;
+  box-shadow: none !important;
+  font-family: 'Segoe UI', Aptos, Calibri, sans-serif !important;
+}
+
+.ms-word-document-paper .jodit-toolbar__box {
+  background: #faf9f8 !important;
+  border-bottom: 1px solid #e1dfdd !important;
+  border-radius: 4px 4px 0 0 !important;
+  margin-bottom: 16px !important;
+}
+
+.ms-word-document-paper .jodit-workplace {
+  min-height: 700px !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg {
+  padding: 24px !important;
+  font-size: 1.05rem !important;
+  line-height: 1.65 !important;
+  color: #201f1e !important;
+}
+
+/* Bottom Word Status Bar */
+.ms-word-status-bar {
+  background: #185abd;
+  color: #ffffff;
+  padding: 5px 24px;
+  font-size: 0.76rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  font-weight: 500;
+}
