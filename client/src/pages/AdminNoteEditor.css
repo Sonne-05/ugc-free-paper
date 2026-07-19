@@ -201,16 +201,16 @@
   height: auto !important;
 }
 
-/* Make Jodit Toolbar Sticky at Top of Canvas so it NEVER hides on scroll */
+/* Jodit Toolbar static at top of document paper */
 .ms-word-document-paper .jodit-toolbar__box {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 990 !important;
-  background: #faf9f8 !important;
-  border-bottom: 1px solid #e1dfdd !important;
-  border-radius: 4px 4px 0 0 !important;
+  position: static !important;
+  top: auto !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-top-left-radius: 4px !important;
+  border-top-right-radius: 4px !important;
   margin: 0 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: none !important;
 }
 
 .ms-word-document-paper .jodit-workplace {
