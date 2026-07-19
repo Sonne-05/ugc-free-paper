@@ -167,7 +167,7 @@
   padding: 10px 15px 20px 15px;
   display: flex;
   justify-content: center;
-  overflow-y: auto;
+  overflow-y: auto !important;
   position: relative;
 }
 
@@ -175,7 +175,7 @@
   background: #ffffff;
   width: 100%;
   max-width: 1100px;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 100px);
   box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06);
   border-radius: 4px;
   border: 1px solid #e1dfdd;
@@ -183,7 +183,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  overflow: hidden !important;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 /* Custom Jodit styling inside MS Word document paper */
@@ -197,6 +198,7 @@
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
+  height: auto !important;
 }
 
 /* Make Jodit Toolbar Sticky at Top of Canvas so it NEVER hides on scroll */
@@ -215,7 +217,9 @@
   flex: 1 !important;
   background: transparent !important;
   border: none !important;
-  min-height: calc(100vh - 160px) !important;
+  height: auto !important;
+  min-height: calc(100vh - 180px) !important;
+  overflow: visible !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg {
@@ -224,7 +228,9 @@
   line-height: 1.5 !important;
   color: #201f1e !important;
   background: transparent !important;
-  min-height: calc(100vh - 180px) !important;
+  height: auto !important;
+  min-height: calc(100vh - 200px) !important;
+  overflow: visible !important;
 }
 
 /* Compact typography inside editor to display much more content */
