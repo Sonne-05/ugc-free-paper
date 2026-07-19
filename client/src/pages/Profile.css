@@ -814,3 +814,11 @@
   color: #6b7280;
   border-color: rgba(107, 114, 128, 0.15);
 }
+
+@media (max-width: 640px) {
+  .options-grid,
+  .form-fields {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}

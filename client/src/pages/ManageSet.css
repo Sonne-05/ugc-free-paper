@@ -6,11 +6,13 @@
   min-height: 100vh;
   padding: 100px 24px 60px;
   font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
 }
 
 .manage-set-container {
   max-width: 1300px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .manage-set-header {
@@ -63,6 +65,7 @@
   grid-template-columns: 1fr;
   gap: 30px;
   align-items: start;
+  box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
@@ -75,11 +78,13 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 .manage-set-right {
   position: sticky;
   top: 100px;
+  min-width: 0;
 }
 
 .ms-card {
@@ -88,6 +93,7 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  box-sizing: border-box;
 }
 
 .ms-card h3 {
@@ -99,6 +105,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .ms-card h3 .badge {
@@ -108,6 +115,20 @@
   border-radius: 99px;
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+/* Responsive Grid Classes */
+.ms-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.ms-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .ms-form-grid {
@@ -120,6 +141,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .ms-form-field.full {
@@ -132,7 +154,7 @@
   color: #475569;
 }
 
-.ms-input {
+.ms-input, select.ms-input, textarea.ms-input {
   padding: 10px 14px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -141,6 +163,8 @@
   font-family: inherit;
   transition: all 0.2s ease;
   background: #f8fafc;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ms-input:focus {
@@ -206,6 +230,7 @@ textarea.ms-input {
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .ms-q-card:hover {
@@ -224,6 +249,8 @@ textarea.ms-input {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ms-q-title {
@@ -233,6 +260,7 @@ textarea.ms-input {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ms-q-type {
@@ -283,6 +311,7 @@ textarea.ms-input {
   color: #334155;
   margin-bottom: 16px;
   line-height: 1.5;
+  word-break: break-word;
 }
 
 .ms-options-list {
@@ -304,6 +333,7 @@ textarea.ms-input {
   display: flex;
   align-items: center;
   gap: 10px;
+  word-break: break-word;
 }
 
 .ms-option--correct {
@@ -324,6 +354,7 @@ textarea.ms-input {
   border-radius: 50%;
   font-size: 0.75rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .ms-option--correct .ms-option-marker {
@@ -340,6 +371,7 @@ textarea.ms-input {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
+  box-sizing: border-box;
 }
 
 .ms-match-col h4 {
@@ -364,6 +396,7 @@ textarea.ms-input {
   color: #334155;
   display: flex;
   gap: 8px;
+  word-break: break-word;
 }
 
 .ms-match-label {
@@ -379,6 +412,7 @@ textarea.ms-input {
   padding: 24px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
   border-top: 4px solid #3b82f6;
+  box-sizing: border-box;
 }
 
 .ms-add-form-wrapper h3 {
@@ -443,6 +477,7 @@ textarea.ms-input {
   transition: all 0.2s ease;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-sizing: border-box;
 }
 
 .ms-q-slot-card--saved {
@@ -467,6 +502,8 @@ textarea.ms-input {
   user-select: none;
   background: #fff;
   transition: background 0.2s;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ms-q-slot-header:hover {
@@ -506,16 +543,11 @@ textarea.ms-input {
   max-width: 450px;
 }
 
-@media (max-width: 768px) {
-  .ms-q-slot-preview {
-    max-width: 180px;
-  }
-}
-
 .ms-q-slot-body {
   padding: 20px;
   border-top: 1px solid #e2e8f0;
   background: #fdfdfd;
+  box-sizing: border-box;
 }
 
 .ms-q-slot-toggle-icon {
@@ -524,3 +556,95 @@ textarea.ms-input {
   transition: transform 0.2s;
 }
 
+/* Quill Toolbar & Editor Responsive Styles */
+.ql-toolbar.ql-snow {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  padding: 6px !important;
+}
+
+.ql-snow .ql-picker-label {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+/* Tablet & Mobile Breakpoints */
+@media (max-width: 1024px) {
+  .manage-set-right {
+    position: static !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .manage-set-page {
+    padding: 80px 14px 40px;
+  }
+
+  .manage-set-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .manage-set-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .manage-set-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .ms-q-slot-header {
+    padding: 12px 14px;
+  }
+
+  .ms-q-slot-preview {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 640px) {
+  .manage-set-page {
+    padding: 70px 10px 30px;
+  }
+
+  .ms-grid-2col,
+  .ms-options-grid,
+  .ms-match-grid,
+  .options-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .ms-card,
+  .ms-add-form-wrapper,
+  .ms-q-slot-body {
+    padding: 14px !important;
+  }
+
+  .ms-q-slot-header {
+    padding: 10px 12px !important;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ms-q-slot-preview {
+    max-width: 130px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .ms-q-slot-number {
+    font-size: 0.85rem !important;
+  }
+
+  .ms-input, select.ms-input, textarea.ms-input {
+    font-size: 0.88rem !important;
+    padding: 8px 10px !important;
+  }
+
+  .ms-btn {
+    padding: 10px 14px !important;
+    font-size: 0.88rem !important;
+  }
+}
