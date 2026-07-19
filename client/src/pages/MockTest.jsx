@@ -1184,7 +1184,7 @@ const MockTest = () => {
                     </table>
 
                     <p style={{ fontWeight: '600', marginBottom: '15px' }}>
-                      Choose the correct answer from the options given below:
+                      {renderTextHtml(questionsState[activeQuestionIndex].subPrompt || 'Choose the correct answer from the options given below:')}
                     </p>
                   </div>
 
@@ -1942,6 +1942,9 @@ const MockTest = () => {
                             ))}
                           </div>
                         </div>
+                        <p style={{ fontWeight: '600', fontSize: '0.85rem', margin: '4px 0 8px 0' }}>
+                          {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
+                        </p>
                       </div>
                     )}
                     {q.type === 'multiple-statement' && (

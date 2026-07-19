@@ -2394,6 +2394,15 @@ const Profile = () => {
                                 ))}
                               </div>
                             </div>
+                            <div className="form-field" style={{ marginTop: '12px' }}>
+                              <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                              <input 
+                                type="text" 
+                                placeholder="e.g. Choose the correct answer from the options given below:"
+                                value={newQSubPrompt}
+                                onChange={(e) => setNewQSubPrompt(e.target.value)}
+                              />
+                            </div>
                           </div>
                         )}
 

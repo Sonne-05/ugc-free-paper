@@ -856,6 +856,16 @@ const QuestionSlot = ({
                   ))}
                 </div>
               </div>
+              <div className="ms-form-field" style={{ marginTop: '12px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Choose the correct answer from the options given below:"
+                  value={qSubPrompt}
+                  onChange={(e) => setQSubPrompt(e.target.value)}
+                  className="ms-input"
+                />
+              </div>
             </div>
           )}
 
@@ -1965,6 +1975,16 @@ const ManageSet = () => {
           />
         ))}
       </div>
+    </div>
+    <div className="ms-form-field" style={{ marginTop: '12px' }}>
+      <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+      <input 
+        type="text" 
+        placeholder="e.g. Choose the correct answer from the options given below:"
+        value={newQSubPrompt}
+        onChange={(e) => setNewQSubPrompt(e.target.value)}
+        className="ms-input"
+      />
     </div>
   </div>
 )}
