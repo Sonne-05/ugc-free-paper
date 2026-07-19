@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
+import RichExplanationEditor from '../components/RichExplanationEditor'
 import './Profile.css'
 import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 
@@ -2509,19 +2510,16 @@ const Profile = () => {
                                   </div>
                                   <div className="form-field">
                                     <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
-                                    <textarea 
-                                      className="pane-input"
+                                    <RichExplanationEditor
                                       placeholder="Explanation..."
-                                      rows={2}
                                       value={dq.explanation || ''}
-                                      onChange={(e) => {
+                                      onChange={(val) => {
                                         setDiQuestions(prev => {
                                           const next = [...prev]
-                                          next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                                          next[qIdx] = { ...next[qIdx], explanation: val }
                                           return next
                                         })
                                       }}
-                                      style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px' }}
                                     />
                                   </div>
                                 </div>
@@ -2575,12 +2573,10 @@ const Profile = () => {
                             {/* EXPLANATION */}
                             <div className="form-field" style={{ marginBottom: '16px' }}>
                               <label>Detailed Explanation (Optional)</label>
-                              <textarea 
-                                rows="3"
+                              <RichExplanationEditor
                                 placeholder="Enter detailed explanation of the concept and why this option is correct"
                                 value={newQExplanation}
-                                onChange={(e) => setNewQExplanation(e.target.value)}
-                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                                onChange={(val) => setNewQExplanation(val)}
                               />
                             </div>
                           </>

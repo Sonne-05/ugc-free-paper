@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
+import RichExplanationEditor from '../components/RichExplanationEditor'
 import './Profile.css'
 import './ManageSet.css'
 
@@ -407,15 +408,12 @@ const DataInterpretationGroup = ({
                   </div>
                   <div className="ms-form-field">
                     <label style={{ fontSize: '0.8rem' }}>Explanation (Optional)</label>
-                    <textarea 
-                      className="ms-input"
+                    <RichExplanationEditor 
                       placeholder="Explanation..."
-                      rows={2}
-                      style={{ resize: 'vertical', minHeight: '60px', fontFamily: 'inherit', fontSize: '0.88rem' }}
                       value={dq.explanation || ''}
-                      onChange={(e) => {
+                      onChange={(val) => {
                         const next = [...questions]
-                        next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                        next[qIdx] = { ...next[qIdx], explanation: val }
                         setQuestions(next)
                       }}
                     />
@@ -961,12 +959,10 @@ const QuestionSlot = ({
 
           <div className="ms-form-field" style={{ marginBottom: '16px' }}>
             <label>Detailed Explanation (Optional)</label>
-            <textarea 
-              rows="2"
-              className="ms-input"
+            <RichExplanationEditor 
               placeholder="Enter detailed explanation of the concept and why this option is correct"
               value={qExplanation}
-              onChange={(e) => setQExplanation(e.target.value)}
+              onChange={(val) => setQExplanation(val)}
             />
           </div>
 
@@ -2087,16 +2083,13 @@ const ManageSet = () => {
           </div>
           <div className="ms-form-field">
             <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Detailed Explanation (Optional)</label>
-            <textarea 
-              className="ms-input"
+            <RichExplanationEditor 
               placeholder="Explanation..."
-              rows={2}
-              style={{ resize: 'vertical', minHeight: '60px', fontFamily: 'inherit', fontSize: '0.88rem' }}
               value={dq.explanation || ''}
-              onChange={(e) => {
+              onChange={(val) => {
                 setDiQuestions(prev => {
                   const next = [...prev]
-                  next[qIdx] = { ...next[qIdx], explanation: e.target.value }
+                  next[qIdx] = { ...next[qIdx], explanation: val }
                   return next
                 })
               }}
@@ -2154,13 +2147,10 @@ const ManageSet = () => {
     {/* EXPLANATION */}
     <div className="ms-form-field" style={{ marginBottom: '16px' }}>
       <label>Detailed Explanation (Optional)</label>
-      <textarea 
-        rows="3"
-        className="ms-input"
+      <RichExplanationEditor 
         placeholder="Enter detailed explanation of the concept and why this option is correct"
         value={newQExplanation}
-        onChange={(e) => setNewQExplanation(e.target.value)}
-        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontFamily: 'inherit', fontSize: '0.88rem', boxSizing: 'border-box' }}
+        onChange={(val) => setNewQExplanation(val)}
       />
     </div>
   </>
