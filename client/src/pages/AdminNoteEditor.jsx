@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import JoditEditor from 'jodit-react';
 import { paper1NotesData } from '../data/paper1NotesData';
 import { API_BASE_URL } from '../services/api';
+import UnitNotesTemplate from '../components/UnitNotesTemplate';
 import './AdminNoteEditor.css';
 
 const AdminNoteEditor = () => {
@@ -16,6 +17,7 @@ const AdminNoteEditor = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/notes/${unitId}`)
@@ -318,6 +320,14 @@ const AdminNoteEditor = () => {
           </div>
           <div className="ms-word-header-actions">
             <button 
+              onClick={() => setShowPreviewModal(true)} 
+              className="ms-word-btn-cancel"
+              style={{ fontSize: '0.8rem', padding: '5px 12px', background: 'rgba(255, 255, 255, 0.25)', border: '1px solid rgba(255, 255, 255, 0.4)' }}
+              title="Preview Student View Live"
+            >
+              👁️ Preview
+            </button>
+            <button 
               onClick={() => setShowShortcuts(!showShortcuts)} 
               className="ms-word-btn-cancel"
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
@@ -371,6 +381,88 @@ const AdminNoteEditor = () => {
         <div>Page 1 of 1 &nbsp;|&nbsp; Words: {getWordCount(content)}</div>
         <div>UGC NET Unit {unitId} Notes &nbsp;|&nbsp; MS Word Full Screen Mode</div>
       </div>
+
+      {/* Student View Live Preview Modal */}
+      {showPreviewModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '10px',
+            width: '100%',
+            maxWidth: '1250px',
+            height: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{
+              background: '#185abd',
+              color: '#ffffff',
+              padding: '12px 20px',
+              display: 'flex',
+              justify-content: 'space-between',
+              alignItems: 'center',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 600, fontSize: '0.95rem' }}>
+                <span style={{ background: '#ffffff', color: '#185abd', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>STUDENT PREVIEW</span>
+                <span>{unitTitle || `Unit ${unitId} Notes`}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  onClick={() => window.open(`/paper1-notes/unit-${unitId}`, '_blank')}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    padding: '5px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 600
+                  }}
+                  title="Open in new tab"
+                >
+                  🔗 Open in New Tab
+                </button>
+                <button 
+                  onClick={() => setShowPreviewModal(false)}
+                  style={{
+                    background: '#dc2626',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '5px 14px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 700
+                  }}
+                >
+                  ✕ Close Preview
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
+              <UnitNotesTemplate data={{ unitTitle, subtitle, htmlContent: content }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

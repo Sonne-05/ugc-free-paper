@@ -1879,6 +1879,20 @@ const Profile = () => {
                             {note.isAvailable !== false ? 'Available' : 'Coming Soon'}
                           </button>
                           <button 
+                            className="table-btn" 
+                            style={{ 
+                              marginRight: '8px', 
+                              backgroundColor: '#eff6ff', 
+                              color: '#1d4ed8', 
+                              border: '1px solid #bfdbfe',
+                              fontWeight: 600
+                            }}
+                            onClick={() => window.open('/paper1-notes/unit-' + note.id, '_blank')}
+                            title="Preview student note page"
+                          >
+                            👁️ Preview
+                          </button>
+                          <button 
                             className="table-btn table-btn--upload" 
                             style={{ marginRight: '8px' }}
                             onClick={() => navigate('/admin/edit-note/' + note.id)}
