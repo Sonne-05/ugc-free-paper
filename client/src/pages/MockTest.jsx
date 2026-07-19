@@ -251,12 +251,12 @@ const MockTest = () => {
   const renderTableData = (tableData, key = 0) => {
     if (!tableData || !tableData.length) return null
     return (
-      <div key={key} className="di-table-wrapper" style={{ margin: '20px 0', overflowX: 'auto' }}>
-        <table className="di-table" style={{ width: '80%', maxWidth: '750px', margin: '0 auto', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '0.88rem', backgroundColor: '#ffffff', borderRadius: '4px', overflow: 'hidden' }}>
+      <div key={key} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
+        <table style={{ width: '70%', margin: '0 auto 20px auto', borderCollapse: 'collapse', border: '1px solid var(--border)', fontSize: '0.85rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#ffffff' }}>
+            <tr style={{ backgroundColor: 'var(--bg-card)' }}>
               {tableData[0].map((cell, cIdx) => (
-                <th key={cIdx} style={{ border: '1px solid #e2e8f0', padding: '10px 16px', fontWeight: '700', textAlign: 'center', color: '#1e293b', fontSize: '0.9rem' }}>
+                <th key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', fontWeight: 'bold', textAlign: 'center' }}>
                   {renderTextHtml(cell)}
                 </th>
               ))}
@@ -264,9 +264,9 @@ const MockTest = () => {
           </thead>
           <tbody>
             {tableData.slice(1).map((row, rIdx) => (
-              <tr key={rIdx} style={{ backgroundColor: '#ffffff' }}>
+              <tr key={rIdx} style={{ backgroundColor: 'var(--bg-card)' }}>
                 {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ border: '1px solid #e2e8f0', padding: '10px 16px', textAlign: 'center', color: '#334155' }}>
+                  <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
                     {renderTextHtml(cell)}
                   </td>
                 ))}
