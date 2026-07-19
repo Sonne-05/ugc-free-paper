@@ -33,6 +33,13 @@ const parseTableText = (text) => {
   return rows
 }
 
+const cleanPassageText = (text) => {
+  if (!text) return ''
+  let cleaned = text.replace(/\r\n/g, '\n')
+  cleaned = cleaned.replace(/([^\n])\n([^\n])/g, '$1 $2').replace(/ +/g, ' ')
+  return cleaned.trim()
+}
+
 const DataInterpretationGroup = ({
   editingSetQuestions,
   setId,
@@ -621,7 +628,17 @@ const ReadingComprehensionGroup = ({
       {isOpen && (
         <form className="ms-q-slot-body" onSubmit={handleSaveAll} style={{ background: '#f8fafc' }}>
           <div className="ms-form-field" style={{ marginBottom: '16px' }}>
-            <label style={{ fontWeight: 'bold', color: '#0369a1' }}>Comprehension Passage (Questions 46 - 50)</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ fontWeight: 'bold', color: '#0369a1', margin: 0 }}>Comprehension Passage (Questions 46 - 50)</label>
+              <button
+                type="button"
+                onClick={() => setLocalPassage(cleanPassageText(localPassage))}
+                style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                title="Clean up broken PDF line breaks into smooth continuous paragraphs"
+              >
+                ✨ Auto-Fix PDF Line Breaks
+              </button>
+            </div>
             <textarea
               required
               rows="5"
@@ -2285,26 +2302,38 @@ const ManageSet = () => {
   <div className="form-field full-width" style={{ marginBottom: '12px' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
       <label style={{ margin: 0 }}>{newQType === 'di' ? 'Table Data / Passage' : 'Comprehension Passage'}</label>
-      {newQType === 'di' && (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
-            type="button" 
-            className={`pane-btn ${diMode === 'visual' ? 'active' : ''}`} 
-            style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'visual' ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'visual' ? '#fff' : 'var(--text-primary)' }}
-            onClick={() => setDiMode('visual')}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {newQType === 'comprehension' && (
+          <button
+            type="button"
+            onClick={() => setNewQPassage(cleanPassageText(newQPassage))}
+            style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+            title="Clean up broken PDF line breaks into smooth continuous paragraphs"
           >
-            Visual Grid
+            ✨ Auto-Fix PDF Line Breaks
           </button>
-          <button 
-            type="button" 
-            className={`pane-btn ${diMode === 'raw' ? 'active' : ''}`} 
-            style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'raw' ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'raw' ? '#fff' : 'var(--text-primary)' }}
-            onClick={() => setDiMode('raw')}
-          >
-            Raw Text
-          </button>
-        </div>
-      )}
+        )}
+        {newQType === 'di' && (
+          <>
+            <button 
+              type="button" 
+              className={`pane-btn ${diMode === 'visual' ? 'active' : ''}`} 
+              style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'visual' ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'visual' ? '#fff' : 'var(--text-primary)' }}
+              onClick={() => setDiMode('visual')}
+            >
+              Visual Grid
+            </button>
+            <button 
+              type="button" 
+              className={`pane-btn ${diMode === 'raw' ? 'active' : ''}`} 
+              style={{ padding: '2px 8px', fontSize: '0.75rem', background: diMode === 'raw' ? 'var(--primary)' : 'var(--bg-card)', border: '1px solid var(--border)', color: diMode === 'raw' ? '#fff' : 'var(--text-primary)' }}
+              onClick={() => setDiMode('raw')}
+            >
+              Raw Text
+            </button>
+          </>
+        )}
+      </div>
     </div>
 
     {newQType === 'di' && diMode === 'visual' ? (

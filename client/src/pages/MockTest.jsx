@@ -241,9 +241,20 @@ const MockTest = () => {
 
   const renderPassageWithTable = (passage) => {
     if (!passage) return null
-    const paragraphs = passage.split('\n\n')
+
+    // Un-wrap single PDF copy-paste line breaks while keeping paragraph breaks (\n\n)
+    let cleaned = passage
+    if (!passage.includes('<p>') && !passage.includes('<div>')) {
+      cleaned = passage.replace(/\r\n/g, '\n')
+      cleaned = cleaned.replace(/([^\n])\n([^\n])/g, '$1 $2').replace(/ +/g, ' ')
+    }
+
+    const paragraphs = cleaned.split(/\n\s*\n/)
     return paragraphs.map((para, pIdx) => {
-      const tableData = parseTableText(para)
+      const trimmedPara = para.trim()
+      if (!trimmedPara) return null
+
+      const tableData = parseTableText(trimmedPara)
       if (tableData) {
         return (
           <div key={pIdx} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
@@ -272,7 +283,11 @@ const MockTest = () => {
           </div>
         )
       }
-      return <p key={pIdx} style={{ whiteSpace: 'pre-wrap', marginBottom: '10px' }}>{para}</p>
+      return (
+        <p key={pIdx} style={{ textAlign: 'left', lineHeight: '1.65', marginBottom: '14px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+          {trimmedPara}
+        </p>
+      )
     })
   }
   
