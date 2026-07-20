@@ -46,8 +46,19 @@ a {
   color: inherit;
 }
 
-ul {
+ul.navbar__nav,
+ul.navbar__mobile-links,
+ul.notes-template-sidebar-nav,
+.footer__links-column {
   list-style: none;
+}
+
+ul {
+  list-style-type: disc;
+}
+
+ol {
+  list-style-type: decimal;
 }
 
 button {

@@ -293,16 +293,47 @@
 }
 
 .ms-word-document-paper .jodit-wysiwyg ul,
-.ms-word-document-paper .jodit-wysiwyg ol {
-  margin-top: 2px !important;
+.jodit-wysiwyg ul {
+  margin-top: 4px !important;
   margin-bottom: 8px !important;
-  padding-left: 22px !important;
+  padding-left: 28px !important;
   font-size: 0.9rem !important;
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  display: block !important;
 }
 
-.ms-word-document-paper .jodit-wysiwyg li {
+.ms-word-document-paper .jodit-wysiwyg ul[style*="circle"],
+.jodit-wysiwyg ul[style*="circle"] {
+  list-style-type: circle !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg ul[style*="square"],
+.jodit-wysiwyg ul[style*="square"] {
+  list-style-type: square !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg ul[style*="disc"],
+.jodit-wysiwyg ul[style*="disc"] {
+  list-style-type: disc !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg ol,
+.jodit-wysiwyg ol {
+  margin-top: 4px !important;
+  margin-bottom: 8px !important;
+  padding-left: 28px !important;
+  font-size: 0.9rem !important;
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  display: block !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg li,
+.jodit-wysiwyg li {
   margin-bottom: 3px !important;
   line-height: 1.45 !important;
+  display: list-item !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg table {
@@ -318,6 +349,42 @@
   padding: 5px 8px !important;
   line-height: 1.4 !important;
   font-size: 0.86rem !important;
+}
+
+/* Jodit Dropdown & Popup Fixes */
+.jodit-popup,
+.jodit-dropdown,
+.jodit-popup-container {
+  z-index: 100000 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 6px !important;
+  padding: 4px 0 !important;
+}
+
+.jodit-popup .jodit-ui-button,
+.jodit-dropdown .jodit-ui-button,
+.jodit-popup-container .jodit-ui-button {
+  color: #1e293b !important;
+  font-size: 0.85rem !important;
+  font-family: 'Segoe UI', sans-serif !important;
+  padding: 6px 14px !important;
+}
+
+.jodit-popup .jodit-ui-button:hover,
+.jodit-dropdown .jodit-ui-button:hover,
+.jodit-popup-container .jodit-ui-button:hover {
+  background-color: #f1f5f9 !important;
+  color: #185abd !important;
+}
+
+.jodit-popup .jodit-ui-button_active,
+.jodit-dropdown .jodit-ui-button_active,
+.jodit-popup-container .jodit-ui-button_active {
+  background-color: #e0e7ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
 }
 
 /* Bottom Word Status Bar */

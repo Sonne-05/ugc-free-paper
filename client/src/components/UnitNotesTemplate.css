@@ -162,15 +162,39 @@
 }
 
 /* Lists styling */
-.notes-template-rich-content ul,
+.notes-template-rich-content ul {
+  margin-bottom: 1.5rem;
+  padding-left: 2.2rem;
+  margin-left: 0.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
+  display: block;
+}
+
+.notes-template-rich-content ul[style*="circle"] {
+  list-style-type: circle;
+}
+
+.notes-template-rich-content ul[style*="square"] {
+  list-style-type: square;
+}
+
+.notes-template-rich-content ul[style*="disc"] {
+  list-style-type: disc;
+}
+
 .notes-template-rich-content ol {
   margin-bottom: 1.5rem;
-  padding-left: 2rem;
+  padding-left: 2.2rem;
   margin-left: 0.5rem;
+  list-style-type: decimal;
+  list-style-position: outside;
+  display: block;
 }
 
 .notes-template-rich-content li {
   margin-bottom: 0.5rem;
+  display: list-item;
 }
 
 /* Auto style tables created in Quill */
