@@ -342,13 +342,15 @@
   border-collapse: collapse !important;
   margin-top: 6px !important;
   margin-bottom: 10px !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg th,
 .ms-word-document-paper .jodit-wysiwyg td {
-  padding: 5px 8px !important;
+  padding: 6px 10px !important;
   line-height: 1.4 !important;
   font-size: 0.86rem !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
 /* Jodit Dropdown & Popup Fixes */
