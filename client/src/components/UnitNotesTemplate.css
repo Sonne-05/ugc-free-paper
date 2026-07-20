@@ -86,7 +86,12 @@
 
 .notes-template-main {
   flex: 1;
-  padding: 2rem 3rem 4rem;
+  padding: 2.5rem 3.5rem 4rem;
+  margin: 1.5rem 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
   min-width: 0;
 }
 
@@ -117,9 +122,7 @@
   margin-top: 0.4rem;
 }
 
-/* === RICH CONTENT STYLES === 
-   These styles target the raw HTML output by React Quill to make them look
-   exactly like the beautiful original template components! */
+/* === RICH CONTENT STYLES === */
 
 .notes-template-rich-content {
   line-height: 1.6;
@@ -130,35 +133,29 @@
   margin-bottom: 1rem;
 }
 
-/* Equivalent to .section-node h2 */
 .notes-template-rich-content h2 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.6rem;
-  margin-top: 4rem;
-  margin-bottom: 1.5rem;
-  color: #2563eb;
-  border-left: 4px solid #2563eb;
-  padding-left: 0.75rem;
-}
-
-/* Equivalent to .sub-node h3 */
-.notes-template-rich-content h3 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.25rem;
-  margin-top: 2rem;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin-top: 2.25rem;
   margin-bottom: 1rem;
   color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: 0.5rem; /* Simulate sub-node padding */
+  border-left: none;
+  padding-left: 0;
+}
+
+.notes-template-rich-content h3 {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+  display: block;
 }
 
 .notes-template-rich-content h3::before {
-  content: "•";
-  color: #7c3aed;
-  font-size: 1.75rem;
-  line-height: 0;
+  display: none;
 }
 
 /* Lists styling */
@@ -197,46 +194,56 @@
   display: list-item;
 }
 
-/* Auto style tables created in Quill / Jodit */
+/* Auto style tables created in Editor */
 .notes-template-rich-content table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.5rem 0;
+  margin: 1.75rem 0;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #cbd5e1;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
 }
 
 .notes-template-rich-content th, 
 .notes-template-rich-content td {
-  padding: 0.85rem 1.25rem;
+  padding: 0.85rem 1.1rem;
   text-align: left;
   font-size: 0.9rem;
+  line-height: 1.5;
+  vertical-align: top;
   border: 1px solid #cbd5e1;
 }
 
 .notes-template-rich-content th,
 .notes-template-rich-content thead td {
-  background-color: #f1f5f9;
-  font-family: 'Outfit', sans-serif;
+  background-color: #ffffff;
+  font-family: 'Outfit', 'Inter', sans-serif;
   font-weight: 700;
   color: #0f172a;
   border: 1px solid #cbd5e1;
 }
 
 .notes-template-rich-content td {
+  background-color: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
   line-height: 1.5;
 }
 
+.notes-template-rich-content td strong,
+.notes-template-rich-content th strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
 .notes-template-rich-content tr:nth-child(even) td {
-  background-color: #f8fafc;
+  background-color: #ffffff;
 }
 
 .notes-template-rich-content tr:hover td {
-  background-color: rgba(37, 99, 235, 0.02);
+  background-color: #f8fafc;
   color: #0f172a;
 }
 
