@@ -120,7 +120,7 @@ const AdminNoteEditor = () => {
       'outdent', 'indent', '|',
       'brush', 'table', 'link', 'image', '|',
       'align', 'undo', 'redo', '|',
-      'hr', 'eraser', 'fullsize'
+      'hr', 'eraser'
     ],
     controls: {
       paragraph: {

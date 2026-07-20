@@ -188,8 +188,7 @@
   overflow: visible !important;
 }
 
-/* Custom Jodit styling inside MS Word document paper */
-.ms-word-document-paper .jodit-container {
+.ms-word-document-paper .jodit-container:not(.jodit_fullsize):not(.jodit-container_fullsize) {
   border: none !important;
   box-shadow: none !important;
   background: #ffffff !important;
@@ -203,6 +202,18 @@
   min-height: auto !important;
   max-height: none !important;
   border-radius: 4px !important;
+}
+
+.ms-word-document-paper .jodit-container.jodit_fullsize,
+.ms-word-document-paper .jodit-container_fullsize,
+.jodit_fullsize {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background: #ffffff !important;
 }
 
 /* Make Jodit Toolbar Sticky at Top 0 of Canvas directly under top header */
