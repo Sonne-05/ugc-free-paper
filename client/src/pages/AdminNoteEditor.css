@@ -339,18 +339,32 @@
 .ms-word-document-paper .jodit-wysiwyg table {
   width: 100% !important;
   font-size: 0.86rem !important;
-  border-collapse: collapse !important;
-  margin-top: 6px !important;
-  margin-bottom: 10px !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  margin-top: 10px !important;
+  margin-bottom: 14px !important;
+  border-radius: 6px !important;
   border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg th,
 .ms-word-document-paper .jodit-wysiwyg td {
-  padding: 6px 10px !important;
-  line-height: 1.4 !important;
+  padding: 8px 12px !important;
+  line-height: 1.45 !important;
   font-size: 0.86rem !important;
-  border: 1px solid #cbd5e1 !important;
+  vertical-align: top !important;
+  border-right: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg th:last-child,
+.ms-word-document-paper .jodit-wysiwyg td:last-child {
+  border-right: none !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg tr:last-child td {
+  border-bottom: none !important;
 }
 
 /* Jodit Dropdown & Popup Fixes */
