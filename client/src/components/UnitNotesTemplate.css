@@ -189,6 +189,30 @@
   display: block;
 }
 
+/* Level 2: a. b. c. */
+.notes-template-rich-content ol ol {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.8rem;
+  list-style-type: lower-alpha !important;
+}
+
+/* Level 3: i. ii. iii. */
+.notes-template-rich-content ol ol ol {
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.8rem;
+  list-style-type: lower-roman !important;
+}
+
+/* Level 4: A. B. C. */
+.notes-template-rich-content ol ol ol ol {
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1.8rem;
+  list-style-type: upper-alpha !important;
+}
+
 .notes-template-rich-content li {
   margin-bottom: 0.5rem;
   display: list-item;

@@ -320,13 +320,39 @@
 
 .ms-word-document-paper .jodit-wysiwyg ol,
 .jodit-wysiwyg ol {
-  margin-top: 4px !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 12px !important;
   padding-left: 28px !important;
   font-size: 0.9rem !important;
   list-style-type: decimal !important;
   list-style-position: outside !important;
   display: block !important;
+}
+
+/* Level 2: a. b. c. */
+.ms-word-document-paper .jodit-wysiwyg ol ol,
+.jodit-wysiwyg ol ol {
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
+  padding-left: 24px !important;
+  list-style-type: lower-alpha !important;
+}
+
+/* Level 3: i. ii. iii. */
+.ms-word-document-paper .jodit-wysiwyg ol ol ol,
+.jodit-wysiwyg ol ol ol {
+  margin-top: 3px !important;
+  margin-bottom: 6px !important;
+  padding-left: 24px !important;
+  list-style-type: lower-roman !important;
+}
+
+/* Level 4: A. B. C. */
+.ms-word-document-paper .jodit-wysiwyg ol ol ol ol,
+.jodit-wysiwyg ol ol ol ol {
+  margin-top: 3px !important;
+  margin-bottom: 6px !important;
+  padding-left: 24px !important;
+  list-style-type: upper-alpha !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg li,
