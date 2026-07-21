@@ -384,7 +384,10 @@
   padding: 8px 12px !important;
   line-height: 1.45 !important;
   font-size: 0.86rem !important;
-  vertical-align: top !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  border-top: none !important;
+  border-left: none !important;
   border-right: 1px solid #cbd5e1 !important;
   border-bottom: 1px solid #cbd5e1 !important;
 }

@@ -220,36 +220,38 @@
 
 /* Auto style tables created in Editor */
 .notes-template-rich-content table {
-  width: 70%;
-  max-width: 750px;
-  margin: 1.75rem auto;
-  border-collapse: separate;
-  border-spacing: 0;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
+  width: 70% !important;
+  max-width: 750px !important;
+  margin: 1.75rem auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden !important;
 }
 
 .notes-template-rich-content th, 
 .notes-template-rich-content td {
-  padding: 0.65rem 0.95rem;
-  text-align: left;
-  font-size: 0.88rem;
-  line-height: 1.45;
-  vertical-align: top;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 0.65rem 0.95rem !important;
+  text-align: center !important;
+  font-size: 0.88rem !important;
+  line-height: 1.45 !important;
+  vertical-align: middle !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 .notes-template-rich-content th:last-child,
 .notes-template-rich-content td:last-child {
-  border-right: none;
+  border-right: none !important;
 }
 
 .notes-template-rich-content tr:last-child td {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .notes-template-rich-content th,
