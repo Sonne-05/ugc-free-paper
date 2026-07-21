@@ -50,6 +50,7 @@
 
         .layout {
             display: flex;
+            align-items: flex-start;
             width: 100%;
             min-height: 100vh;
         }
@@ -163,10 +164,10 @@
 
         .main {
             flex: 1;
-            padding: 2.5rem 3.5rem 4rem;
+            padding: 2.5rem 3.5rem 2.5rem;
             min-width: 0;
             background: #ffffff;
-            margin: 1.5rem 2rem;
+            margin: 1.5rem 2rem 2.5rem;
             border-radius: 12px;
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
@@ -253,6 +254,10 @@
             margin-bottom: 3.5rem;
         }
 
+        .section-node:last-child {
+            margin-bottom: 0;
+        }
+
         .section-node h2 {
             font-family: var(--font-heading);
             font-size: 1.45rem;
@@ -267,6 +272,10 @@
         .sub-node {
             margin-bottom: 2.25rem;
             padding-left: 0;
+        }
+
+        .sub-node:last-child {
+            margin-bottom: 0;
         }
 
         .sub-node h3 {

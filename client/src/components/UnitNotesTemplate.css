@@ -86,8 +86,8 @@
 
 .notes-template-main {
   flex: 1;
-  padding: 2.5rem 3.5rem 4rem;
-  margin: 1.5rem 2rem;
+  padding: 2.5rem 3.5rem 2.5rem;
+  margin: 1.5rem 2rem 2.5rem;
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
