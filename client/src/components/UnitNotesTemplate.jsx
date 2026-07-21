@@ -58,6 +58,19 @@ const UnitNotesTemplate = ({ data }) => {
           ref={contentRef}
           dangerouslySetInnerHTML={{ __html: data.htmlContent || '<p>No content available for this unit yet.</p>' }}
         />
+
+        {/* Unit Completion Card */}
+        <div className="unit-completion-card">
+          <div className="unit-completion-icon">🎓</div>
+          <h3>Congratulations! You've Completed Unit {data.unitId}: {data.unitTitle}</h3>
+          <p>Review the index or move forward to the next unit to continue your UGC NET Paper 1 preparation.</p>
+          <div className="unit-completion-actions">
+            <a href="/paper1-notes" className="btn-completion-secondary">← Back to Notes Index</a>
+            <a href={`/paper1-notes/unit-${Number(data.unitId) + 1}`} className="btn-completion-primary">
+              Next Unit →
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

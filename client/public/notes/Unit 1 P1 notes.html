@@ -475,6 +475,79 @@
             opacity: 1;
         }
 
+        /* Completion Footer Card */
+        .unit-completion-card {
+            margin-top: 3rem;
+            padding: 2.5rem 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .unit-completion-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .unit-completion-card h3 {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .unit-completion-card p {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .unit-completion-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-completion-primary {
+            display: inline-block;
+            padding: 0.65rem 1.4rem;
+            background: var(--accent, #7c3aed);
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(124, 58, 237, 0.2);
+        }
+
+        .btn-completion-primary:hover {
+            background: #6d28d9;
+            transform: translateY(-1px);
+        }
+
+        .btn-completion-secondary {
+            display: inline-block;
+            padding: 0.65rem 1.4rem;
+            background: #ffffff;
+            color: var(--text-secondary) !important;
+            text-decoration: none !important;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-completion-secondary:hover {
+            background: #f8fafc;
+            border-color: var(--accent, #7c3aed);
+            color: var(--accent, #7c3aed) !important;
+        }
+
     </style>
 </head>
 <body>
@@ -2753,6 +2826,17 @@
                     </table>
                 </div>
             </section>
+
+            <!-- Unit Completion Card -->
+            <div class="unit-completion-card">
+                <div class="unit-completion-icon">🎓</div>
+                <h3>Congratulations! You've Completed Unit 1: Teaching Aptitude</h3>
+                <p>Review the index or move forward to the next unit to continue your UGC NET Paper 1 preparation.</p>
+                <div class="unit-completion-actions">
+                    <a href="/paper1-notes" target="_top" class="btn-completion-secondary">← Back to Notes Index</a>
+                    <a href="/paper1-notes/unit-2" target="_top" class="btn-completion-primary">Next: Unit 2 Research Aptitude →</a>
+                </div>
+            </div>
         </div>
     </div>
 
