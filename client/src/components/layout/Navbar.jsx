@@ -192,7 +192,7 @@ const Navbar = () => {
                 Login
               </Link>
               <Link to="/signup" className="navbar__signup-btn">
-                Register
+                Register Now
               </Link>
             </>
           )}
@@ -300,7 +300,7 @@ const Navbar = () => {
                 Login
               </Link>
               <Link to="/signup" className="navbar__mobile-cta" onClick={() => setMenuOpen(false)}>
-                Register
+                Register Now
               </Link>
             </>
           )}
