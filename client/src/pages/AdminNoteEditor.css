@@ -421,3 +421,29 @@
   font-weight: 500;
   flex-shrink: 0;
 }
+
+/* Embedded Responsive YouTube Video Styles for Editor */
+.responsive-video-container {
+  position: relative;
+  width: 100%;
+  max-width: 750px;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  margin: 1.75rem auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  border: 1px solid #cbd5e1;
+  background: #000000;
+}
+
+.responsive-video-container iframe,
+.jodit-wysiwyg iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+  border-radius: 12px;
+}

@@ -103,6 +103,30 @@ const AdminNoteEditor = () => {
     return text.split(/\s+/).filter(Boolean).length;
   };
 
+  const getYouTubeId = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const handleInsertYouTube = () => {
+    const input = prompt('Enter YouTube Video URL or Video ID:\n(Example: https://www.youtube.com/watch?v=dQw4w9WgXcQ)');
+    if (!input) return;
+    const videoId = getYouTubeId(input.trim()) || input.trim();
+    if (videoId) {
+      const videoHtml = `<div class="responsive-video-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 750px; margin: 1.75rem auto; border-radius: 10px; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);"><iframe src="https://www.youtube-nocookie.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; border-radius: 10px;"></iframe></div><p><br></p>`;
+      
+      if (editorRef.current && editorRef.current.editor) {
+        editorRef.current.editor.selection.insertHTML(videoHtml);
+      } else {
+        setContent(prev => prev + videoHtml);
+      }
+    } else {
+      alert('Invalid YouTube URL or Video ID. Please check the URL and try again.');
+    }
+  };
+
   const config = useMemo(() => ({
     readonly: false,
     height: 'auto',
@@ -118,7 +142,7 @@ const AdminNoteEditor = () => {
       'bold', 'italic', 'underline', 'strikethrough', '|',
       'ul', 'ol', '|',
       'outdent', 'indent', '|',
-      'brush', 'table', 'link', 'image', '|',
+      'brush', 'table', 'link', 'image', 'video', '|',
       'align', 'undo', 'redo', '|',
       'hr', 'eraser'
     ],
@@ -319,6 +343,14 @@ const AdminNoteEditor = () => {
             </div>
           </div>
           <div className="ms-word-header-actions">
+            <button 
+              onClick={handleInsertYouTube} 
+              className="ms-word-btn-cancel"
+              style={{ fontSize: '0.8rem', padding: '5px 12px', background: 'rgba(239, 68, 68, 0.25)', border: '1px solid rgba(255, 255, 255, 0.4)', color: '#ffffff' }}
+              title="Insert YouTube Video directly into notes"
+            >
+              ▶️ YouTube
+            </button>
             <button 
               onClick={() => setShowPreviewModal(true)} 
               className="ms-word-btn-cancel"
