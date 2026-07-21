@@ -328,9 +328,19 @@
   display: block !important;
 }
 
-/* Level 2: a. b. c. */
+/* Level 2: a. b. c. (Nested, indented, or list siblings with left margin/padding) */
 .ms-word-document-paper .jodit-wysiwyg ol ol,
-.jodit-wysiwyg ol ol {
+.jodit-wysiwyg ol ol,
+.ms-word-document-paper .jodit-wysiwyg li > ol,
+.jodit-wysiwyg li > ol,
+.ms-word-document-paper .jodit-wysiwyg ol[style*="margin"],
+.jodit-wysiwyg ol[style*="margin"],
+.ms-word-document-paper .jodit-wysiwyg ol[style*="padding"],
+.jodit-wysiwyg ol[style*="padding"],
+.ms-word-document-paper .jodit-wysiwyg [data-indent] ol,
+.jodit-wysiwyg [data-indent] ol,
+.ms-word-document-paper .jodit-wysiwyg li[style*="margin"] ol,
+.jodit-wysiwyg li[style*="margin"] ol {
   margin-top: 4px !important;
   margin-bottom: 6px !important;
   padding-left: 24px !important;
@@ -339,7 +349,9 @@
 
 /* Level 3: i. ii. iii. */
 .ms-word-document-paper .jodit-wysiwyg ol ol ol,
-.jodit-wysiwyg ol ol ol {
+.jodit-wysiwyg ol ol ol,
+.ms-word-document-paper .jodit-wysiwyg ol ol[style*="margin"],
+.jodit-wysiwyg ol ol[style*="margin"] {
   margin-top: 3px !important;
   margin-bottom: 6px !important;
   padding-left: 24px !important;
