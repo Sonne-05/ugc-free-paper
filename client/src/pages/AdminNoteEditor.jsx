@@ -115,7 +115,7 @@ const AdminNoteEditor = () => {
     if (!input) return;
     const videoId = getYouTubeId(input.trim()) || input.trim();
     if (videoId) {
-      const videoHtml = `<div class="responsive-video-container" style="position: relative; width: 70%; max-width: 560px; padding-bottom: 39.375%; height: 0; overflow: hidden; margin: 1.5rem auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); border: 1px solid #cbd5e1; background: #000000;"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; border-radius: 10px;"></iframe></div><p><br></p>`;
+      const videoHtml = `<div class="responsive-video-container" style="width: 60%; max-width: 480px; margin: 1.25rem auto; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); border: 1px solid #cbd5e1; background: #000000;"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width: 100%; height: 270px; border: 0; border-radius: 10px; display: block;"></iframe></div><p><br></p>`;
       
       if (editorRef.current && editorRef.current.editor) {
         editorRef.current.editor.selection.insertHTML(videoHtml);
