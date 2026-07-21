@@ -229,8 +229,6 @@
 
 /* Auto style tables created in Editor */
 .notes-template-rich-content table {
-  width: 70% !important;
-  max-width: 750px !important;
   margin: 1.75rem auto !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
@@ -239,6 +237,11 @@
   background-color: #ffffff !important;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
   overflow: hidden !important;
+}
+
+.notes-template-rich-content table:not([style*="width"]) {
+  width: 70% !important;
+  max-width: 750px !important;
 }
 
 .notes-template-rich-content th, 

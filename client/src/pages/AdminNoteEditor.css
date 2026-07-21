@@ -375,8 +375,6 @@
 }
 
 .ms-word-document-paper .jodit-wysiwyg table {
-  width: 70% !important;
-  max-width: 750px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   font-size: 0.86rem !important;
@@ -389,6 +387,11 @@
   background: #ffffff !important;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04) !important;
   overflow: hidden !important;
+}
+
+.ms-word-document-paper .jodit-wysiwyg table:not([style*="width"]) {
+  width: 70% !important;
+  max-width: 750px !important;
 }
 
 .ms-word-document-paper .jodit-wysiwyg th,
