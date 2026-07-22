@@ -483,6 +483,7 @@ const MockTest = () => {
             list2Header: q.list2Header || null,
             statements: q.statements || [],
             passage: q.passage || null,
+            explanation: q.explanation || null,
             userAnswer: null,
             status: 'UNVISITED'
           }))
