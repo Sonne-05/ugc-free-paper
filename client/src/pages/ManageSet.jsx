@@ -1058,8 +1058,76 @@ const ReadingComprehensionGroup = ({
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [diPasteTexts, setDiPasteTexts] = useState(['', '', '', '', ''])
+
+  const handleDiPasteChange = (qIdx, text) => {
+    setDiPasteTexts(prev => {
+      const next = [...prev]
+      next[qIdx] = text
+      return next
+    })
+    
+    if (!text.trim()) return
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    let parsedText = ''
+    let parsedOpts = ['', '', '', '']
+    let parsedCorrect = 1
+    
+    let optIndex = 0
+    let promptLines = []
+    
+    for (let line of lines) {
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      if (optMatch && optIndex < 4) {
+        const optLetter = optMatch[1].toUpperCase()
+        const optVal = optMatch[2].trim()
+        
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        else {
+          indexToPut = optIndex
+        }
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+      
+      const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
+      if (ansMatch) {
+        const ansVal = ansMatch[1].toUpperCase()
+        if (['A', '1'].includes(ansVal)) parsedCorrect = 1
+        else if (['B', '2'].includes(ansVal)) parsedCorrect = 2
+        else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
+        else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
+        continue
+      }
+      
+      promptLines.push(line)
+    }
+
+    if (promptLines.length > 0) {
+      parsedText = promptLines.join('\n')
+    }
+
+    setQuestions(prev => {
+      const next = [...prev]
+      next[qIdx] = {
+        ...next[qIdx],
+        text: parsedText || next[qIdx].text,
+        options: parsedOpts.some(o => o !== '') ? parsedOpts : next[qIdx].options,
+        correct: parsedCorrect
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
+    setDiPasteTexts(['', '', '', '', ''])
     const existingQs = Array.from({ length: 5 }).map((_, idx) => {
       const qIndex = 46 + idx
       return editingSetQuestions.find(q => q.qIndex === qIndex)
