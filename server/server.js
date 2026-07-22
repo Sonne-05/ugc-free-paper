@@ -235,21 +235,21 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
-// Generate detailed explanation using OpenRouter AI
+// Generate detailed explanation using Google Gemini AI directly
 app.post('/api/questions/explain', async (req, res) => {
   const { questionContext } = req.body;
   if (!questionContext) {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(400).json({ 
-      message: 'OpenRouter API Key is not configured on the server. Please add OPENROUTER_API_KEY to your server\'s .env file.' 
+      message: 'Google Gemini API Key is not configured on the server. Please add GEMINI_API_KEY to your server\'s .env file.' 
     });
   }
 
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
   try {
     const {
@@ -305,6 +305,7 @@ app.post('/api/questions/explain', async (req, res) => {
 
     if (list2 && Array.isArray(list2) && list2.some(i => i && i.trim())) {
       userPrompt += `${list2Header || 'List II'}:\n`;
+      res.write = res.write; // placeholder logic
       list2.forEach((item, idx) => {
         if (item && item.trim()) userPrompt += `${idx + 1}. ${item}\n`;
       });
@@ -332,34 +333,39 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    // Call OpenRouter with streaming enabled
-    const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // Call Google Gemini stream API directly
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+    const geminiResponse = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://ugcfreepaper.com',
-        'X-Title': 'UGC Free Paper'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: model,
-        stream: true,
-        messages: [
+        contents: [
           {
-            role: 'system',
-            content: 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.'
-          },
-          {
-            role: 'user',
-            content: userPrompt
+            parts: [
+              {
+                text: userPrompt
+              }
+            ]
           }
-        ]
+        ],
+        systemInstruction: {
+          parts: [
+            {
+              text: 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.'
+            }
+          ]
+        },
+        generationConfig: {
+          temperature: 0.2
+        }
       })
     });
 
-    if (!openrouterResponse.ok) {
-      const errText = await openrouterResponse.text();
-      let errMsg = 'Failed call to OpenRouter API';
+    if (!geminiResponse.ok) {
+      const errText = await geminiResponse.text();
+      let errMsg = 'Failed call to Google Gemini API';
       try {
         const errJson = JSON.parse(errText);
         errMsg = errJson.error?.message || errMsg;
@@ -372,22 +378,51 @@ app.post('/api/questions/explain', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const reader = openrouterResponse.body;
+    const reader = geminiResponse.body;
+    let buffer = '';
+
     if (reader) {
+      const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+      
+      const processChunk = (chunkBytes) => {
+        const chunkText = chunkBytes.toString ? chunkBytes.toString('utf-8') : new TextDecoder('utf-8').decode(chunkBytes);
+        buffer += chunkText;
+        
+        let lineIndex;
+        while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, lineIndex).trim();
+          buffer = buffer.slice(lineIndex + 1);
+          
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            try {
+              const parsed = JSON.parse(dataStr);
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              if (text) {
+                // Translate to standard OpenAI format so we don't have to change client code!
+                res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+              }
+            } catch (_) {
+              // Ignore incomplete lines
+            }
+          }
+        }
+      };
+
       if (typeof reader[Symbol.asyncIterator] === 'function') {
         for await (const chunk of reader) {
-          res.write(chunk);
+          processChunk(chunk);
         }
       } else {
-        const webReader = reader.getReader();
         while (true) {
-          const { done, value } = await webReader.read();
+          const { done, value } = await streamReader.read();
           if (done) break;
-          res.write(value);
+          processChunk(value);
         }
       }
     }
-    
+
+    res.write('data: [DONE]\n\n');
     res.end();
   } catch (err) {
     res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
