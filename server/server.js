@@ -334,7 +334,7 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.';
+    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a concise, clear, and direct explanation for the question. Explain only the key information and logical reasoning required to solve the question and justify why the correct option is right. Avoid wordy introductions, repetitive paragraphs, or unnecessary background definitions. Keep it short, focused, and structured using clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
