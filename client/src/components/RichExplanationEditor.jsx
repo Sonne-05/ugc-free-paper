@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { API_BASE_URL } from '../services/api';
@@ -26,6 +26,15 @@ const formats = [
 const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write detailed explanation...', questionContext }) => {
   const [showHtml, setShowHtml] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
 
   const handleAiExplain = async () => {
     if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
@@ -123,7 +132,19 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
       }
     } catch (error) {
       console.error('AI Explanation Error:', error);
-      alert(`Error generating explanation: ${error.message}`);
+      
+      const isQuotaError = error.message.toLowerCase().includes('quota') || 
+                           error.message.toLowerCase().includes('exhausted') || 
+                           error.message.toLowerCase().includes('retry in');
+                           
+      if (isQuotaError) {
+        // Parse retry seconds from message, e.g. "Please retry in 44.766147386s"
+        const match = error.message.match(/retry in\s+([0-9.]+)/i);
+        const seconds = match ? Math.ceil(parseFloat(match[1])) : 60;
+        setCooldownSeconds(seconds);
+      } else {
+        alert(`Error generating explanation: ${error.message}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -145,31 +166,38 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
       }}>
         <span>Explanation Editor (MS Word Style)</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {cooldownSeconds > 0 && (
+            <span style={{ color: '#d97706', fontSize: '0.72rem', fontWeight: '700' }}>
+              ⚠️ Rate limit: wait {cooldownSeconds}s
+            </span>
+          )}
           {questionContext && (
             <button
               type="button"
               onClick={handleAiExplain}
-              disabled={isGenerating}
+              disabled={isGenerating || cooldownSeconds > 0}
               style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                color: '#ffffff',
+                background: cooldownSeconds > 0 
+                  ? '#cbd5e1' 
+                  : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: cooldownSeconds > 0 ? '#64748b' : '#ffffff',
                 border: 'none',
                 borderRadius: '4px',
                 padding: '4px 10px',
                 fontSize: '0.75rem',
                 fontWeight: '600',
-                cursor: 'pointer',
+                cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 transition: 'all 0.2s',
                 opacity: isGenerating ? 0.7 : 1,
-                boxShadow: '0 1px 3px rgba(79, 70, 229, 0.2)'
+                boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 3px rgba(79, 70, 229, 0.2)'
               }}
-              title="Automatically generate explanation using AI"
+              title={cooldownSeconds > 0 ? `Rate limit cooldown active. Please wait ${cooldownSeconds}s` : "Automatically generate explanation using AI"}
             >
-              <span>{isGenerating ? '⏳' : '✨'}</span>
-              <span>{isGenerating ? 'Generating...' : 'AI Explain'}</span>
+              <span>{isGenerating ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '✨')}</span>
+              <span>{isGenerating ? 'Generating...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Explain')}</span>
             </button>
           )}
           <button
