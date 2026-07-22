@@ -236,6 +236,108 @@ const SIMPLE_HTML_TEMPLATE = `<div class="di-table-wrapper">
   </table>
 </div>`;
 
+const MathHelperWidget = () => {
+  const [num, setNum] = useState('');
+  const [den, setDen] = useState('');
+  const [whole, setWhole] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const generateCode = () => {
+    if (!num && !den) return '';
+    const fractionStyle = `display:inline-block; vertical-align:middle; text-align:center; padding:0 2px;`;
+    const numStyle = `display:block; border-bottom:1px solid; padding:0 2px; line-height:1.1;`;
+    const denStyle = `display:block; padding:0 2px; line-height:1.1;`;
+    
+    const fractionPart = `<span style="${fractionStyle}"><span style="${numStyle}">${num || '?' }</span><span style="${denStyle}">${den || '?'}</span></span>`;
+    return whole ? `${whole}${fractionPart}` : fractionPart;
+  };
+
+  const handleCopy = () => {
+    const code = generateCode();
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  return (
+    <div className="ms-card" style={{ marginTop: '20px', borderLeft: '4px solid #6366f1' }}>
+      <h4 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px', color: '#4f46e5', fontSize: '0.95rem', fontWeight: 'bold' }}>
+        🧮 Math Fraction Helper
+      </h4>
+      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 12px 0' }}>
+        Create fractions or mixed numbers visually, copy the code, and paste it into any question or option box!
+      </p>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '8px', marginBottom: '12px' }}>
+        <div className="ms-form-field" style={{ margin: 0 }}>
+          <label style={{ fontSize: '0.72rem', fontWeight: '600' }}>Whole No.</label>
+          <input 
+            type="text" 
+            placeholder="e.g. 4" 
+            value={whole} 
+            onChange={(e) => setWhole(e.target.value)} 
+            className="ms-input"
+            style={{ padding: '6px', fontSize: '0.78rem' }}
+          />
+        </div>
+        <div className="ms-form-field" style={{ margin: 0 }}>
+          <label style={{ fontSize: '0.72rem', fontWeight: '600' }}>Numerator</label>
+          <input 
+            type="text" 
+            placeholder="e.g. 2" 
+            value={num} 
+            onChange={(e) => setNum(e.target.value)} 
+            className="ms-input"
+            style={{ padding: '6px', fontSize: '0.78rem' }}
+          />
+        </div>
+        <div className="ms-form-field" style={{ margin: 0 }}>
+          <label style={{ fontSize: '0.72rem', fontWeight: '600' }}>Denominator</label>
+          <input 
+            type="text" 
+            placeholder="e.g. 3" 
+            value={den} 
+            onChange={(e) => setDen(e.target.value)} 
+            className="ms-input"
+            style={{ padding: '6px', fontSize: '0.78rem' }}
+          />
+        </div>
+      </div>
+
+      {(num || den) && (
+        <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
+          <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', marginBottom: '6px', textTransform: 'uppercase' }}>Preview:</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40px', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '4px', fontSize: '1.1rem' }}>
+            <span dangerouslySetInnerHTML={{ __html: generateCode() }} />
+          </div>
+        </div>
+      )}
+
+      <button 
+        type="button" 
+        onClick={handleCopy} 
+        disabled={!num && !den}
+        className="ms-btn" 
+        style={{ 
+          width: '100%', 
+          background: '#4f46e5', 
+          color: '#fff', 
+          border: 'none', 
+          padding: '8px 12px', 
+          fontSize: '0.8rem', 
+          fontWeight: '600', 
+          borderRadius: '6px',
+          cursor: (num || den) ? 'pointer' : 'not-allowed',
+          opacity: (num || den) ? 1 : 0.6
+        }}
+      >
+        {copySuccess ? '✓ Code Copied to Clipboard!' : '📋 Copy Fraction Code'}
+      </button>
+    </div>
+  );
+};
+
 const DataInterpretationGroup = ({
   editingSetQuestions,
   setId,
@@ -3237,7 +3339,12 @@ const ManageSet = () => {
                 
                 {/* RIGHT PANE: form */}
                 <div className="manage-set-right">
-                  {editingSetId ? renderQuestionForm(false) : (
+                  {editingSetId ? (
+                    <>
+                      {renderQuestionForm(false)}
+                      <MathHelperWidget />
+                    </>
+                  ) : (
                     <div className="ms-empty-state">
                       <h4>Select or Create a Set</h4>
                       <p>You need to create or select a set before adding questions.</p>
