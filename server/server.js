@@ -332,7 +332,7 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    // Call OpenRouter
+    // Call OpenRouter with streaming enabled
     const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -343,6 +343,7 @@ app.post('/api/questions/explain', async (req, res) => {
       },
       body: JSON.stringify({
         model: model,
+        stream: true,
         messages: [
           {
             role: 'system',
@@ -366,23 +367,28 @@ app.post('/api/questions/explain', async (req, res) => {
       return res.status(502).json({ message: errMsg });
     }
 
-    const responseData = await openrouterResponse.json();
-    let explanation = responseData.choices?.[0]?.message?.content;
+    // Set up Server-Sent Events headers for streaming to frontend
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const reader = openrouterResponse.body;
+    if (reader) {
+      if (typeof reader[Symbol.asyncIterator] === 'function') {
+        for await (const chunk of reader) {
+          res.write(chunk);
+        }
+      } else {
+        const webReader = reader.getReader();
+        while (true) {
+          const { done, value } = await webReader.read();
+          if (done) break;
+          res.write(value);
+        }
+      }
+    }
     
-    if (!explanation) {
-      return res.status(502).json({ message: 'Received empty response from AI model' });
-    }
-
-    // Clean up any stray markdown wrappers just in case
-    explanation = explanation.trim();
-    if (explanation.startsWith('```html')) {
-      explanation = explanation.replace(/^```html\s*/, '').replace(/\s*```$/, '');
-    } else if (explanation.startsWith('```')) {
-      explanation = explanation.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    explanation = explanation.trim();
-
-    res.json({ explanation });
+    res.end();
   } catch (err) {
     res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
   }

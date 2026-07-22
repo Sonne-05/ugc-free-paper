@@ -34,6 +34,7 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
     }
 
     setIsGenerating(true);
+    onChange(''); // Clear existing explanation
     try {
       const response = await fetch(`${API_BASE_URL}/api/questions/explain`, {
         method: 'POST',
@@ -44,13 +45,81 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to generate explanation');
+        let errMsg = 'Failed to generate explanation';
+        try {
+          const err = await response.json();
+          errMsg = err.message || errMsg;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
-      if (data.explanation) {
-        onChange(data.explanation);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let accumulatedText = '';
+      let buffer = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          
+          let lineIndex;
+          while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, lineIndex).trim();
+            buffer = buffer.slice(lineIndex + 1);
+            
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(dataStr);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                if (content) {
+                  accumulatedText += content;
+                  
+                  // Clean up markdown wrappers on-the-fly
+                  let cleaned = accumulatedText.trim();
+                  if (cleaned.startsWith('```html')) {
+                    cleaned = cleaned.replace(/^```html\s*/, '');
+                  } else if (cleaned.startsWith('```')) {
+                    cleaned = cleaned.replace(/^```\s*/, '');
+                  }
+                  cleaned = cleaned.replace(/\s*```$/, '');
+                  
+                  onChange(cleaned);
+                }
+              } catch (e) {
+                // Ignore parse errors for incomplete JSON lines
+              }
+            }
+          }
+        }
+      }
+
+      // Process any trailing data in buffer
+      if (buffer.trim().startsWith('data: ')) {
+        const line = buffer.trim();
+        const dataStr = line.slice(6).trim();
+        if (dataStr !== '[DONE]') {
+          try {
+            const parsed = JSON.parse(dataStr);
+            const content = parsed.choices?.[0]?.delta?.content || '';
+            if (content) {
+              accumulatedText += content;
+              let cleaned = accumulatedText.trim();
+              if (cleaned.startsWith('```html')) {
+                cleaned = cleaned.replace(/^```html\s*/, '');
+              } else if (cleaned.startsWith('```')) {
+                cleaned = cleaned.replace(/^```\s*/, '');
+              }
+              cleaned = cleaned.replace(/\s*```$/, '');
+              onChange(cleaned);
+            }
+          } catch (_) {}
+        }
       }
     } catch (error) {
       console.error('AI Explanation Error:', error);
