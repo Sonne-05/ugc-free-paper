@@ -74,7 +74,7 @@ const Paper1PYQ = () => {
                         </td>
                       )}
                       <td className="pyq-table__td">
-                        {paper.cycle} <span className="q-count">({paper.questions} Qs)</span>
+                        {paper.cycle}
                       </td>
                       <td className="pyq-table__td">
                         <button 
