@@ -1484,6 +1484,32 @@ const QuestionSlot = ({
       textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length
     }, 0)
   }
+
+  const makeQTextBold = () => {
+    const textarea = qTextareaRef.current
+    if (!textarea) {
+      setQText(prev => prev + '<strong></strong>')
+      return
+    }
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const val = textarea.value
+    const selectedText = val.substring(start, end)
+    
+    const bolded = `<strong>${selectedText}</strong>`
+    const nextVal = val.substring(0, start) + bolded + val.substring(end)
+    setQText(nextVal)
+    
+    setTimeout(() => {
+      textarea.focus()
+      if (start === end) {
+        textarea.selectionStart = textarea.selectionEnd = start + 8
+      } else {
+        textarea.selectionStart = start
+        textarea.selectionEnd = start + bolded.length
+      }
+    }, 0)
+  }
  
   const [slotDiPasteTexts, setSlotDiPasteTexts] = useState(['', '', '', '', ''])
 
@@ -2231,6 +2257,14 @@ const QuestionSlot = ({
                       style={{ padding: '3px 8px', fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
                     >
                       ∴ Therefore
+                    </button>
+                    <button
+                      type="button"
+                      onClick={makeQTextBold}
+                      title="Make selected text bold"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      <b>B</b> Bold
                     </button>
                   </div>
                 </div>
