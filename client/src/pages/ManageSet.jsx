@@ -542,8 +542,76 @@ const DataInterpretationGroup = ({
 
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [diPasteTexts, setDiPasteTexts] = useState(['', '', '', '', ''])
+
+  const handleDiPasteChange = (qIdx, text) => {
+    setDiPasteTexts(prev => {
+      const next = [...prev]
+      next[qIdx] = text
+      return next
+    })
+    
+    if (!text.trim()) return
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    let parsedText = ''
+    let parsedOpts = ['', '', '', '']
+    let parsedCorrect = 1
+    
+    let optIndex = 0
+    let promptLines = []
+    
+    for (let line of lines) {
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      if (optMatch && optIndex < 4) {
+        const optLetter = optMatch[1].toUpperCase()
+        const optVal = optMatch[2].trim()
+        
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        else {
+          indexToPut = optIndex
+        }
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+      
+      const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
+      if (ansMatch) {
+        const ansVal = ansMatch[1].toUpperCase()
+        if (['A', '1'].includes(ansVal)) parsedCorrect = 1
+        else if (['B', '2'].includes(ansVal)) parsedCorrect = 2
+        else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
+        else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
+        continue
+      }
+      
+      promptLines.push(line)
+    }
+
+    if (promptLines.length > 0) {
+      parsedText = promptLines.join('\n')
+    }
+
+    setQuestions(prev => {
+      const next = [...prev]
+      next[qIdx] = {
+        ...next[qIdx],
+        text: parsedText || next[qIdx].text,
+        options: parsedOpts.some(o => o !== '') ? parsedOpts : next[qIdx].options,
+        correct: parsedCorrect
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
+    setDiPasteTexts(['', '', '', '', ''])
     const existingQs = Array.from({ length: 5 }).map((_, idx) => {
       const qIndex = idx + 1
       return editingSetQuestions.find(q => q.qIndex === qIndex)
@@ -1174,6 +1242,23 @@ const ReadingComprehensionGroup = ({
                   Question {qIdx + 1} of 5 (Q{46 + qIdx})
                 </h4>
 
+                {/* Quick Paste / Auto-fill Helper */}
+                <div className="ms-form-field" style={{ marginBottom: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', margin: '0 0 6px 0' }}>
+                    ⚡ Quick Paste / Auto-fill Helper
+                  </label>
+                  <textarea
+                    placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
+                    rows="2"
+                    style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    value={diPasteTexts[qIdx] || ''}
+                    onChange={(e) => handleDiPasteChange(qIdx, e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    Tip: Paste the prompt and options, and the fields below will auto-populate!
+                  </span>
+                </div>
+
                 <div className="ms-form-field" style={{ marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
                   <textarea
@@ -1332,8 +1417,77 @@ const QuestionSlot = ({
     }, 0)
   }
  
+  const [slotDiPasteTexts, setSlotDiPasteTexts] = useState(['', '', '', '', ''])
+
+  const handleSlotDiPasteChange = (qIdx, text) => {
+    setSlotDiPasteTexts(prev => {
+      const next = [...prev]
+      next[qIdx] = text
+      return next
+    })
+
+    if (!text.trim()) return
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    let parsedText = ''
+    let parsedOpts = ['', '', '', '']
+    let parsedCorrect = 1
+    
+    let optIndex = 0
+    let promptLines = []
+    
+    for (let line of lines) {
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      if (optMatch && optIndex < 4) {
+        const optLetter = optMatch[1].toUpperCase()
+        const optVal = optMatch[2].trim()
+        
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        else {
+          indexToPut = optIndex
+        }
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+      
+      const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
+      if (ansMatch) {
+        const ansVal = ansMatch[1].toUpperCase()
+        if (['A', '1'].includes(ansVal)) parsedCorrect = 1
+        else if (['B', '2'].includes(ansVal)) parsedCorrect = 2
+        else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
+        else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
+        continue
+      }
+      
+      promptLines.push(line)
+    }
+
+    if (promptLines.length > 0) {
+      parsedText = promptLines.join('\n')
+    }
+
+    setSlotDiQuestions(prev => {
+      const next = [...prev]
+      next[qIdx] = {
+        ...next[qIdx],
+        text: parsedText || next[qIdx].text,
+        options: parsedOpts.some(o => o !== '') ? parsedOpts : next[qIdx].options,
+        correct: parsedCorrect
+      }
+      return next
+    })
+  }
+
   // Sync state with question when it changes or opens
   useEffect(() => {
+    setSlotDiPasteTexts(['', '', '', '', ''])
     if (question) {
       setQType(question.type || 'mcq')
       setQText(question.text || '')
@@ -1881,6 +2035,24 @@ const QuestionSlot = ({
                   <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', fontSize: '0.88rem', fontWeight: 'bold' }}>
                     Question {qIdx + 1} of 5 (Q{index + qIdx})
                   </h4>
+
+                  {/* Quick Paste / Auto-fill Helper */}
+                  <div className="ms-form-field" style={{ marginBottom: '12px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                    <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', margin: '0 0 6px 0' }}>
+                      ⚡ Quick Paste / Auto-fill Helper
+                    </label>
+                    <textarea
+                      placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
+                      rows="2"
+                      style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      value={slotDiPasteTexts[qIdx] || ''}
+                      onChange={(e) => handleSlotDiPasteChange(qIdx, e.target.value)}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                      Tip: Paste the prompt and options, and the fields below will auto-populate!
+                    </span>
+                  </div>
+
                   <div className="ms-form-field" style={{ marginBottom: '10px' }}>
                     <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
                     <textarea
