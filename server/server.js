@@ -385,7 +385,7 @@ app.post('/api/questions/explain', async (req, res) => {
       const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
       
       const processChunk = (chunkBytes) => {
-        const chunkText = chunkBytes.toString ? chunkBytes.toString('utf-8') : new TextDecoder('utf-8').decode(chunkBytes);
+        const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
         buffer += chunkText;
         
         let lineIndex;
