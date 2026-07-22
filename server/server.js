@@ -235,6 +235,159 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
+// Generate detailed explanation using OpenRouter AI
+app.post('/api/questions/explain', async (req, res) => {
+  const { questionContext } = req.body;
+  if (!questionContext) {
+    return res.status(400).json({ message: 'Missing questionContext' });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return res.status(400).json({ 
+      message: 'OpenRouter API Key is not configured on the server. Please add OPENROUTER_API_KEY to your server\'s .env file.' 
+    });
+  }
+
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+  try {
+    const {
+      text,
+      options,
+      correct,
+      type,
+      statements,
+      list1,
+      list2,
+      list1Header,
+      list2Header,
+      passage,
+      assertion,
+      reason,
+      subPrompt
+    } = questionContext;
+
+    // Build the user prompt
+    let userPrompt = `Generate a detailed explanation for this UGC NET question.\n\n`;
+    userPrompt += `Question Type: ${type || 'mcq'}\n`;
+    
+    if (passage) {
+      userPrompt += `Passage/Table:\n${passage}\n\n`;
+    }
+    
+    if (assertion) {
+      userPrompt += `Assertion (A): ${assertion}\n`;
+    }
+    if (reason) {
+      userPrompt += `Reason (R): ${reason}\n`;
+    }
+    
+    userPrompt += `Question Prompt: ${text}\n\n`;
+
+    if (statements && Array.isArray(statements) && statements.some(s => s && s.trim())) {
+      userPrompt += `Statements:\n`;
+      statements.forEach((stmt, idx) => {
+        if (stmt && stmt.trim()) {
+          userPrompt += `${String.fromCharCode(65 + idx)}. ${stmt}\n`;
+        }
+      });
+      userPrompt += `\n`;
+    }
+
+    if (list1 && Array.isArray(list1) && list1.some(i => i && i.trim())) {
+      userPrompt += `${list1Header || 'List I'}:\n`;
+      list1.forEach((item, idx) => {
+        if (item && item.trim()) userPrompt += `${idx + 1}. ${item}\n`;
+      });
+      userPrompt += `\n`;
+    }
+
+    if (list2 && Array.isArray(list2) && list2.some(i => i && i.trim())) {
+      userPrompt += `${list2Header || 'List II'}:\n`;
+      list2.forEach((item, idx) => {
+        if (item && item.trim()) userPrompt += `${idx + 1}. ${item}\n`;
+      });
+      userPrompt += `\n`;
+    }
+
+    if (subPrompt) {
+      userPrompt += `Instruction: ${subPrompt}\n\n`;
+    }
+
+    if (options && Array.isArray(options) && options.some(o => o && o.trim())) {
+      userPrompt += `Options:\n`;
+      options.forEach((opt, idx) => {
+        if (opt && opt.trim()) {
+          userPrompt += `${idx + 1}. ${opt}\n`;
+        }
+      });
+      userPrompt += `\n`;
+    }
+
+    if (correct !== undefined && correct !== null) {
+      userPrompt += `Correct Option: Option ${correct}\n`;
+      if (options && options[correct - 1]) {
+        userPrompt += `Correct Answer Value: ${options[correct - 1]}\n`;
+      }
+    }
+
+    // Call OpenRouter
+    const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://ugcfreepaper.com',
+        'X-Title': 'UGC Free Paper'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.'
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ]
+      })
+    });
+
+    if (!openrouterResponse.ok) {
+      const errText = await openrouterResponse.text();
+      let errMsg = 'Failed call to OpenRouter API';
+      try {
+        const errJson = JSON.parse(errText);
+        errMsg = errJson.error?.message || errMsg;
+      } catch (_) {}
+      return res.status(502).json({ message: errMsg });
+    }
+
+    const responseData = await openrouterResponse.json();
+    let explanation = responseData.choices?.[0]?.message?.content;
+    
+    if (!explanation) {
+      return res.status(502).json({ message: 'Received empty response from AI model' });
+    }
+
+    // Clean up any stray markdown wrappers just in case
+    explanation = explanation.trim();
+    if (explanation.startsWith('```html')) {
+      explanation = explanation.replace(/^```html\s*/, '').replace(/\s*```$/, '');
+    } else if (explanation.startsWith('```')) {
+      explanation = explanation.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    explanation = explanation.trim();
+
+    res.json({ explanation });
+  } catch (err) {
+    res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
+  }
+});
+
 // --- Settings Routes ---
 app.get('/api/settings', async (req, res) => {
   try {

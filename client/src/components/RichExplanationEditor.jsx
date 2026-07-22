@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { API_BASE_URL } from '../services/api';
 
 const modules = {
   toolbar: [
@@ -22,12 +23,46 @@ const formats = [
   'clean'
 ];
 
-const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write detailed explanation...' }) => {
+const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write detailed explanation...', questionContext }) => {
   const [showHtml, setShowHtml] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAiExplain = async () => {
+    if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
+      alert('Please fill in the question text first before generating an explanation.');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/questions/explain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ questionContext })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to generate explanation');
+      }
+
+      const data = await response.json();
+      if (data.explanation) {
+        onChange(data.explanation);
+      }
+    } catch (error) {
+      console.error('AI Explanation Error:', error);
+      alert(`Error generating explanation: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="rich-explanation-editor" style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
-      {/* Editor Header Bar with HTML Toggle */}
+      {/* Editor Header Bar with HTML Toggle & AI generate */}
       <div style={{
         display: 'flex',
         justify: 'space-between',
@@ -40,28 +75,57 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
         color: '#475569'
       }}>
         <span>Explanation Editor (MS Word Style)</span>
-        <button
-          type="button"
-          onClick={() => setShowHtml(!showHtml)}
-          style={{
-            background: showHtml ? '#1e293b' : '#e2e8f0',
-            color: showHtml ? '#ffffff' : '#334155',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '4px 10px',
-            fontSize: '0.75rem',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.2s'
-          }}
-          title="Toggle Raw HTML View"
-        >
-          <span>&lt;/&gt;</span>
-          <span>{showHtml ? 'Visual Mode' : 'HTML Mode'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {questionContext && (
+            <button
+              type="button"
+              onClick={handleAiExplain}
+              disabled={isGenerating}
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s',
+                opacity: isGenerating ? 0.7 : 1,
+                boxShadow: '0 1px 3px rgba(79, 70, 229, 0.2)'
+              }}
+              title="Automatically generate explanation using AI"
+            >
+              <span>{isGenerating ? '⏳' : '✨'}</span>
+              <span>{isGenerating ? 'Generating...' : 'AI Explain'}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowHtml(!showHtml)}
+            style={{
+              background: showHtml ? '#1e293b' : '#e2e8f0',
+              color: showHtml ? '#ffffff' : '#334155',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'all 0.2s'
+            }}
+            title="Toggle Raw HTML View"
+          >
+            <span>&lt;/&gt;</span>
+            <span>{showHtml ? 'Visual Mode' : 'HTML Mode'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Editor Content Area */}

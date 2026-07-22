@@ -1010,6 +1010,13 @@ const DataInterpretationGroup = ({
                         next[qIdx] = { ...next[qIdx], explanation: val }
                         setQuestions(next)
                       }}
+                      questionContext={{
+                        text: dq.text,
+                        options: dq.options,
+                        correct: dq.correct,
+                        type: 'comprehension',
+                        passage: localPassage
+                      }}
                     />
                   </div>
                 </div>
@@ -1401,6 +1408,13 @@ const ReadingComprehensionGroup = ({
                           next[qIdx] = { ...next[qIdx], explanation: val }
                           return next
                         })
+                      }}
+                      questionContext={{
+                        text: q.text,
+                        options: q.options,
+                        correct: q.correct,
+                        type: 'comprehension',
+                        passage: localPassage
                       }}
                     />
                   </div>
@@ -2222,6 +2236,13 @@ const QuestionSlot = ({
                             return next
                           })
                         }}
+                        questionContext={{
+                          text: sq.text,
+                          options: sq.options,
+                          correct: sq.correct,
+                          type: qType,
+                          passage: qPassage
+                        }}
                       />
                     </div>
                   </div>
@@ -2343,6 +2364,21 @@ const QuestionSlot = ({
                   placeholder="Enter detailed explanation of the concept and why this option is correct"
                   value={qExplanation}
                   onChange={(val) => setQExplanation(val)}
+                  questionContext={{
+                    text: qText,
+                    options: qOpts,
+                    correct: qCorrect,
+                    type: qType,
+                    statements: qStatements,
+                    list1: qList1,
+                    list2: qList2,
+                    list1Header: qList1Header,
+                    list2Header: qList2Header,
+                    passage: qPassage,
+                    assertion: qAssertion,
+                    reason: qReason,
+                    subPrompt: qSubPrompt
+                  }}
                 />
               </div>
             </>
@@ -3523,6 +3559,13 @@ const ManageSet = () => {
                   return next
                 })
               }}
+              questionContext={{
+                text: dq.text,
+                options: dq.options,
+                correct: dq.correct,
+                type: newQType,
+                passage: newQPassage
+              }}
             />
           </div>
         </div>
@@ -3581,6 +3624,21 @@ const ManageSet = () => {
         placeholder="Enter detailed explanation of the concept and why this option is correct"
         value={newQExplanation}
         onChange={(val) => setNewQExplanation(val)}
+        questionContext={{
+          text: newQText,
+          options: newQOpts,
+          correct: newQCorrect,
+          type: newQType,
+          statements: newQStatements,
+          list1: newQList1,
+          list2: newQList2,
+          list1Header: newQList1Header,
+          list2Header: newQList2Header,
+          passage: newQPassage,
+          assertion: newQAssertion,
+          reason: newQReason,
+          subPrompt: newQSubPrompt
+        }}
       />
     </div>
   </>
