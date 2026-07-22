@@ -648,3 +648,45 @@ textarea.ms-input {
     font-size: 0.88rem !important;
   }
 }
+
+/* DI Table Styling for Live Preview */
+.di-table-wrapper {
+  width: 100%;
+  margin: 15px 0;
+  overflow-x: auto;
+}
+
+.di-table {
+  width: 100%;
+  max-width: 750px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  background-color: #ffffff;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e1;
+}
+
+.di-table th {
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+}
+
+.di-table td {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  color: #334155;
+}
+
+.di-table tbody tr {
+  background-color: #ffffff;
+}
+
+.di-table tbody tr:hover {
+  background-color: #f8fafc;
+}

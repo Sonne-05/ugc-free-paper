@@ -49,6 +49,193 @@ const cleanPassageText = (text) => {
   return cleaned.trim()
 }
 
+const renderTextHtml = (str) => {
+  if (!str) return '';
+  const formatted = str
+    .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
+    .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>');
+  return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+}
+
+const renderTableData = (tableData, key = 0) => {
+  if (!tableData || !tableData.length) return null
+  return (
+    <div key={key} className="table-responsive" style={{ margin: '15px 0', overflowX: 'auto' }}>
+      <table style={{ width: '75%', margin: '0 auto 20px auto', borderCollapse: 'collapse', border: '1px solid var(--border)', fontSize: '0.85rem' }}>
+        <thead>
+          <tr style={{ backgroundColor: 'var(--bg-card)' }}>
+            {tableData[0].map((cell, cIdx) => (
+              <th key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', fontWeight: 'bold', textAlign: 'center' }}>
+                {renderTextHtml(cell)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tableData.slice(1).map((row, rIdx) => (
+            <tr key={rIdx} style={{ backgroundColor: 'var(--bg-card)' }}>
+              {row.map((cell, cIdx) => (
+                <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
+                  {renderTextHtml(cell)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+const renderPassageWithTable = (passage) => {
+  if (!passage) return null
+
+  if (typeof passage === 'string' && (passage.includes('<p>') || passage.includes('<div>') || passage.includes('<table>'))) {
+    return <div dangerouslySetInnerHTML={{ __html: passage }} />
+  }
+
+  let cleaned = String(passage).replace(/\r\n/g, '\n')
+
+  // If passage contains '||', extract pre-table text, table data, and post-table text
+  if (cleaned.includes('||')) {
+    const firstPipe = cleaned.indexOf('|')
+    const lastPipe = cleaned.lastIndexOf('|')
+    if (firstPipe !== -1 && lastPipe > firstPipe) {
+      const beforeText = cleaned.substring(0, firstPipe).trim()
+      const tableStr = cleaned.substring(firstPipe, lastPipe + 1).trim()
+      const afterText = cleaned.substring(lastPipe + 1).trim()
+
+      const tableData = parseTableText(tableStr)
+      if (tableData) {
+        return (
+          <div>
+            {beforeText && (
+              <p style={{ textAlign: 'left', lineHeight: '1.65', marginBottom: '10px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                {renderTextHtml(beforeText)}
+              </p>
+            )}
+            {renderTableData(tableData)}
+            {afterText && (
+              <p style={{ textAlign: 'left', lineHeight: '1.65', marginTop: '12px', marginBottom: '14px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                {renderTextHtml(afterText)}
+              </p>
+            )}
+          </div>
+        )
+      }
+    }
+  }
+
+  // Try parsing entire cleaned text directly as table
+  const directTable = parseTableText(cleaned)
+  if (directTable) {
+    return renderTableData(directTable)
+  }
+
+  // Otherwise split by double-newlines
+  const paragraphs = cleaned.split(/\n\s*\n/)
+  return paragraphs.map((para, pIdx) => {
+    const trimmedPara = para.trim()
+    if (!trimmedPara) return null
+
+    const tableData = parseTableText(trimmedPara)
+    if (tableData) {
+      return renderTableData(tableData, pIdx)
+    }
+
+    const unwrapped = trimmedPara.replace(/([^\n])\n([^\n])/g, '$1 $2').replace(/ +/g, ' ')
+    return (
+      <p key={pIdx} style={{ textAlign: 'left', lineHeight: '1.65', marginBottom: '14px', fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+        {renderTextHtml(unwrapped)}
+      </p>
+    )
+  })
+}
+
+const DOUBLE_HEADER_TEMPLATE = `<div class="di-table-wrapper">
+  <table class="di-table">
+    <thead>
+      <tr>
+        <th rowspan="2">Year</th>
+        <th colspan="5">STUDENTS NAME</th>
+      </tr>
+      <tr>
+        <th>A</th>
+        <th>B</th>
+        <th>C</th>
+        <th>D</th>
+        <th>E</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight: bold;">2021</td>
+        <td>75</td>
+        <td>82</td>
+        <td>75</td>
+        <td>84</td>
+        <td>74</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">2022</td>
+        <td>90</td>
+        <td>93</td>
+        <td>85</td>
+        <td>86</td>
+        <td>79</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">2023</td>
+        <td>96</td>
+        <td>76</td>
+        <td>65</td>
+        <td>85</td>
+        <td>85</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">2024</td>
+        <td>92</td>
+        <td>85</td>
+        <td>66</td>
+        <td>81</td>
+        <td>82</td>
+      </tr>
+      <tr>
+        <td style="font-weight: bold;">2025</td>
+        <td>86</td>
+        <td>82</td>
+        <td>73</td>
+        <td>80</td>
+        <td>83</td>
+      </tr>
+    </tbody>
+  </table>
+</div>`;
+
+const SIMPLE_HTML_TEMPLATE = `<div class="di-table-wrapper">
+  <table class="di-table">
+    <thead>
+      <tr>
+        <th>Header 1</th>
+        <th>Header 2</th>
+        <th>Header 3</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Row 1, Col 1</td>
+        <td>Row 1, Col 2</td>
+        <td>Row 1, Col 3</td>
+      </tr>
+      <tr>
+        <td>Row 2, Col 1</td>
+        <td>Row 2, Col 2</td>
+        <td>Row 2, Col 3</td>
+      </tr>
+    </tbody>
+  </table>
+</div>`;
+
 const DataInterpretationGroup = ({
   editingSetQuestions,
   setId,
@@ -349,15 +536,57 @@ const DataInterpretationGroup = ({
                 </div>
               </div>
             ) : (
-              <textarea 
-                required 
-                rows="4" 
-                placeholder="Paste table data (space/tab/pipe separated)..."
-                value={localPassage}
-                onChange={(e) => setLocalPassage(e.target.value)}
-                className="ms-input"
-              />
+              <div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Overwrite current text with a complex double header table template?")) {
+                        setLocalPassage(DOUBLE_HEADER_TEMPLATE);
+                      }
+                    }}
+                    style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    ⚡ Insert Double Header Table Template
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Overwrite current text with a simple HTML table template?")) {
+                        setLocalPassage(SIMPLE_HTML_TEMPLATE);
+                      }
+                    }}
+                    style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    Insert Simple HTML Table
+                  </button>
+                </div>
+                <textarea 
+                  required 
+                  rows="8" 
+                  placeholder="Paste table data or type/paste HTML table code here..."
+                  value={localPassage}
+                  onChange={(e) => setLocalPassage(e.target.value)}
+                  className="ms-input"
+                  style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
+                />
+              </div>
             )}
+
+            {/* Live Preview area */}
+            <div style={{ marginTop: '16px', border: '1px dashed #cbd5e1', padding: '16px', borderRadius: '8px', background: '#f8fafc' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Live Table Preview (Student View):
+                </span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  Renders automatically
+                </span>
+              </div>
+              <div className="passage-live-preview-content" style={{ padding: '16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflowX: 'auto' }}>
+                {localPassage ? renderPassageWithTable(localPassage) : <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontStyle: 'italic' }}>Table / Passage content is empty</span>}
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
@@ -1135,14 +1364,55 @@ const QuestionSlot = ({
           {(qType === 'comprehension' || qType === 'di') && (
             <div className="ms-form-field" style={{ marginBottom: '12px' }}>
               <label>{qType === 'di' ? 'Table Data / Passage' : 'Comprehension Passage'}</label>
+              
+              {qType === 'di' && (
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Overwrite current text with a complex double header table template?")) {
+                        setQPassage(DOUBLE_HEADER_TEMPLATE);
+                      }
+                    }}
+                    style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '4px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    ⚡ Insert Double Header Table Template
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Overwrite current text with a simple HTML table template?")) {
+                        setQPassage(SIMPLE_HTML_TEMPLATE);
+                      }
+                    }}
+                    style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '4px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}
+                  >
+                    Insert Simple HTML Table
+                  </button>
+                </div>
+              )}
+              
               <textarea 
                 required 
-                rows="4" 
-                placeholder={qType === 'di' ? 'Paste table data...' : 'Paste comprehension passage here...'}
+                rows="5" 
+                placeholder={qType === 'di' ? 'Paste table data or type/paste HTML table code here...' : 'Paste comprehension passage here...'}
                 value={qPassage}
                 onChange={(e) => setQPassage(e.target.value)}
                 className="ms-input"
+                style={qType === 'di' ? { fontFamily: 'monospace', fontSize: '0.8rem' } : {}}
               />
+
+              {/* Live Preview area */}
+              <div style={{ marginTop: '12px', border: '1px dashed #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>
+                    Live {qType === 'di' ? 'Table' : 'Passage'} Preview:
+                  </span>
+                </div>
+                <div className="passage-live-preview-content" style={{ padding: '12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', overflowX: 'auto' }}>
+                  {qPassage ? renderPassageWithTable(qPassage) : <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Content is empty</span>}
+                </div>
+              </div>
             </div>
           )}
 
