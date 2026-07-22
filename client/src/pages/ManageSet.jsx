@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import RichExplanationEditor from '../components/RichExplanationEditor'
@@ -1223,6 +1223,25 @@ const QuestionSlot = ({
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [pasteText, setPasteText] = useState('')
+  const qTextareaRef = useRef(null)
+
+  const insertQText = (textToInsert) => {
+    const textarea = qTextareaRef.current
+    if (!textarea) {
+      setQText(prev => prev + textToInsert)
+      return
+    }
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const val = textarea.value
+    const nextVal = val.substring(0, start) + textToInsert + val.substring(end)
+    setQText(nextVal)
+    
+    setTimeout(() => {
+      textarea.focus()
+      textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length
+    }, 0)
+  }
  
   // Sync state with question when it changes or opens
   useEffect(() => {
@@ -1857,8 +1876,37 @@ const QuestionSlot = ({
           ) : (
             <>
               <div className="ms-form-field" style={{ marginBottom: '12px' }}>
-                <label>Question Prompt / Text</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ margin: 0 }}>Question Prompt / Text</label>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => insertQText('<br>\n')}
+                      title="Insert new line break"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                    >
+                      ⏎ New Line
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertQText('\n<hr style="width: 200px; margin: 6px auto 6px 0; border: none; border-top: 1px solid #334155;">\n')}
+                      title="Insert premises separator line"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                    >
+                      ➖ Separator Line
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertQText('∴ ')}
+                      title="Insert therefore symbol"
+                      style={{ padding: '3px 8px', fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                    >
+                      ∴ Therefore
+                    </button>
+                  </div>
+                </div>
                 <textarea 
+                  ref={qTextareaRef}
                   required 
                   rows="3" 
                   placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
