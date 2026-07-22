@@ -237,12 +237,28 @@ const SIMPLE_HTML_TEMPLATE = `<div class="di-table-wrapper">
 </div>`;
 
 const MathHelperWidget = ({ onClose }) => {
+  const [activeTab, setActiveTab] = useState('simple'); // 'simple' or 'equation'
   const [num, setNum] = useState('');
   const [den, setDen] = useState('');
   const [whole, setWhole] = useState('');
+  const [equationText, setEquationText] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
 
+  const convertToHtml = (str) => {
+    if (!str) return '';
+    // Replace [num/den] with the HTML fraction block
+    return str.replace(/\[([^\]/]+)\/([^\]]+)\]/g, (match, n, d) => {
+      const fractionStyle = `display:inline-block; vertical-align:middle; text-align:center; padding:0 2px;`;
+      const numStyle = `display:block; border-bottom:1px solid; padding:0 2px; line-height:1.1;`;
+      const denStyle = `display:block; padding:0 2px; line-height:1.1;`;
+      return `<span style="${fractionStyle}"><span style="${numStyle}">${n.trim()}</span><span style="${denStyle}">${d.trim()}</span></span>`;
+    });
+  };
+
   const generateCode = () => {
+    if (activeTab === 'equation') {
+      return convertToHtml(equationText);
+    }
     if (!num && !den) return '';
     const fractionStyle = `display:inline-block; vertical-align:middle; text-align:center; padding:0 2px;`;
     const numStyle = `display:block; border-bottom:1px solid; padding:0 2px; line-height:1.1;`;
@@ -260,11 +276,13 @@ const MathHelperWidget = ({ onClose }) => {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  const hasContent = activeTab === 'equation' ? !!equationText.trim() : (!!num || !!den);
+
   return (
     <div style={{ position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
         <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: '#4f46e5', fontSize: '0.95rem', fontWeight: 'bold' }}>
-          🧮 Math Fraction Helper
+          🧮 Math Equation Helper
         </h4>
         <button 
           type="button" 
@@ -275,50 +293,110 @@ const MathHelperWidget = ({ onClose }) => {
           ✕
         </button>
       </div>
-      <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 12px 0', lineHeight: '1.3' }}>
-        Create fractions visually, copy the code, and paste it into any question or option text box!
-      </p>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '8px', marginBottom: '12px' }}>
-        <div className="ms-form-field" style={{ margin: 0 }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Whole No.</label>
-          <input 
-            type="text" 
-            placeholder="e.g. 4" 
-            value={whole} 
-            onChange={(e) => setWhole(e.target.value)} 
-            className="ms-input"
-            style={{ padding: '6px', fontSize: '0.75rem' }}
-          />
-        </div>
-        <div className="ms-form-field" style={{ margin: 0 }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Numerator</label>
-          <input 
-            type="text" 
-            placeholder="e.g. 2" 
-            value={num} 
-            onChange={(e) => setNum(e.target.value)} 
-            className="ms-input"
-            style={{ padding: '6px', fontSize: '0.75rem' }}
-          />
-        </div>
-        <div className="ms-form-field" style={{ margin: 0 }}>
-          <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Denominator</label>
-          <input 
-            type="text" 
-            placeholder="e.g. 3" 
-            value={den} 
-            onChange={(e) => setDen(e.target.value)} 
-            className="ms-input"
-            style={{ padding: '6px', fontSize: '0.75rem' }}
-          />
-        </div>
-      </div>
 
-      {(num || den) && (
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('simple')}
+          style={{
+            flex: 1,
+            background: activeTab === 'simple' ? '#ffffff' : 'transparent',
+            color: activeTab === 'simple' ? '#4f46e5' : '#64748b',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '0.72rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: activeTab === 'simple' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+          }}
+        >
+          Single Fraction
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('equation')}
+          style={{
+            flex: 1,
+            background: activeTab === 'equation' ? '#ffffff' : 'transparent',
+            color: activeTab === 'equation' ? '#4f46e5' : '#64748b',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '0.72rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: activeTab === 'equation' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+          }}
+        >
+          Full Equation
+        </button>
+      </div>
+      
+      {activeTab === 'simple' ? (
+        <>
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
+            Enter fraction values to generate a single fraction.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '8px', marginBottom: '12px' }}>
+            <div className="ms-form-field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Whole No.</label>
+              <input 
+                type="text" 
+                placeholder="e.g. 4" 
+                value={whole} 
+                onChange={(e) => setWhole(e.target.value)} 
+                className="ms-input"
+                style={{ padding: '6px', fontSize: '0.75rem' }}
+              />
+            </div>
+            <div className="ms-form-field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Numerator</label>
+              <input 
+                type="text" 
+                placeholder="e.g. 2" 
+                value={num} 
+                onChange={(e) => setNum(e.target.value)} 
+                className="ms-input"
+                style={{ padding: '6px', fontSize: '0.75rem' }}
+              />
+            </div>
+            <div className="ms-form-field" style={{ margin: 0 }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: '600' }}>Denominator</label>
+              <input 
+                type="text" 
+                placeholder="e.g. 3" 
+                value={den} 
+                onChange={(e) => setDen(e.target.value)} 
+                className="ms-input"
+                style={{ padding: '6px', fontSize: '0.75rem' }}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
+            Type your full equation. Wrap fractions in square brackets like <code>[x/y]</code>.
+          </p>
+          <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+            <textarea 
+              rows="3" 
+              placeholder="e.g. 4[2/3] + 3[1/2] - 1[2/3] = [13/2]"
+              value={equationText}
+              onChange={(e) => setEquationText(e.target.value)}
+              className="ms-input"
+              style={{ fontFamily: 'monospace', fontSize: '0.75rem', padding: '6px' }}
+            />
+          </div>
+        </>
+      )}
+
+      {hasContent && (
         <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: '600', marginBottom: '4px', textTransform: 'uppercase' }}>Preview:</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '36px', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '4px', fontSize: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '36px', background: '#fff', border: '1px solid #f1f5f9', borderRadius: '4px', fontSize: '0.95rem', padding: '4px', overflowX: 'auto' }}>
             <span dangerouslySetInnerHTML={{ __html: generateCode() }} />
           </div>
         </div>
@@ -327,7 +405,7 @@ const MathHelperWidget = ({ onClose }) => {
       <button 
         type="button" 
         onClick={handleCopy} 
-        disabled={!num && !den}
+        disabled={!hasContent}
         className="ms-btn" 
         style={{ 
           width: '100%', 
@@ -338,11 +416,11 @@ const MathHelperWidget = ({ onClose }) => {
           fontSize: '0.78rem', 
           fontWeight: '600', 
           borderRadius: '6px',
-          cursor: (num || den) ? 'pointer' : 'not-allowed',
-          opacity: (num || den) ? 1 : 0.6
+          cursor: hasContent ? 'pointer' : 'not-allowed',
+          opacity: hasContent ? 1 : 0.6
         }}
       >
-        {copySuccess ? '✓ Code Copied!' : '📋 Copy Fraction Code'}
+        {copySuccess ? '✓ Code Copied!' : '📋 Copy Equation Code'}
       </button>
     </div>
   );
