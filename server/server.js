@@ -146,9 +146,15 @@ app.put('/api/pyqsets/:id', async (req, res) => {
 // Delete a PYQ set
 app.delete('/api/pyqsets/:id', async (req, res) => {
   try {
-    const deletedSet = await PyqSet.findByIdAndDelete(req.params.id);
-    if (!deletedSet) return res.status(404).json({ message: 'Set not found' });
-    
+    const set = await PyqSet.findById(req.params.id);
+    if (!set) return res.status(404).json({ message: 'Set not found' });
+
+    const requestUserId = req.query.userId;
+    if (set.createdBy && set.createdBy.toString() !== requestUserId) {
+      return res.status(403).json({ message: 'Permission denied: Only the admin who created this set can delete it' });
+    }
+
+    await PyqSet.findByIdAndDelete(req.params.id);
     await Question.deleteMany({ setId: req.params.id });
     
     res.json({ message: 'Set and associated questions deleted successfully' });

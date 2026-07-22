@@ -821,7 +821,8 @@ const Profile = () => {
         year: newSetYear,
         questionsCount: Number(newSetCount),
         questionsLoaded: 0,
-        isPublished: newSetIsPublished
+        isPublished: newSetIsPublished,
+        createdBy: localStorage.getItem('userId')
       }
 
       const res = await fetch(`${API_BASE_URL}/api/pyqsets`, {
@@ -842,11 +843,15 @@ const Profile = () => {
   const handleDeleteSet = async (id) => {
     if (window.confirm('Are you sure you want to delete this year-wise PYQ set?')) {
       try {
-        await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, { method: 'DELETE' })
+        const userId = localStorage.getItem('userId')
+        const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}?userId=${userId}`, { method: 'DELETE' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.message)
+        
         setPyqSets(prev => prev.filter(s => s.id !== id))
       } catch (err) {
         console.error(err)
-        alert('Failed to delete PYQ Set')
+        alert(err.message || 'Failed to delete PYQ Set')
       }
     }
   }
@@ -2028,7 +2033,11 @@ const Profile = () => {
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                  <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                ) : (
+                                  <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -2083,7 +2092,11 @@ const Profile = () => {
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                  <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                ) : (
+                                  <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                )}
                               </td>
                             </tr>
                           ))}
