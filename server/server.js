@@ -235,21 +235,22 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
-// Generate detailed explanation using Google Gemini AI directly
+// Generate detailed explanation using Google Gemini AI with OpenRouter / Groq fallback
 app.post('/api/questions/explain', async (req, res) => {
   const { questionContext } = req.body;
   if (!questionContext) {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
+
+  if (!geminiApiKey && !openrouterApiKey && !groqApiKey) {
     return res.status(400).json({ 
-      message: 'Google Gemini API Key is not configured on the server. Please add GEMINI_API_KEY to your server\'s .env file.' 
+      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY, OPENROUTER_API_KEY, or GROQ_API_KEY to your server\'s .env file.' 
     });
   }
-
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
   try {
     const {
@@ -333,99 +334,211 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    // Call Google Gemini stream API directly
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-    const geminiResponse = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: userPrompt
-              }
-            ]
-          }
-        ],
-        systemInstruction: {
-          parts: [
-            {
-              text: 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.'
-            }
-          ]
-        },
-        generationConfig: {
-          temperature: 0.2
-        }
-      })
-    });
+    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a detailed, pedagogically sound explanation for the question. Your explanation should define key concepts, show step-by-step reasoning for why the correct option is right, and briefly explain why other options are incorrect or inappropriate in this context. Format the explanation in clean, semantic HTML (using <p>, <strong>, <em>, <ul>, <ol>, <li>, and <br> tags). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself. Keep equations and key terms clear.';
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      let errMsg = 'Failed call to Google Gemini API';
-      try {
-        const errJson = JSON.parse(errText);
-        errMsg = errJson.error?.message || errMsg;
-      } catch (_) {}
-      return res.status(502).json({ message: errMsg });
-    }
-
-    // Set up Server-Sent Events headers for streaming to frontend
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-
-    const reader = geminiResponse.body;
-    let buffer = '';
-
-    if (reader) {
-      const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+    // 1. Try Google Gemini Direct if available
+    if (geminiApiKey) {
+      const geminiModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
       
-      const processChunk = (chunkBytes) => {
-        const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
-        buffer += chunkText;
-        
-        let lineIndex;
-        while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-          const line = buffer.slice(0, lineIndex).trim();
-          buffer = buffer.slice(lineIndex + 1);
-          
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            try {
-              const parsed = JSON.parse(dataStr);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-              if (text) {
-                // Translate to standard OpenAI format so we don't have to change client code!
-                res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+      const geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: userPrompt }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { temperature: 0.2 }
+        })
+      });
+
+      if (geminiResponse.ok) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = geminiResponse.body;
+        let buffer = '';
+
+        if (reader) {
+          const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+          const processChunk = (chunkBytes) => {
+            const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+            buffer += chunkText;
+            
+            let lineIndex;
+            while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+              const line = buffer.slice(0, lineIndex).trim();
+              buffer = buffer.slice(lineIndex + 1);
+              
+              if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  if (text) {
+                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                  }
+                } catch (_) {}
               }
-            } catch (_) {
-              // Ignore incomplete lines
+            }
+          };
+
+          if (typeof reader[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of reader) {
+              processChunk(chunk);
+            }
+          } else {
+            while (true) {
+              const { done, value } = await streamReader.read();
+              if (done) break;
+              processChunk(value);
             }
           }
         }
-      };
 
-      if (typeof reader[Symbol.asyncIterator] === 'function') {
-        for await (const chunk of reader) {
-          processChunk(chunk);
-        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return; // Complete request successfully
       } else {
-        while (true) {
-          const { done, value } = await streamReader.read();
-          if (done) break;
-          processChunk(value);
+        const errText = await geminiResponse.text();
+        let errMsg = 'Failed call to Google Gemini API';
+        try {
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.error?.message || errMsg;
+        } catch (_) {}
+
+        console.warn(`[AI Explain] Google Gemini API hit limit/failed: ${errMsg}. Attempting fallback...`);
+
+        // If no fallback is available, throw this error back to the client
+        if (!openrouterApiKey && !groqApiKey) {
+          return res.status(502).json({ message: errMsg });
         }
       }
     }
 
-    res.write('data: [DONE]\n\n');
-    res.end();
+    // 2. Fallback to Groq Direct if configured (Higher priority than OpenRouter since it is free and super fast)
+    if (groqApiKey) {
+      const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      console.log(`[AI Explain] Falling back to Groq Direct using model ${groqModel}...`);
+
+      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqApiKey}`
+        },
+        body: JSON.stringify({
+          model: groqModel,
+          stream: true,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.2
+        })
+      });
+
+      if (groqResponse.ok) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = groqResponse.body;
+        if (reader) {
+          if (typeof reader[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of reader) {
+              res.write(chunk);
+            }
+          } else {
+            const webReader = reader.getReader();
+            while (true) {
+              const { done, value } = await webReader.read();
+              if (done) break;
+              res.write(value);
+            }
+          }
+        }
+        res.end();
+        return;
+      } else {
+        const errText = await groqResponse.text();
+        let errMsg = 'Failed call to Groq API';
+        try {
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.error?.message || errMsg;
+        } catch (_) {}
+
+        console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
+        if (!openrouterApiKey) {
+          return res.status(502).json({ message: errMsg });
+        }
+      }
+    }
+
+    // 3. Fallback to OpenRouter if configured
+    if (openrouterApiKey) {
+      const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+      console.log(`[AI Explain] Falling back to OpenRouter using model ${openrouterModel}...`);
+
+      const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openrouterApiKey}`,
+          'HTTP-Referer': 'https://ugcfreepaper.com',
+          'X-Title': 'UGC Free Paper'
+        },
+        body: JSON.stringify({
+          model: openrouterModel,
+          stream: true,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.2
+        })
+      });
+
+      if (openrouterResponse.ok) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = openrouterResponse.body;
+        if (reader) {
+          if (typeof reader[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of reader) {
+              res.write(chunk);
+            }
+          } else {
+            const webReader = reader.getReader();
+            while (true) {
+              const { done, value } = await webReader.read();
+              if (done) break;
+              res.write(value);
+            }
+          }
+        }
+        res.end();
+        return;
+      } else {
+        const errText = await openrouterResponse.text();
+        let errMsg = 'Failed call to OpenRouter API';
+        try {
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.error?.message || errMsg;
+        } catch (_) {}
+        return res.status(502).json({ message: errMsg });
+      }
+    }
+
+    throw new Error('All configured AI endpoints failed to generate an explanation.');
   } catch (err) {
-    res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
+    } else {
+      res.end();
+    }
   }
 });
 
