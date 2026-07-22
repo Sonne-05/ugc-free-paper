@@ -1860,12 +1860,20 @@ const QuestionSlot = ({
                 <label>Question Prompt / Text</label>
                 <textarea 
                   required 
-                  rows="2" 
+                  rows="3" 
                   placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
                   value={qText}
                   onChange={(e) => setQText(e.target.value)}
                   className="ms-input"
                 />
+                {qText && (
+                  <div style={{ marginTop: '8px', border: '1px dashed #cbd5e1', padding: '10px', borderRadius: '6px', background: '#f8fafc' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase' }}>Live Text Preview:</div>
+                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', padding: '10px', borderRadius: '4px', fontSize: '0.88rem', minHeight: '24px' }}>
+                      {renderTextHtml(qText)}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
