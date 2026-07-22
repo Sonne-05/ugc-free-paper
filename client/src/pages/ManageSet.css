@@ -61,17 +61,13 @@
 }
 
 .manage-set-layout {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 30px;
-  align-items: start;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
   box-sizing: border-box;
-}
-
-@media (min-width: 1024px) {
-  .manage-set-layout {
-    grid-template-columns: 1fr 420px;
-  }
 }
 
 .manage-set-left {
@@ -79,12 +75,7 @@
   flex-direction: column;
   gap: 24px;
   min-width: 0;
-}
-
-.manage-set-right {
-  position: sticky;
-  top: 100px;
-  min-width: 0;
+  width: 100%;
 }
 
 .ms-card {

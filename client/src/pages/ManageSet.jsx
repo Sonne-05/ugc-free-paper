@@ -3348,16 +3348,6 @@ const ManageSet = () => {
                     </div>
                   )}
                 </div>
-                
-                {/* RIGHT PANE: form */}
-                <div className="manage-set-right">
-                  {editingSetId ? renderQuestionForm(false) : (
-                    <div className="ms-empty-state">
-                      <h4>Select or Create a Set</h4>
-                      <p>You need to create or select a set before adding questions.</p>
-                    </div>
-                  )}
-                </div>
         </div>
       </div>
 
