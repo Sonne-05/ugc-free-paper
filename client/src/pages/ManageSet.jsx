@@ -2275,6 +2275,12 @@ const QuestionSlot = ({
                   placeholder={qType === 'match-column' ? 'e.g. Choose the correct matching code from options below:' : 'Type the question text here...'}
                   value={qText}
                   onChange={(e) => setQText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+                      e.preventDefault()
+                      makeQTextBold()
+                    }
+                  }}
                   className="ms-input"
                 />
                 {qText && (
