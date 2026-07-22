@@ -208,7 +208,11 @@ const MockTest = () => {
     if (!str) return '';
     const formatted = str
       .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
-      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>');
+      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>')
+      .replace(/\[bar\/([^\]]+)\]/g, '<span style="text-decoration: overline;">$1</span>')
+      .replace(/!=/g, '≠')
+      .replace(/=>/g, '⇒')
+      .replace(/->/g, '→');
     return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
   }
 

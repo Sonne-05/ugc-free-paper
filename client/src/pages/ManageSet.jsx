@@ -53,7 +53,11 @@ const renderTextHtml = (str) => {
   if (!str) return '';
   const formatted = str
     .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
-    .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>');
+    .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>')
+    .replace(/\[bar\/([^\]]+)\]/g, '<span style="text-decoration: overline;">$1</span>')
+    .replace(/!=/g, '≠')
+    .replace(/=>/g, '⇒')
+    .replace(/->/g, '→');
   return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
 }
 
@@ -237,7 +241,7 @@ const SIMPLE_HTML_TEMPLATE = `<div class="di-table-wrapper">
 </div>`;
 
 const MathHelperWidget = ({ onClose }) => {
-  const [activeTab, setActiveTab] = useState('simple'); // 'simple' or 'equation'
+  const [activeTab, setActiveTab] = useState('simple'); // 'simple', 'equation', or 'logic'
   const [num, setNum] = useState('');
   const [den, setDen] = useState('');
   const [whole, setWhole] = useState('');
@@ -276,7 +280,7 @@ const MathHelperWidget = ({ onClose }) => {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  const hasContent = activeTab === 'equation' ? !!equationText.trim() : (!!num || !!den);
+  const hasContent = activeTab === 'logic' ? false : (activeTab === 'equation' ? !!equationText.trim() : (!!num || !!den));
 
   return (
     <div style={{ position: 'relative' }}>
@@ -295,7 +299,7 @@ const MathHelperWidget = ({ onClose }) => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
         <button
           type="button"
           onClick={() => setActiveTab('simple')}
@@ -304,15 +308,15 @@ const MathHelperWidget = ({ onClose }) => {
             background: activeTab === 'simple' ? '#ffffff' : 'transparent',
             color: activeTab === 'simple' ? '#4f46e5' : '#64748b',
             border: 'none',
-            padding: '4px 8px',
+            padding: '4px 6px',
             borderRadius: '4px',
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             fontWeight: '600',
             cursor: 'pointer',
             boxShadow: activeTab === 'simple' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
           }}
         >
-          Single Fraction
+          Fraction
         </button>
         <button
           type="button"
@@ -322,19 +326,37 @@ const MathHelperWidget = ({ onClose }) => {
             background: activeTab === 'equation' ? '#ffffff' : 'transparent',
             color: activeTab === 'equation' ? '#4f46e5' : '#64748b',
             border: 'none',
-            padding: '4px 8px',
+            padding: '4px 6px',
             borderRadius: '4px',
-            fontSize: '0.72rem',
+            fontSize: '0.7rem',
             fontWeight: '600',
             cursor: 'pointer',
             boxShadow: activeTab === 'equation' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
           }}
         >
-          Full Equation
+          Equation
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('logic')}
+          style={{
+            flex: 1,
+            background: activeTab === 'logic' ? '#ffffff' : 'transparent',
+            color: activeTab === 'logic' ? '#4f46e5' : '#64748b',
+            border: 'none',
+            padding: '4px 6px',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: activeTab === 'logic' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+          }}
+        >
+          Logic/Sets
         </button>
       </div>
       
-      {activeTab === 'simple' ? (
+      {activeTab === 'simple' && (
         <>
           <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
             Enter fraction values to generate a single fraction.
@@ -375,7 +397,9 @@ const MathHelperWidget = ({ onClose }) => {
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {activeTab === 'equation' && (
         <>
           <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
             Type your full equation. Wrap fractions in square brackets like <code>[x/y]</code>.
@@ -393,6 +417,63 @@ const MathHelperWidget = ({ onClose }) => {
         </>
       )}
 
+      {activeTab === 'logic' && (
+        <>
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
+            Click to copy codes or symbols to paste into your question/options:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', marginBottom: '12px' }}>
+            {[
+              { label: 'Negation Bar P (P̅)', code: '[bar/P]', type: 'code' },
+              { label: 'Negation Bar S (S̅)', code: '[bar/S]', type: 'code' },
+              { label: 'Not Equal (≠)', code: '!=', type: 'code' },
+              { label: 'Therefore (∴)', code: '∴', type: 'symbol' },
+              { label: 'Implies (⇒)', code: '=>', type: 'code' },
+              { label: 'Arrow (→)', code: '->', type: 'code' },
+              { label: 'Intersection (∩)', code: '∩', type: 'symbol' },
+              { label: 'Union (∪)', code: '∪', type: 'symbol' },
+            ].map((item, idx) => (
+              <div 
+                key={idx} 
+                style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '5px 8px', 
+                  background: '#f8fafc', 
+                  border: '1px solid #e2e8f0', 
+                  borderRadius: '6px' 
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: '500', color: '#334155' }}>
+                  {item.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(item.code);
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 1500);
+                  }}
+                  style={{
+                    background: '#4f46e5',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '3px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: '600',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {hasContent && (
         <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
           <div style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: '600', marginBottom: '4px', textTransform: 'uppercase' }}>Preview:</div>
@@ -402,26 +483,34 @@ const MathHelperWidget = ({ onClose }) => {
         </div>
       )}
 
-      <button 
-        type="button" 
-        onClick={handleCopy} 
-        disabled={!hasContent}
-        className="ms-btn" 
-        style={{ 
-          width: '100%', 
-          background: '#4f46e5', 
-          color: '#fff', 
-          border: 'none', 
-          padding: '8px 12px', 
-          fontSize: '0.78rem', 
-          fontWeight: '600', 
-          borderRadius: '6px',
-          cursor: hasContent ? 'pointer' : 'not-allowed',
-          opacity: hasContent ? 1 : 0.6
-        }}
-      >
-        {copySuccess ? '✓ Code Copied!' : '📋 Copy Equation Code'}
-      </button>
+      {!['logic'].includes(activeTab) && (
+        <button 
+          type="button" 
+          onClick={handleCopy} 
+          disabled={!hasContent}
+          className="ms-btn" 
+          style={{ 
+            width: '100%', 
+            background: '#4f46e5', 
+            color: '#fff', 
+            border: 'none', 
+            padding: '8px 12px', 
+            fontSize: '0.78rem', 
+            fontWeight: '600', 
+            borderRadius: '6px',
+            cursor: hasContent ? 'pointer' : 'not-allowed',
+            opacity: hasContent ? 1 : 0.6
+          }}
+        >
+          {copySuccess ? '✓ Code Copied!' : '📋 Copy Code'}
+        </button>
+      )}
+
+      {activeTab === 'logic' && copySuccess && (
+        <div style={{ textAlign: 'center', color: '#10b981', fontSize: '0.75rem', fontWeight: '600', marginTop: '4px' }}>
+          ✓ Copied to clipboard!
+        </div>
+      )}
     </div>
   );
 };
