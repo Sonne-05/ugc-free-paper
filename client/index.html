@@ -36,23 +36,8 @@
         var timeout = null;
         var callback = function(mutationsList, observer) {
           if (window.renderMathInElement) {
-            var hasMath = false;
-            for (var i = 0; i < mutationsList.length; i++) {
-              var addedNodes = mutationsList[i].addedNodes;
-              for (var j = 0; j < addedNodes.length; j++) {
-                var node = addedNodes[j];
-                if (node.nodeType === 1 && node.classList && (node.classList.contains('katex') || node.querySelector('.katex'))) {
-                  continue;
-                }
-                if (node.textContent && node.textContent.indexOf("$") !== -1) {
-                  hasMath = true;
-                  break;
-                }
-              }
-              if (hasMath) break;
-            }
-            
-            if (hasMath) {
+            // Check if there is any unrendered LaTeX delimiter remaining in the body text
+            if (document.body.textContent && document.body.textContent.indexOf("$") !== -1) {
               if (timeout) clearTimeout(timeout);
               timeout = setTimeout(function() {
                 window.renderMathInElement(document.body, options);
@@ -62,7 +47,7 @@
         };
 
         var observer = new MutationObserver(callback);
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
         
         // Initial auto-render when window loads
         window.addEventListener("load", function() {

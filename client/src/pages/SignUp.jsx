@@ -138,7 +138,7 @@ const SignUp = () => {
             <form className="auth__form" onSubmit={handleSignUp}>
               <div className="auth__field">
                 <label>Full Name</label>
-                <input type="text" required placeholder="John Doe" />
+                <input type="text" required placeholder="Drishti" />
               </div>
               <div className="auth__field">
                 <label>Email Address</label>
