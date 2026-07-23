@@ -402,12 +402,12 @@ const MathHelperWidget = ({ onClose }) => {
       {activeTab === 'equation' && (
         <>
           <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', lineHeight: '1.3' }}>
-            Type your full equation. Wrap fractions in square brackets like <code>[x/y]</code>.
+            Type your equation. Wrap fractions in <code>[x/y]</code>. Use <code>_</code> for subscripts (e.g. <code>SF_6</code>) and <code>^</code> for superscripts (e.g. <code>x^2</code>).
           </p>
           <div className="ms-form-field" style={{ marginBottom: '12px' }}>
             <textarea 
               rows="3" 
-              placeholder="e.g. 4[2/3] + 3[1/2] - 1[2/3] = [13/2]"
+              placeholder="e.g. SF_6 + H_2O or 4[2/3] + x^2"
               value={equationText}
               onChange={(e) => setEquationText(e.target.value)}
               className="ms-input"
