@@ -164,7 +164,7 @@
 /* Main Workspace Canvas (A4 Paper Container) */
 .ms-word-canvas {
   flex: 1;
-  padding: 0 15px 30px 15px;
+  padding: 16px 15px 60vh 15px;
   display: flex;
   justify-content: center;
   overflow-y: auto !important;
@@ -241,7 +241,7 @@
 }
 
 .ms-word-document-paper .jodit-wysiwyg {
-  padding: 20px 28px !important;
+  padding: 40px 60px 150px 60px !important;
   font-size: 0.9rem !important;
   line-height: 1.5 !important;
   color: #201f1e !important;
