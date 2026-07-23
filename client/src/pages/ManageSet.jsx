@@ -424,6 +424,8 @@ const MathHelperWidget = ({ onClose }) => {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto', marginBottom: '12px' }}>
             {[
+              { label: 'Standard Deviation (σ)', code: 'σ', type: 'symbol' },
+              { label: 'Mean (μ)', code: 'μ', type: 'symbol' },
               { label: 'Negation Bar P (P̅)', code: '[bar/P]', type: 'code' },
               { label: 'Negation Bar S (S̅)', code: '[bar/S]', type: 'code' },
               { label: 'Not Equal (≠)', code: '!=', type: 'code' },
@@ -432,6 +434,14 @@ const MathHelperWidget = ({ onClose }) => {
               { label: 'Arrow (→)', code: '->', type: 'code' },
               { label: 'Intersection (∩)', code: '∩', type: 'symbol' },
               { label: 'Union (∪)', code: '∪', type: 'symbol' },
+              { label: 'Approximately Equal (≈)', code: '≈', type: 'symbol' },
+              { label: 'Square Root (√)', code: '√', type: 'symbol' },
+              { label: 'Alpha (α)', code: 'α', type: 'symbol' },
+              { label: 'Beta (β)', code: 'β', type: 'symbol' },
+              { label: 'Delta (Δ)', code: 'Δ', type: 'symbol' },
+              { label: 'Pi (π)', code: 'π', type: 'symbol' },
+              { label: 'Infinity (∞)', code: '∞', type: 'symbol' },
+              { label: 'Summation (Σ)', code: 'Σ', type: 'symbol' },
             ].map((item, idx) => (
               <div 
                 key={idx} 
