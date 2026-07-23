@@ -809,9 +809,114 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// CAPTCHA Implementation for Security
+const activeCaptchas = new Map();
+
+function generateCaptcha() {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  let text = '';
+  for (let i = 0; i < 6; i++) {
+    text += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const width = 150;
+  const height = 50;
+  
+  // Generate random lines
+  let lines = '';
+  for (let i = 0; i < 4; i++) {
+    const x1 = Math.floor(Math.random() * width);
+    const y1 = Math.floor(Math.random() * height);
+    const x2 = Math.floor(Math.random() * width);
+    const y2 = Math.floor(Math.random() * height);
+    const colors = ['#cbd5e1', '#94a3b8', '#64748b', '#475569'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${1 + Math.random() * 1.5}" />`;
+  }
+
+  // Generate characters with random position, rotation, color, and size
+  let textElements = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charAt(i);
+    const fontSize = 24 + Math.floor(Math.random() * 8);
+    const angle = -25 + Math.floor(Math.random() * 50);
+    const x = 15 + i * 20 + Math.floor(Math.random() * 6);
+    const y = 32 + Math.floor(Math.random() * 8);
+    const colors = ['#2563eb', '#1d4ed8', '#1e40af', '#4f46e5', '#4338ca', '#3730a3', '#0891b2', '#0369a1'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    textElements += `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${color}" transform="rotate(${angle}, ${x}, ${y})">${char}</text>`;
+  }
+
+  // Draw some noise dots
+  let circles = '';
+  for (let i = 0; i < 30; i++) {
+    const cx = Math.floor(Math.random() * width);
+    const cy = Math.floor(Math.random() * height);
+    const r = Math.floor(Math.random() * 1.5) + 0.5;
+    const colors = ['#e2e8f0', '#cbd5e1', '#94a3b8'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    circles += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" />`;
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="background-color: #f8fafc; border-radius: 6px; border: 1px solid #cbd5e1;">
+    ${circles}
+    ${lines}
+    ${textElements}
+  </svg>`;
+
+  const id = Math.random().toString(36).substring(2, 15);
+  const expiry = Date.now() + 5 * 60 * 1000;
+  activeCaptchas.set(id, { text: text.toLowerCase(), expiry });
+
+  const base64Svg = Buffer.from(svg).toString('base64');
+  const dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
+
+  return { id, dataUrl };
+}
+
+function verifyCaptcha(id, value) {
+  if (!id || !value) return false;
+  const stored = activeCaptchas.get(id);
+  if (!stored) return false;
+  if (Date.now() > stored.expiry) {
+    activeCaptchas.delete(id);
+    return false;
+  }
+  const isMatch = stored.text === value.trim().toLowerCase();
+  if (isMatch) {
+    activeCaptchas.delete(id);
+  }
+  return isMatch;
+}
+
+// Clean up expired captchas every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, data] of activeCaptchas.entries()) {
+    if (now > data.expiry) {
+      activeCaptchas.delete(id);
+    }
+  }
+}, 5 * 60 * 1000);
+
+app.get('/api/captcha', (req, res) => {
+  try {
+    const captcha = generateCaptcha();
+    res.json(captcha);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to generate captcha' });
+  }
+});
+
 app.post('/api/users/register', async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, captchaId, captchaValue } = req.body;
+    
+    if (!verifyCaptcha(captchaId, captchaValue)) {
+      return res.status(400).json({ message: 'Invalid or expired CAPTCHA code' });
+    }
+    
     let existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: 'User already exists' });
@@ -827,7 +932,12 @@ app.post('/api/users/register', async (req, res) => {
 
 app.post('/api/users/login', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, captchaId, captchaValue } = req.body;
+    
+    if (!verifyCaptcha(captchaId, captchaValue)) {
+      return res.status(400).json({ message: 'Invalid or expired CAPTCHA code' });
+    }
+    
     let user = await User.findOne({ email });
     if (!user) {
       const name = email.split('@')[0];

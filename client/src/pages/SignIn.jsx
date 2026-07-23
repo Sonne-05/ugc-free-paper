@@ -7,6 +7,25 @@ const SignIn = () => {
   const navigate = useNavigate()
   const [view, setView] = useState('signin') // 'signin' or 'forgot'
   const [isResetSent, setIsResetSent] = useState(false)
+  const [captchaId, setCaptchaId] = useState('')
+  const [captchaUrl, setCaptchaUrl] = useState('')
+  const [captchaInput, setCaptchaInput] = useState('')
+
+  const fetchCaptcha = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/captcha`)
+      const data = await res.json()
+      setCaptchaId(data.id)
+      setCaptchaUrl(data.dataUrl)
+      setCaptchaInput('')
+    } catch (err) {
+      console.error('Failed to fetch captcha:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchCaptcha()
+  }, [])
 
   useEffect(() => {
     /* global google */
@@ -60,12 +79,13 @@ const SignIn = () => {
       const res = await fetch(`${API_BASE_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, captchaId, captchaValue: captchaInput })
       });
       
       if (!res.ok) {
         const errData = await res.json();
         alert(errData.message || 'Login failed');
+        fetchCaptcha();
         return;
       }
       
@@ -82,6 +102,7 @@ const SignIn = () => {
     } catch (err) {
       console.error(err);
       alert('Network error during login');
+      fetchCaptcha();
     }
   }
 
@@ -154,6 +175,44 @@ const SignIn = () => {
                       </button>
                     </div>
                     <input type="password" required placeholder="Enter your password" />
+                  </div>
+
+                  <div className="auth__field">
+                    <label>Security Code (CAPTCHA)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', marginBottom: '8px' }}>
+                      {captchaUrl ? (
+                        <img 
+                          src={captchaUrl} 
+                          alt="CAPTCHA" 
+                          style={{ height: '40px', border: '1px solid var(--border)', borderRadius: '4px' }} 
+                        />
+                      ) : (
+                        <div style={{ height: '40px', width: '120px', background: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading...</div>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={fetchCaptcha} 
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          padding: '4px 8px'
+                        }}
+                        title="Get a new code"
+                      >
+                        🔄 Refresh
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="Enter verification code" 
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value)}
+                    />
                   </div>
 
                   <button type="submit" className="auth__submit">Sign In</button>
