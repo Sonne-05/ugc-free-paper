@@ -954,6 +954,126 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
+// Magic Link Authentication Store
+const activeMagicTokens = new Map();
+
+function generateMagicToken() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// Clean up expired magic tokens every 15 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of activeMagicTokens.entries()) {
+    if (now > data.expiry) {
+      activeMagicTokens.delete(token);
+    }
+  }
+}, 15 * 60 * 1000);
+
+app.post('/api/users/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address.' });
+    }
+
+    if (user.status === 'Suspended') {
+      return res.status(403).json({ message: 'Account is suspended.' });
+    }
+
+    const clientUrl = req.headers.origin || 'https://ugcfreepaper.com';
+    const token = generateMagicToken();
+    const expiry = Date.now() + 15 * 60 * 1000; // 15 mins expiry
+    activeMagicTokens.set(token, { email: email.toLowerCase(), expiry });
+
+    const magicLink = `${clientUrl}/signin?token=${token}`;
+
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const mailOptions = {
+        from: `"UGC Free Paper Support" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Password Recovery / Magic Login Link - UGC Free Paper',
+        text: `Hello ${user.name},\n\nYou requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the link below:\n\n${magicLink}\n\nThis link will log you into your dashboard instantly and is valid for 15 minutes.\n\nBest regards,\nUGC Free Paper Team`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">Password Recovery</h2>
+            <p>Hello <strong>${user.name}</strong>,</p>
+            <p>You requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the button below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${magicLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Log In to Your Account</a>
+            </div>
+            <p style="font-size: 13px; color: #6b7280;">
+              If the button doesn't work, copy and paste this link in your browser:<br/>
+              <a href="${magicLink}" style="color: #2563eb; word-break: break-all;">${magicLink}</a>
+            </p>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+              This link is valid for 15 minutes. If you did not request this link, you can safely ignore this email.
+            </p>
+          </div>
+        `
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Failed to send recovery email:', error);
+          return res.status(500).json({ message: 'Failed to send email. Please try again later.' });
+        } else {
+          console.log('Recovery email sent successfully:', info.messageId);
+          return res.json({ success: true, message: 'Recovery email sent successfully.' });
+        }
+      });
+    } else {
+      console.warn('SMTP email credentials not set. Recovery email skipped.');
+      return res.status(500).json({ message: 'SMTP credentials not configured on the server.' });
+    }
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: 'Failed to process password recovery request', error: err.message });
+  }
+});
+
+app.post('/api/users/magic-login', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ message: 'Token is required' });
+    }
+
+    const stored = activeMagicTokens.get(token);
+    if (!stored) {
+      return res.status(400).json({ message: 'Invalid or expired magic login link.' });
+    }
+
+    if (Date.now() > stored.expiry) {
+      activeMagicTokens.delete(token);
+      return res.status(400).json({ message: 'Invalid or expired magic login link.' });
+    }
+
+    const email = stored.email;
+    activeMagicTokens.delete(token); // Single use
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    if (user.status === 'Suspended') {
+      return res.status(403).json({ message: 'Account is suspended.' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Magic login error:', err);
+    res.status(500).json({ message: 'Failed to complete magic login', error: err.message });
+  }
+});
+
 app.post('/api/users/google-login', async (req, res) => {
   try {
     const { token } = req.body;

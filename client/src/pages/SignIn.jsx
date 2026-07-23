@@ -28,6 +28,45 @@ const SignIn = () => {
   }, [])
 
   useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const token = query.get('token');
+    
+    if (token) {
+      const performMagicLogin = async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/users/magic-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+          
+          if (!res.ok) {
+            const errData = await res.json();
+            alert(errData.message || 'Magic login failed');
+            return;
+          }
+          
+          const user = await res.json();
+          localStorage.setItem('isLoggedIn', 'true')
+          localStorage.setItem('hasAccount', 'true')
+          localStorage.setItem('userName', user.name)
+          localStorage.setItem('userRole', user.role)
+          localStorage.setItem('userId', user.id)
+          localStorage.setItem('userEmail', user.email)
+          
+          navigate('/profile')
+          window.location.reload()
+        } catch (err) {
+          console.error(err);
+          alert('Network error during magic login');
+        }
+      };
+      
+      performMagicLogin();
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     /* global google */
     if (window.google) {
       google.accounts.id.initialize({
@@ -106,9 +145,28 @@ const SignIn = () => {
     }
   }
 
-  const handleResetSubmit = (e) => {
+  const handleResetSubmit = async (e) => {
     e.preventDefault()
-    setIsResetSent(true)
+    const email = e.target.elements[0].value
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to send password recovery email.');
+        return;
+      }
+      
+      setIsResetSent(true)
+    } catch (err) {
+      console.error(err);
+      alert('Network error during password recovery');
+    }
   }
 
   return (
