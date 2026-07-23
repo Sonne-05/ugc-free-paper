@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import './Home.css'
 
 const Home = () => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
   return (
     <div className="home-page">
       {/* 1. Hero Section */}
@@ -228,9 +229,15 @@ const Home = () => {
               Join 100,000+ students preparing with us. Get full access to all mock tests and premium features at zero cost.
             </p>
             <div className="cta-sec__actions">
-              <Link to="/signup" className="cta-sec__btn">
-                Register Now
-              </Link>
+              {isLoggedIn ? (
+                <Link to="/profile" className="cta-sec__btn">
+                  Go to Dashboard
+                </Link>
+              ) : (
+                <Link to="/signup" className="cta-sec__btn">
+                  Register Now
+                </Link>
+              )}
               <div className="cta-sec__badge">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none" className="cta-sec__badge-icon">
                   <polyline points="20 6 9 17 4 12" />
