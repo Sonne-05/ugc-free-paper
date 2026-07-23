@@ -10,6 +10,8 @@ const SignIn = () => {
   const [captchaId, setCaptchaId] = useState('')
   const [captchaUrl, setCaptchaUrl] = useState('')
   const [captchaInput, setCaptchaInput] = useState('')
+  const [isSignInLoading, setIsSignInLoading] = useState(false)
+  const [isResetLoading, setIsResetLoading] = useState(false)
 
   const fetchCaptcha = async () => {
     try {
@@ -113,6 +115,7 @@ const SignIn = () => {
   const handleSignIn = async (e) => {
     e.preventDefault()
     const email = e.target.elements[0].value
+    setIsSignInLoading(true)
     
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/login`, {
@@ -142,12 +145,15 @@ const SignIn = () => {
       console.error(err);
       alert('Network error during login');
       fetchCaptcha();
+    } finally {
+      setIsSignInLoading(false)
     }
   }
 
   const handleResetSubmit = async (e) => {
     e.preventDefault()
-    const email = e.target.elements[0].value
+    const email = e.target.querySelector('input[type="email"]').value
+    setIsResetLoading(true)
     
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/forgot-password`, {
@@ -173,6 +179,8 @@ const SignIn = () => {
     } catch (err) {
       console.error(err);
       alert('Network error during password recovery. Please try again.');
+    } finally {
+      setIsResetLoading(false)
     }
   }
 
@@ -288,7 +296,9 @@ const SignIn = () => {
                     />
                   </div>
 
-                  <button type="submit" className="auth__submit">Sign In</button>
+                  <button type="submit" className="auth__submit" disabled={isSignInLoading}>
+                    {isSignInLoading ? 'Signing In...' : 'Sign In'}
+                  </button>
                 </form>
 
                 <p className="auth__footer">
@@ -314,7 +324,9 @@ const SignIn = () => {
                       <label>Email Address</label>
                       <input type="email" required placeholder="name@example.com" />
                     </div>
-                    <button type="submit" className="auth__submit">Send Reset Link</button>
+                    <button type="submit" className="auth__submit" disabled={isResetLoading}>
+                      {isResetLoading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
                   </form>
                 )}
 
