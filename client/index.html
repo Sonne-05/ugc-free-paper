@@ -14,9 +14,63 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        var options = {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        };
+
+        var timeout = null;
+        var callback = function(mutationsList, observer) {
+          if (window.renderMathInElement) {
+            var hasMath = false;
+            for (var i = 0; i < mutationsList.length; i++) {
+              var addedNodes = mutationsList[i].addedNodes;
+              for (var j = 0; j < addedNodes.length; j++) {
+                var node = addedNodes[j];
+                if (node.nodeType === 1 && node.classList && (node.classList.contains('katex') || node.querySelector('.katex'))) {
+                  continue;
+                }
+                if (node.textContent && node.textContent.indexOf("$") !== -1) {
+                  hasMath = true;
+                  break;
+                }
+              }
+              if (hasMath) break;
+            }
+            
+            if (hasMath) {
+              if (timeout) clearTimeout(timeout);
+              timeout = setTimeout(function() {
+                window.renderMathInElement(document.body, options);
+              }, 100);
+            }
+          }
+        };
+
+        var observer = new MutationObserver(callback);
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Initial auto-render when window loads
+        window.addEventListener("load", function() {
+          if (window.renderMathInElement) {
+            window.renderMathInElement(document.body, options);
+          }
+        });
+      });
+    </script>
   </body>
 </html>
