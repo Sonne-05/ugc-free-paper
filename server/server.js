@@ -1078,23 +1078,47 @@ app.post('/api/users/forgot-password', async (req, res) => {
       try {
         await sendEmail({
           to: email,
-          subject: 'Password Recovery / Magic Login Link - UGC Free Paper',
-          text: `Hello ${user.name},\n\nYou requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the link below:\n\n${magicLink}\n\nThis link will log you into your dashboard instantly and is valid for 15 minutes.\n\nBest regards,\nUGC Free Paper Team`,
+          subject: 'Reset Password - UGC Free Paper',
+          text: `Hello ${user.name},\n\nWe received a request to reset your password. Click the link below to set a secure new password for your account:\n\n${magicLink}\n\nThis link is valid for 15 minutes.\n\nBest regards,\nUGC Free Paper Team`,
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-              <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">Password Recovery</h2>
-              <p>Hello <strong>${user.name}</strong>,</p>
-              <p>You requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the button below:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${magicLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Log In to Your Account</a>
+            <div style="background-color: #f8fafc; padding: 40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              <div style="max-width: 540px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 40px;">
+                <!-- Header with logo and brand name -->
+                <table cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px;">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <img src="https://ugcfreepaper.com/logo.svg" alt="U" width="36" height="36" style="display: block; border: 0;" />
+                    </td>
+                    <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 20px; font-weight: bold; color: #1C2355; padding-left: 8px; vertical-align: middle; line-height: 36px;">
+                      GC Free Paper
+                    </td>
+                  </tr>
+                </table>
+
+                <h2 style="color: #1C2355; font-size: 20px; font-weight: 700; margin-top: 0; margin-bottom: 15px;">Password Recovery</h2>
+                <p style="font-size: 15px; line-height: 24px; color: #334155; margin: 0 0 15px 0;">Hello <strong>${user.name}</strong>,</p>
+                <p style="font-size: 15px; line-height: 24px; color: #334155; margin: 0 0 30px 0;">We received a request to reset your password. Click the button below to set a secure new password for your account:</p>
+                
+                <!-- Action Button -->
+                <table cellpadding="0" cellspacing="0" border="0" style="margin: 30px auto; width: 100%; text-align: center;">
+                  <tr>
+                    <td>
+                      <a href="${magicLink}" style="background-color: #2563eb; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">Reset Password</a>
+                    </td>
+                  </tr>
+                </table>
+
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+                
+                <p style="font-size: 13px; line-height: 20px; color: #64748b; margin: 0 0 15px 0;">
+                  If the button doesn't work, copy and paste this link in your browser:<br/>
+                  <a href="${magicLink}" style="color: #2563eb; word-break: break-all; text-decoration: underline;">${magicLink}</a>
+                </p>
+                
+                <p style="font-size: 12px; line-height: 18px; color: #94a3b8; margin: 0;">
+                  This recovery link is valid for 15 minutes. If you did not make this request, you can safely ignore this email.
+                </p>
               </div>
-              <p style="font-size: 13px; color: #6b7280;">
-                If the button doesn't work, copy and paste this link in your browser:<br/>
-                <a href="${magicLink}" style="color: #2563eb; word-break: break-all;">${magicLink}</a>
-              </p>
-              <p style="font-size: 12px; color: #9ca3af; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-                This link is valid for 15 minutes. If you did not request this link, you can safely ignore this email.
-              </p>
             </div>
           `
         });
