@@ -170,9 +170,17 @@ const SignIn = () => {
                   <div className="auth__field">
                     <div className="auth__field-header">
                       <label>Password</label>
-                      <button type="button" className="auth__forgot-link" onClick={() => setView('forgot')}>
+                      <span 
+                        className="auth__forgot-link" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setView('forgot');
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         Forgot password?
-                      </button>
+                      </span>
                     </div>
                     <input type="password" required placeholder="Enter your password" />
                   </div>
@@ -246,9 +254,18 @@ const SignIn = () => {
                 )}
 
                 <p className="auth__footer">
-                  <button type="button" className="auth__back-btn" onClick={() => { setView('signin'); setIsResetSent(false); }}>
+                  <span 
+                    className="auth__back-btn" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setView('signin');
+                      setIsResetSent(false);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     &larr; Back to Sign In
-                  </button>
+                  </span>
                 </p>
               </>
             )}
