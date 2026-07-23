@@ -251,12 +251,19 @@ const MathHelperWidget = ({ onClose }) => {
   const convertToHtml = (str) => {
     if (!str) return '';
     // Replace [num/den] with the HTML fraction block
-    return str.replace(/\[([^\]/]+)\/([^\]]+)\]/g, (match, n, d) => {
+    let formatted = str.replace(/\[([^\]/]+)\/([^\]]+)\]/g, (match, n, d) => {
       const fractionStyle = `display:inline-block; vertical-align:middle; text-align:center; padding:0 2px;`;
       const numStyle = `display:block; border-bottom:1px solid; padding:0 2px; line-height:1.1;`;
       const denStyle = `display:block; padding:0 2px; line-height:1.1;`;
       return `<span style="${fractionStyle}"><span style="${numStyle}">${n.trim()}</span><span style="${denStyle}">${d.trim()}</span></span>`;
     });
+    
+    // Process subscripts and superscripts for preview
+    formatted = formatted
+      .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
+      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>');
+      
+    return formatted;
   };
 
   const generateCode = () => {
