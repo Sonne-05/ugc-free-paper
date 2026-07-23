@@ -1613,6 +1613,7 @@ const QuestionSlot = ({
   // Sync state with question when it changes or opens
   useEffect(() => {
     setSlotDiPasteTexts(['', '', '', '', ''])
+    setPasteText('')
     if (question) {
       setQType(question.type || 'mcq')
       setQText(question.text || '')
@@ -1662,26 +1663,20 @@ const QuestionSlot = ({
     let optIndex = 0
     let promptLines = []
     
+    // For assertion-reason
+    let assertionFound = ''
+    let reasonFound = ''
+    
+    // For match-column
+    let parsedList1 = ['', '', '', '']
+    let parsedList2 = ['', '', '', '']
+    
+    // For multiple-statement
+    let parsedStatements = ['', '', '', '', '']
+    let statementsFound = []
+    
     for (let line of lines) {
-      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
-      if (optMatch && optIndex < 4) {
-        const optLetter = optMatch[1].toUpperCase()
-        const optVal = optMatch[2].trim()
-        
-        let indexToPut = optIndex
-        if (['A', '1'].includes(optLetter)) indexToPut = 0
-        else if (['B', '2'].includes(optLetter)) indexToPut = 1
-        else if (['C', '3'].includes(optLetter)) indexToPut = 2
-        else if (['D', '4'].includes(optLetter)) indexToPut = 3
-        else {
-          indexToPut = optIndex
-        }
-        
-        parsedOpts[indexToPut] = optVal
-        optIndex++
-        continue
-      }
-      
+      // 1. Correct Answer Match
       const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
       if (ansMatch) {
         const ansVal = ansMatch[1].toUpperCase()
@@ -1692,13 +1687,141 @@ const QuestionSlot = ({
         continue
       }
       
+      // 2. Assertion & Reason detection (for assertion-reason type)
+      if (qType === 'assertion-reason') {
+        const assertMatch = line.match(/^(?:Assertion\s*\(A\)|Assertion|Assert|A)\s*[\:\-\s]\s*(.*)/i)
+        if (assertMatch) {
+          assertionFound = assertMatch[1].trim()
+          continue
+        }
+        const reasonMatch = line.match(/^(?:Reason\s*\(R\)|Reason|R)\s*[\:\-\s]\s*(.*)/i)
+        if (reasonMatch) {
+          reasonFound = reasonMatch[1].trim()
+          continue
+        }
+      }
+      
+      // 3. Match column detection
+      if (qType === 'match-column') {
+        const matchBoth = line.match(/^[\(\[]?([a-d])[\)\]\.\-\s]\s*(.*?)\s+[\(\[]?(I|II|III|IV|[1-4])[\)\]\.\-\s]\s*(.*)/i)
+        if (matchBoth) {
+          const idx = matchBoth[1].toLowerCase().charCodeAt(0) - 97
+          const list1Val = matchBoth[2].trim()
+          const list2Val = matchBoth[4].trim()
+          if (idx >= 0 && idx < 4) {
+            parsedList1[idx] = list1Val
+            parsedList2[idx] = list2Val
+          }
+          continue
+        }
+        
+        const list1Match = line.match(/^[\(\[]?([a-d])[\)\]\.\-\s]\s*(.*)/i)
+        if (list1Match) {
+          const idx = list1Match[1].toLowerCase().charCodeAt(0) - 97
+          if (idx >= 0 && idx < 4) {
+            parsedList1[idx] = list1Match[2].trim()
+          }
+          continue
+        }
+        
+        const list2Match = line.match(/^[\(\[]?(I|II|III|IV)[\)\]\.\-\s]\s*(.*)/i)
+        if (list2Match) {
+          const roman = list2Match[1].toUpperCase()
+          let idx = -1
+          if (roman === 'I') idx = 0
+          else if (roman === 'II') idx = 1
+          else if (roman === 'III') idx = 2
+          else if (roman === 'IV') idx = 3
+          if (idx >= 0 && idx < 4) {
+            parsedList2[idx] = list2Match[2].trim()
+          }
+          continue
+        }
+      }
+      
+      // 4. Statements / Options detection for multiple-statement
+      if (qType === 'multiple-statement') {
+        const stmtMatch = line.match(/^[\(\[]?([a-eA-E])[\)\]\.\-\s]\s*(.*)/i)
+        if (stmtMatch) {
+          const char = stmtMatch[1].toUpperCase()
+          const idx = char.charCodeAt(0) - 65
+          if (idx >= 0 && idx < 5) {
+            parsedStatements[idx] = stmtMatch[2].trim()
+            continue
+          }
+        }
+        
+        if (!line.toLowerCase().includes('choose the correct') && !line.toLowerCase().includes('given below')) {
+          const optMatch = line.match(/^[\(\[]?([1-4])[\)\]\.\-\s]\s*(.*)/i)
+          if (optMatch) {
+            const optVal = optMatch[2].trim()
+            const optNum = parseInt(optMatch[1])
+            if (optNum >= 1 && optNum <= 4) {
+              parsedOpts[optNum - 1] = optVal
+              continue
+            }
+          }
+          
+          const optLetterMatch = line.match(/^[\(\[]?([A-D])[\)\]\.\-\s]\s*(.*)/)
+          if (optLetterMatch) {
+            const char = optLetterMatch[1].toUpperCase()
+            const idx = char.charCodeAt(0) - 65
+            parsedOpts[idx] = optLetterMatch[2].trim()
+            continue
+          }
+
+          statementsFound.push(line)
+          continue
+        }
+      }
+      
+      // 5. Standard MCQ Options (A-D or 1-4)
+      if (qType !== 'multiple-statement' && qType !== 'match-column') {
+        const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+        if (optMatch && optIndex < 4) {
+          const optLetter = optMatch[1].toUpperCase()
+          const optVal = optMatch[2].trim()
+          
+          let indexToPut = optIndex
+          if (['A', '1'].includes(optLetter)) indexToPut = 0
+          else if (['B', '2'].includes(optLetter)) indexToPut = 1
+          else if (['C', '3'].includes(optLetter)) indexToPut = 2
+          else if (['D', '4'].includes(optLetter)) indexToPut = 3
+          else {
+            indexToPut = optIndex
+          }
+          
+          parsedOpts[indexToPut] = optVal
+          optIndex++
+          continue
+        }
+      }
+      
       promptLines.push(line)
     }
-
+    
+    // Post-process multiple-statement raw statements
+    if (qType === 'multiple-statement' && statementsFound.length > 0) {
+      const hasExplicitStatements = parsedStatements.some(s => s !== '')
+      if (!hasExplicitStatements) {
+        if (statementsFound.length > 1) {
+          const firstLine = statementsFound[0]
+          if (firstLine.toLowerCase().includes('following') || firstLine.toLowerCase().includes('identify') || firstLine.toLowerCase().includes('given below') || firstLine.toLowerCase().includes('statement')) {
+            promptLines.push(firstLine)
+            statementsFound = statementsFound.slice(1)
+          }
+        }
+        
+        for (let i = 0; i < Math.min(statementsFound.length, 5); i++) {
+          parsedStatements[i] = statementsFound[i]
+        }
+      }
+    }
+    
     if (promptLines.length > 0) {
       parsedText = promptLines.join('\n')
     }
-
+    
     if (parsedText) {
       setQText(parsedText)
     }
@@ -1706,6 +1829,20 @@ const QuestionSlot = ({
       setQOpts(parsedOpts)
     }
     setQCorrect(parsedCorrect)
+    
+    if (qType === 'assertion-reason') {
+      if (assertionFound) setQAssertion(assertionFound)
+      if (reasonFound) setQReason(reasonFound)
+    }
+    if (qType === 'match-column') {
+      if (parsedList1.some(l => l !== '')) setQList1(parsedList1)
+      if (parsedList2.some(l => l !== '')) setQList2(parsedList2)
+    }
+    if (qType === 'multiple-statement') {
+      if (parsedStatements.some(s => s !== '')) {
+        setQStatements(parsedStatements)
+      }
+    }
   }
 
   const handleSave = async (e) => {
@@ -1889,23 +2026,21 @@ const QuestionSlot = ({
 
       {isOpen && (
         <form className="ms-q-slot-body" onSubmit={handleSave}>
-          {!isSaved && (
-            <div className="ms-form-field" style={{ marginBottom: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                ⚡ Quick Paste / Auto-fill Helper
-              </label>
-              <textarea
-                placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
-                rows="2"
-                style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box' }}
-                value={pasteText}
-                onChange={handlePasteChange}
-              />
-              <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Tip: Paste the prompt and options, and the form below will auto-populate!
-              </span>
-            </div>
-          )}
+          <div className="ms-form-field" style={{ marginBottom: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              ⚡ Quick Paste / Auto-fill Helper
+            </label>
+            <textarea
+              placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
+              rows="2"
+              style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box' }}
+              value={pasteText}
+              onChange={handlePasteChange}
+            />
+            <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+              Tip: Paste the prompt and options, and the form below will auto-populate!
+            </span>
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
             <div className="ms-form-field">
