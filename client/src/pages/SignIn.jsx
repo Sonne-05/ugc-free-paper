@@ -157,15 +157,22 @@ const SignIn = () => {
       });
       
       if (!res.ok) {
-        const errData = await res.json();
-        alert(errData.message || 'Failed to send password recovery email.');
+        let message = 'Failed to send password recovery email.';
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errData = await res.json();
+          message = errData.message || message;
+        } else {
+          message = 'Server is currently redeploying or offline. Please wait 1-2 minutes and try again.';
+        }
+        alert(message);
         return;
       }
       
       setIsResetSent(true)
     } catch (err) {
       console.error(err);
-      alert('Network error during password recovery');
+      alert('Network error during password recovery. Please try again.');
     }
   }
 
