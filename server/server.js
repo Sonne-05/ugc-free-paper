@@ -27,6 +27,64 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Send email helper supporting both Resend HTTP API (port-agnostic, works on Render Free Tier) and Nodemailer SMTP
+async function sendEmail({ from, to, replyTo, subject, text, html }) {
+  if (process.env.RESEND_API_KEY) {
+    console.log(`Sending email via Resend HTTP API to ${to}...`);
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: from || process.env.EMAIL_FROM || `UGC Free Paper <onboarding@resend.dev>`,
+          to: [to],
+          reply_to: replyTo,
+          subject: subject,
+          text: text,
+          html: html
+        })
+      });
+      
+      const responseData = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.message || `Resend responded with status ${response.status}`);
+      }
+      
+      console.log('Email sent successfully via Resend. Message ID:', responseData.id);
+      return responseData.id;
+    } catch (err) {
+      console.error('Resend email dispatch failed:', err);
+      throw err;
+    }
+  } else {
+    // Fallback to Nodemailer SMTP
+    console.log(`Sending email via SMTP transporter to ${to}...`);
+    return new Promise((resolve, reject) => {
+      const mailOptions = {
+        from: from || `"UGC Free Paper Support" <${process.env.EMAIL_USER}>`,
+        to,
+        replyTo,
+        subject,
+        text,
+        html
+      };
+      
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('SMTP email dispatch failed:', error);
+          reject(error);
+        } else {
+          console.log('Email sent successfully via SMTP. Message ID:', info.messageId);
+          resolve(info.messageId);
+        }
+      });
+    });
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -994,43 +1052,38 @@ app.post('/api/users/forgot-password', async (req, res) => {
 
     const magicLink = `${clientUrl}/signin?token=${token}`;
 
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const mailOptions = {
-        from: `"UGC Free Paper Support" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Password Recovery / Magic Login Link - UGC Free Paper',
-        text: `Hello ${user.name},\n\nYou requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the link below:\n\n${magicLink}\n\nThis link will log you into your dashboard instantly and is valid for 15 minutes.\n\nBest regards,\nUGC Free Paper Team`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">Password Recovery</h2>
-            <p>Hello <strong>${user.name}</strong>,</p>
-            <p>You requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${magicLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Log In to Your Account</a>
+    if (process.env.RESEND_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS)) {
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Password Recovery / Magic Login Link - UGC Free Paper',
+          text: `Hello ${user.name},\n\nYou requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the link below:\n\n${magicLink}\n\nThis link will log you into your dashboard instantly and is valid for 15 minutes.\n\nBest regards,\nUGC Free Paper Team`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+              <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">Password Recovery</h2>
+              <p>Hello <strong>${user.name}</strong>,</p>
+              <p>You requested a password recovery link. Since UGC Free Paper uses secure email authentication, you can log in directly by clicking the button below:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${magicLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Log In to Your Account</a>
+              </div>
+              <p style="font-size: 13px; color: #6b7280;">
+                If the button doesn't work, copy and paste this link in your browser:<br/>
+                <a href="${magicLink}" style="color: #2563eb; word-break: break-all;">${magicLink}</a>
+              </p>
+              <p style="font-size: 12px; color: #9ca3af; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+                This link is valid for 15 minutes. If you did not request this link, you can safely ignore this email.
+              </p>
             </div>
-            <p style="font-size: 13px; color: #6b7280;">
-              If the button doesn't work, copy and paste this link in your browser:<br/>
-              <a href="${magicLink}" style="color: #2563eb; word-break: break-all;">${magicLink}</a>
-            </p>
-            <p style="font-size: 12px; color: #9ca3af; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-              This link is valid for 15 minutes. If you did not request this link, you can safely ignore this email.
-            </p>
-          </div>
-        `
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error('Failed to send recovery email:', error);
-          return res.status(500).json({ message: 'Failed to send email. Please try again later.' });
-        } else {
-          console.log('Recovery email sent successfully:', info.messageId);
-          return res.json({ success: true, message: 'Recovery email sent successfully.' });
-        }
-      });
+          `
+        });
+        return res.json({ success: true, message: 'Recovery email sent successfully.' });
+      } catch (sendErr) {
+        console.error('Failed to send recovery email:', sendErr);
+        return res.status(500).json({ message: 'Failed to send recovery email. Please try again later.' });
+      }
     } else {
-      console.warn('SMTP email credentials not set. Recovery email skipped.');
-      return res.status(500).json({ message: 'SMTP credentials not configured on the server.' });
+      console.warn('Email dispatch credentials not set. Recovery email skipped.');
+      return res.status(500).json({ message: 'Email credentials not configured on the server.' });
     }
   } catch (err) {
     console.error('Forgot password error:', err);
@@ -1260,12 +1313,11 @@ app.post('/api/contact', async (req, res) => {
     const newMessage = new ContactMessage({ name, email, message });
     await newMessage.save();
 
-    // Send email notification via Zoho if credentials are configured
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const mailOptions = {
-        from: `"UGC Free Paper Contact Form" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER, // Send email to yourself (support@ugcfreepaper.com)
-        replyTo: email, // Allow replying directly to the user
+    if (process.env.RESEND_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS)) {
+      sendEmail({
+        from: process.env.RESEND_API_KEY ? `UGC Free Paper Contact Form <onboarding@resend.dev>` : `"UGC Free Paper Contact Form" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER || 'support@ugcfreepaper.com', // Send to administrator
+        replyTo: email,
         subject: `New Contact Form Message from ${name}`,
         text: `You have received a new contact message:\n\nName: ${name}\nEmail: ${email}\nMessage:\n${message}\n\nThis message has also been saved to your dashboard database.`,
         html: `
@@ -1281,17 +1333,11 @@ app.post('/api/contact', async (req, res) => {
             </p>
           </div>
         `
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error('Failed to send contact notification email:', error);
-        } else {
-          console.log('Contact notification email sent:', info.messageId);
-        }
+      }).catch(err => {
+        console.error('Failed to send contact notification email:', err);
       });
     } else {
-      console.warn('SMTP email credentials not set. Skipping contact email notification.');
+      console.warn('Email dispatch credentials not set. Skipping contact email notification.');
     }
 
     res.status(201).json({ success: true, message: 'Message saved successfully!' });
@@ -1353,11 +1399,10 @@ app.post('/api/subscribe', async (req, res) => {
     });
     await newSubscriptionMsg.save();
 
-    // Check if SMTP is configured
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const mailOptions = {
-        from: `"UGC Free Paper Newsletter" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER, // Send email to Zoho account
+    if (process.env.RESEND_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS)) {
+      sendEmail({
+        from: process.env.RESEND_API_KEY ? `UGC Free Paper Newsletter <onboarding@resend.dev>` : `"UGC Free Paper Newsletter" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_USER || 'support@ugcfreepaper.com', // Send to administrator
         replyTo: email,
         subject: `New Newsletter Subscription - ${email}`,
         text: `You have received a new newsletter subscription:\n\nEmail: ${email}\n\nPlease add this email to your newsletter contact list.`,
@@ -1370,17 +1415,11 @@ app.post('/api/subscribe', async (req, res) => {
             </p>
           </div>
         `
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error('Failed to send subscription notification email:', error);
-        } else {
-          console.log('Subscription notification email sent:', info.messageId);
-        }
+      }).catch(err => {
+        console.error('Failed to send subscription notification email:', err);
       });
     } else {
-      console.warn('SMTP email credentials not set. Skipping subscription email notification.');
+      console.warn('Email dispatch credentials not set. Skipping subscription email notification.');
     }
 
     res.status(200).json({ success: true, message: 'Subscription request sent successfully!' });
