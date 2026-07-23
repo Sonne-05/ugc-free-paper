@@ -71,14 +71,15 @@ const SignUp = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault()
-    const name = e.target.elements[0].value
-    const email = e.target.elements[1].value // full name is 0, email is 1
+    const name = e.target.querySelector('input[placeholder="Drishti"]').value
+    const email = e.target.querySelector('input[type="email"]').value
+    const password = e.target.querySelector('input[type="password"]').value
     
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, captchaId, captchaValue: captchaInput })
+        body: JSON.stringify({ name, email, password, captchaId, captchaValue: captchaInput })
       });
       
       if (!res.ok) {

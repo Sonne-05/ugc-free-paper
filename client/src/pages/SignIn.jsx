@@ -12,6 +12,7 @@ const SignIn = () => {
   const [captchaInput, setCaptchaInput] = useState('')
   const [isSignInLoading, setIsSignInLoading] = useState(false)
   const [isResetLoading, setIsResetLoading] = useState(false)
+  const [resetToken, setResetToken] = useState('')
 
   const fetchCaptcha = async () => {
     try {
@@ -34,39 +35,10 @@ const SignIn = () => {
     const token = query.get('token');
     
     if (token) {
-      const performMagicLogin = async () => {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/users/magic-login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-          });
-          
-          if (!res.ok) {
-            const errData = await res.json();
-            alert(errData.message || 'Magic login failed');
-            return;
-          }
-          
-          const user = await res.json();
-          localStorage.setItem('isLoggedIn', 'true')
-          localStorage.setItem('hasAccount', 'true')
-          localStorage.setItem('userName', user.name)
-          localStorage.setItem('userRole', user.role)
-          localStorage.setItem('userId', user.id)
-          localStorage.setItem('userEmail', user.email)
-          
-          navigate('/profile')
-          window.location.reload()
-        } catch (err) {
-          console.error(err);
-          alert('Network error during magic login');
-        }
-      };
-      
-      performMagicLogin();
+      setResetToken(token);
+      setView('reset');
     }
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     /* global google */
@@ -114,14 +86,15 @@ const SignIn = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault()
-    const email = e.target.elements[0].value
+    const email = e.target.querySelector('input[type="email"]').value
+    const password = e.target.querySelector('input[type="password"]').value
     setIsSignInLoading(true)
     
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, captchaId, captchaValue: captchaInput })
+        body: JSON.stringify({ email, password, captchaId, captchaValue: captchaInput })
       });
       
       if (!res.ok) {
@@ -179,6 +152,43 @@ const SignIn = () => {
     } catch (err) {
       console.error(err);
       alert('Network error during password recovery. Please try again.');
+    } finally {
+      setIsResetLoading(false)
+    }
+  }
+
+  const handlePasswordResetSubmit = async (e) => {
+    e.preventDefault()
+    const password = e.target.querySelector('input[type="password"]').value
+    setIsResetLoading(true)
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password })
+      });
+      
+      if (!res.ok) {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to reset password.');
+        return;
+      }
+      
+      const user = await res.json();
+      localStorage.setItem('isLoggedIn', 'true')
+      localStorage.setItem('hasAccount', 'true')
+      localStorage.setItem('userName', user.name)
+      localStorage.setItem('userRole', user.role)
+      localStorage.setItem('userId', user.id)
+      localStorage.setItem('userEmail', user.email)
+      
+      alert('Password has been reset successfully! Logging you in...');
+      navigate('/profile')
+      window.location.reload()
+    } catch (err) {
+      console.error(err);
+      alert('Network error during password reset');
     } finally {
       setIsResetLoading(false)
     }
@@ -305,7 +315,7 @@ const SignIn = () => {
                   Don't have an account yet? <Link to="/signup">Create one now</Link>
                 </p>
               </>
-            ) : (
+            ) : view === 'forgot' ? (
               <>
                 <h1 className="auth__title">Reset Password</h1>
                 <p className="auth__subtitle">Enter your email address to receive a recovery link</p>
@@ -344,6 +354,20 @@ const SignIn = () => {
                     &larr; Back to Sign In
                   </span>
                 </p>
+              </>
+            ) : (
+              <>
+                <h1 className="auth__title">Choose New Password</h1>
+                <p className="auth__subtitle">Create a secure new password for your account</p>
+                <form className="auth__form" onSubmit={handlePasswordResetSubmit}>
+                  <div className="auth__field">
+                    <label>New Password</label>
+                    <input type="password" required placeholder="Enter new password" />
+                  </div>
+                  <button type="submit" className="auth__submit" disabled={isResetLoading}>
+                    {isResetLoading ? 'Saving...' : 'Save Password'}
+                  </button>
+                </form>
               </>
             )}
           </div>
