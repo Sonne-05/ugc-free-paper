@@ -943,6 +943,23 @@ const DataInterpretationGroup = ({
                 <h4 style={{ margin: '0 0 12px 0', color: '#166534', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', fontSize: '0.90rem', fontWeight: 'bold' }}>
                   Question {qIdx + 1} of 5 (Q{qIdx + 1} Slot)
                 </h4>
+
+                {/* Quick Paste / Auto-fill Helper */}
+                <div className="ms-form-field" style={{ marginBottom: '12px', background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <label style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px', margin: '0 0 6px 0' }}>
+                    ⚡ Quick Paste / Auto-fill Helper
+                  </label>
+                  <textarea
+                    placeholder="Paste raw question text here (we'll extract Q-text, options A/B/C/D and answer if matches...)"
+                    rows="2"
+                    style={{ fontSize: '0.8rem', padding: '6px', background: '#fff', width: '100%', boxSizing: 'border-box', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    value={diPasteTexts[qIdx] || ''}
+                    onChange={(e) => handleDiPasteChange(qIdx, e.target.value)}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    Tip: Paste the prompt and options, and the form below will auto-populate!
+                  </span>
+                </div>
                 
                 <div className="ms-form-field" style={{ marginBottom: '12px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Question Prompt / Text</label>
