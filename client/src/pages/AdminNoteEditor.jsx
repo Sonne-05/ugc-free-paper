@@ -654,7 +654,12 @@ const AdminNoteEditor = () => {
               onClick={() => {
                 setRawTableHtml('');
                 if (editorRef.current && editorRef.current.editor) {
-                  savedSelectionRef.current = editorRef.current.editor.selection.save();
+                  try {
+                    savedSelectionRef.current = editorRef.current.editor.selection.save();
+                  } catch (e) {
+                    console.warn('Could not save editor selection:', e);
+                    savedSelectionRef.current = null;
+                  }
                 }
                 setShowHtmlTableModal(true);
               }} 
