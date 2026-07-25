@@ -19,6 +19,10 @@ const AdminNoteEditor = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // HTML Table Insertion states
+  const [showHtmlTableModal, setShowHtmlTableModal] = useState(false);
+  const [rawTableHtml, setRawTableHtml] = useState('');
+
   // Table Control States
   const [activeTable, setActiveTable] = useState(null);
   const [activeCell, setActiveCell] = useState(null);
@@ -359,6 +363,27 @@ const AdminNoteEditor = () => {
     }
   };
 
+  const handleInsertHtmlTable = () => {
+    if (!rawTableHtml.trim()) {
+      alert('Please enter some HTML content.');
+      return;
+    }
+    
+    if (!rawTableHtml.toLowerCase().includes('<table')) {
+      if (!confirm('The entered HTML does not appear to contain a <table> element. Insert anyway?')) {
+        return;
+      }
+    }
+
+    if (editorRef.current && editorRef.current.editor) {
+      editorRef.current.editor.selection.insertHTML(rawTableHtml);
+    } else {
+      setContent(prev => prev + rawTableHtml);
+    }
+    setShowHtmlTableModal(false);
+    setRawTableHtml('');
+  };
+
   const config = useMemo(() => ({
     readonly: false,
     height: 'auto',
@@ -611,6 +636,14 @@ const AdminNoteEditor = () => {
               title="Insert YouTube Video directly into notes"
             >
               ▶️ YouTube
+            </button>
+            <button 
+              onClick={() => { setRawTableHtml(''); setShowHtmlTableModal(true); }} 
+              className="ms-word-btn-cancel"
+              style={{ fontSize: '0.8rem', padding: '5px 12px', background: 'rgba(24, 90, 189, 0.25)', border: '1px solid rgba(255, 255, 255, 0.4)', color: '#ffffff' }}
+              title="Insert custom table via raw HTML"
+            >
+              🌐 HTML Table
             </button>
             <button 
               onClick={() => setShowPreviewModal(true)} 
@@ -1028,7 +1061,121 @@ const AdminNoteEditor = () => {
               <UnitNotesTemplate data={{ unitTitle, subtitle, htmlContent: content }} />
             </div>
           </div>
+          {/* HTML Table Input Modal */}
+      {showHtmlTableModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '10px',
+            width: '100%',
+            maxWidth: '600px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              background: '#185abd',
+              color: '#ffffff',
+              padding: '14px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontWeight: 600,
+              fontSize: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🌐</span> Insert Table via Raw HTML
+              </div>
+              <button 
+                onClick={() => setShowHtmlTableModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffffff',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                  padding: '2px 8px',
+                  lineHeight: 1
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.4 }}>
+                Paste your custom HTML table code below. You can include standard styling tags (e.g. <code>style="..."</code> or classes like <code>table-zebra</code>).
+              </div>
+              <textarea
+                value={rawTableHtml}
+                onChange={(e) => setRawTableHtml(e.target.value)}
+                placeholder='e.g., <table style="width: 100%; border: 2px dashed #185abd;">
+  <tr>
+    <th style="padding: 10px; background: #e0f2fe;">Header 1</th>
+    <th style="padding: 10px; background: #e0f2fe;">Header 2</th>
+  </tr>
+  <tr>
+    <td style="padding: 10px;">Data A</td>
+    <td style="padding: 10px;">Data B</td>
+  </tr>
+</table>'
+                style={{
+                  width: '100%',
+                  height: '240px',
+                  fontFamily: 'Consolas, Monaco, monospace',
+                  fontSize: '0.85rem',
+                  padding: '10px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  outline: 'none',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            
+            <div style={{
+              background: '#f8fafc',
+              padding: '12px 20px',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '10px',
+              borderTop: '1px solid #edebe9'
+            }}>
+              <button
+                type="button"
+                onClick={() => setShowHtmlTableModal(false)}
+                className="ms-word-btn-cancel"
+                style={{ background: '#ffffff', color: '#323130', border: '1px solid #c8c6c4', padding: '6px 16px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleInsertHtmlTable}
+                className="ms-word-btn-save"
+                style={{ padding: '6px 20px' }}
+              >
+                Insert Table
+              </button>
+            </div>
+          </div>
         </div>
+      )}
+    </div>
       )}
     </div>
   );
