@@ -118,10 +118,16 @@ const AdminNoteEditor = () => {
       case 'borderStyle':
         activeTable.style.borderStyle = value;
         setTableBorderStyle(value);
+        activeTable.querySelectorAll('td, th').forEach(c => {
+          c.style.borderStyle = value;
+        });
         break;
       case 'borderWidth':
         activeTable.style.borderWidth = value;
         setTableBorderWidth(value);
+        activeTable.querySelectorAll('td, th').forEach(c => {
+          c.style.borderWidth = value;
+        });
         break;
       case 'borderColor':
         activeTable.style.borderColor = value;
