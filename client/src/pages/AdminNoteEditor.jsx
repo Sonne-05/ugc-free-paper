@@ -22,7 +22,6 @@ const AdminNoteEditor = () => {
   // HTML Table Insertion states
   const [showHtmlTableModal, setShowHtmlTableModal] = useState(false);
   const [rawTableHtml, setRawTableHtml] = useState('');
-  const savedSelectionRef = useRef(null);
 
   // Table Control States
   const [activeTable, setActiveTable] = useState(null);
@@ -379,15 +378,10 @@ const AdminNoteEditor = () => {
     if (editorRef.current && editorRef.current.editor) {
       const editor = editorRef.current.editor;
       editor.focus();
-      if (savedSelectionRef.current) {
-        try {
-          editor.selection.restore(savedSelectionRef.current);
-        } catch (e) {
-          console.warn('Selection restore failed:', e);
-        }
-        savedSelectionRef.current = null;
-      }
       editor.selection.insertHTML(rawTableHtml);
+      if (editor.synchronizeValues) {
+        editor.synchronizeValues();
+      }
       editor.events.fire('change');
       setContent(editor.value);
     } else {
@@ -653,14 +647,6 @@ const AdminNoteEditor = () => {
             <button 
               onClick={() => {
                 setRawTableHtml('');
-                if (editorRef.current && editorRef.current.editor) {
-                  try {
-                    savedSelectionRef.current = editorRef.current.editor.selection.save();
-                  } catch (e) {
-                    console.warn('Could not save editor selection:', e);
-                    savedSelectionRef.current = null;
-                  }
-                }
                 setShowHtmlTableModal(true);
               }} 
               className="ms-word-btn-cancel"
