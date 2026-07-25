@@ -22,6 +22,7 @@ const AdminNoteEditor = () => {
   // HTML Table Insertion states
   const [showHtmlTableModal, setShowHtmlTableModal] = useState(false);
   const [rawTableHtml, setRawTableHtml] = useState('');
+  const joditInstanceRef = useRef(null);
 
   // Table Control States
   const [activeTable, setActiveTable] = useState(null);
@@ -84,9 +85,9 @@ const AdminNoteEditor = () => {
   }, []);
 
   const triggerChange = () => {
-    if (editorRef.current && editorRef.current.editor) {
-      editorRef.current.editor.events.fire('change');
-      setContent(editorRef.current.editor.value);
+    if (joditInstanceRef.current) {
+      joditInstanceRef.current.events.fire('change');
+      setContent(joditInstanceRef.current.value);
     }
   };
 
@@ -353,8 +354,9 @@ const AdminNoteEditor = () => {
     if (videoId) {
       const videoHtml = `<div class="responsive-video-container" style="width: 60%; max-width: 480px; margin: 1.25rem auto; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); border: 1px solid #cbd5e1; background: #000000;"><iframe src="https://www.youtube.com/embed/${videoId}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width: 100%; height: 270px; border: 0; border-radius: 10px; display: block;"></iframe></div><p><br></p>`;
       
-      if (editorRef.current && editorRef.current.editor) {
-        editorRef.current.editor.selection.insertHTML(videoHtml);
+      if (joditInstanceRef.current) {
+        joditInstanceRef.current.selection.insertHTML(videoHtml);
+        triggerChange();
       } else {
         setContent(prev => prev + videoHtml);
       }
@@ -375,8 +377,8 @@ const AdminNoteEditor = () => {
       }
     }
 
-    if (editorRef.current && editorRef.current.editor) {
-      const editor = editorRef.current.editor;
+    if (joditInstanceRef.current) {
+      const editor = joditInstanceRef.current;
       editor.focus();
       editor.selection.insertHTML(rawTableHtml);
       if (editor.synchronizeValues) {
@@ -424,6 +426,7 @@ const AdminNoteEditor = () => {
     },
     events: {
       afterInit: function (editor) {
+        joditInstanceRef.current = editor;
         const applyFormatBlock = (editorInst, tag) => {
           if (!editorInst) return;
           const uppercaseTag = tag.toUpperCase();
