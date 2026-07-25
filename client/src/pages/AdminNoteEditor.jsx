@@ -23,6 +23,7 @@ const AdminNoteEditor = () => {
   const [showHtmlTableModal, setShowHtmlTableModal] = useState(false);
   const [rawTableHtml, setRawTableHtml] = useState('');
   const joditInstanceRef = useRef(null);
+  const savedSelectionRef = useRef(null);
 
   // Table Control States
   const [activeTable, setActiveTable] = useState(null);
@@ -380,6 +381,14 @@ const AdminNoteEditor = () => {
     if (joditInstanceRef.current) {
       const editor = joditInstanceRef.current;
       editor.focus();
+      if (savedSelectionRef.current) {
+        try {
+          editor.selection.restore(savedSelectionRef.current);
+        } catch (e) {
+          console.warn('Selection restore failed:', e);
+        }
+        savedSelectionRef.current = null;
+      }
       editor.selection.insertHTML(rawTableHtml);
       if (editor.synchronizeValues) {
         editor.synchronizeValues();
@@ -648,8 +657,16 @@ const AdminNoteEditor = () => {
               ▶️ YouTube
             </button>
             <button 
-              onClick={() => {
+              onMouseDown={(e) => {
+                e.preventDefault();
                 setRawTableHtml('');
+                if (joditInstanceRef.current) {
+                  try {
+                    savedSelectionRef.current = joditInstanceRef.current.selection.save();
+                  } catch (err) {
+                    console.warn('Could not save selection:', err);
+                  }
+                }
                 setShowHtmlTableModal(true);
               }} 
               className="ms-word-btn-cancel"
