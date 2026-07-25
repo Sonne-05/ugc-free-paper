@@ -1061,7 +1061,10 @@ const AdminNoteEditor = () => {
               <UnitNotesTemplate data={{ unitTitle, subtitle, htmlContent: content }} />
             </div>
           </div>
-          {/* HTML Table Input Modal */}
+        </div>
+      )}
+
+      {/* HTML Table Input Modal */}
       {showHtmlTableModal && (
         <div style={{
           position: 'fixed',
@@ -1174,8 +1177,6 @@ const AdminNoteEditor = () => {
             </div>
           </div>
         </div>
-      )}
-    </div>
       )}
     </div>
   );
