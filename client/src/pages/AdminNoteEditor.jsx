@@ -22,6 +22,7 @@ const AdminNoteEditor = () => {
   // HTML Table Insertion states
   const [showHtmlTableModal, setShowHtmlTableModal] = useState(false);
   const [rawTableHtml, setRawTableHtml] = useState('');
+  const savedSelectionRef = useRef(null);
 
   // Table Control States
   const [activeTable, setActiveTable] = useState(null);
@@ -376,7 +377,19 @@ const AdminNoteEditor = () => {
     }
 
     if (editorRef.current && editorRef.current.editor) {
-      editorRef.current.editor.selection.insertHTML(rawTableHtml);
+      const editor = editorRef.current.editor;
+      editor.focus();
+      if (savedSelectionRef.current) {
+        try {
+          editor.selection.restore(savedSelectionRef.current);
+        } catch (e) {
+          console.warn('Selection restore failed:', e);
+        }
+        savedSelectionRef.current = null;
+      }
+      editor.selection.insertHTML(rawTableHtml);
+      editor.events.fire('change');
+      setContent(editor.value);
     } else {
       setContent(prev => prev + rawTableHtml);
     }
@@ -638,7 +651,13 @@ const AdminNoteEditor = () => {
               ▶️ YouTube
             </button>
             <button 
-              onClick={() => { setRawTableHtml(''); setShowHtmlTableModal(true); }} 
+              onClick={() => {
+                setRawTableHtml('');
+                if (editorRef.current && editorRef.current.editor) {
+                  savedSelectionRef.current = editorRef.current.editor.selection.save();
+                }
+                setShowHtmlTableModal(true);
+              }} 
               className="ms-word-btn-cancel"
               style={{ fontSize: '0.8rem', padding: '5px 12px', background: 'rgba(24, 90, 189, 0.25)', border: '1px solid rgba(255, 255, 255, 0.4)', color: '#ffffff' }}
               title="Insert custom table via raw HTML"
