@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import JoditEditor from 'jodit-react';
 import { paper1NotesData } from '../data/paper1NotesData';
@@ -18,6 +18,232 @@ const AdminNoteEditor = () => {
   const [saving, setSaving] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Table Control States
+  const [activeTable, setActiveTable] = useState(null);
+  const [activeCell, setActiveCell] = useState(null);
+
+  // Selected Table Properties
+  const [tableWidth, setTableWidth] = useState('70%');
+  const [tableHeight, setTableHeight] = useState('auto');
+  const [tableAlign, setTableAlign] = useState('center');
+  const [tableBorderCollapse, setTableBorderCollapse] = useState('separate');
+  const [tableBorderStyle, setTableBorderStyle] = useState('solid');
+  const [tableBorderWidth, setTableBorderWidth] = useState('1px');
+  const [tableBorderColor, setTableBorderColor] = useState('#cbd5e1');
+  const [tableCellPadding, setTableCellPadding] = useState('8px 12px');
+  const [tableHasZebra, setTableHasZebra] = useState(false);
+  const [tableHasStyledHeader, setTableHasStyledHeader] = useState(false);
+
+  // Selected Cell Properties
+  const [cellBgColor, setCellBgColor] = useState('#ffffff');
+  const [cellTextAlign, setCellTextAlign] = useState('center');
+  const [cellVerticalAlign, setCellVerticalAlign] = useState('middle');
+
+  // Stable callback to parse active element styles and set React states
+  const updateTableState = useCallback((tableEl, cellEl) => {
+    if (tableEl) {
+      setTableWidth(tableEl.style.width || '70%');
+      setTableHeight(tableEl.style.height || 'auto');
+      
+      const ml = tableEl.style.marginLeft;
+      const mr = tableEl.style.marginRight;
+      if (ml === '0px' || ml === '0') {
+        setTableAlign('left');
+      } else if (mr === '0px' || mr === '0') {
+        setTableAlign('right');
+      } else {
+        setTableAlign('center');
+      }
+
+      setTableBorderCollapse(tableEl.style.borderCollapse || 'separate');
+      setTableBorderStyle(tableEl.style.borderStyle || 'solid');
+      setTableBorderWidth(tableEl.style.borderWidth || '1px');
+      setTableBorderColor(tableEl.style.borderColor || '#cbd5e1');
+
+      const firstCell = tableEl.querySelector('td, th');
+      if (firstCell) {
+        setTableCellPadding(firstCell.style.padding || '8px 12px');
+      } else {
+        setTableCellPadding('8px 12px');
+      }
+
+      setTableHasZebra(tableEl.classList.contains('table-zebra'));
+      setTableHasStyledHeader(tableEl.classList.contains('table-header-styled'));
+    }
+
+    if (cellEl) {
+      setCellBgColor(cellEl.style.backgroundColor || '#ffffff');
+      setCellTextAlign(cellEl.style.textAlign || 'center');
+      setCellVerticalAlign(cellEl.style.verticalAlign || 'middle');
+    }
+  }, []);
+
+  const triggerChange = () => {
+    if (editorRef.current && editorRef.current.editor) {
+      editorRef.current.editor.events.fire('change');
+      setContent(editorRef.current.editor.value);
+    }
+  };
+
+  const handleTablePropChange = (property, value) => {
+    if (!activeTable) return;
+
+    switch (property) {
+      case 'width':
+        activeTable.style.width = value;
+        setTableWidth(value);
+        break;
+      case 'height':
+        activeTable.style.height = value;
+        setTableHeight(value);
+        break;
+      case 'align':
+        if (value === 'left') {
+          activeTable.style.marginLeft = '0';
+          activeTable.style.marginRight = 'auto';
+        } else if (value === 'right') {
+          activeTable.style.marginLeft = 'auto';
+          activeTable.style.marginRight = '0';
+        } else {
+          activeTable.style.marginLeft = 'auto';
+          activeTable.style.marginRight = 'auto';
+        }
+        setTableAlign(value);
+        break;
+      case 'borderCollapse':
+        activeTable.style.borderCollapse = value;
+        setTableBorderCollapse(value);
+        break;
+      case 'borderStyle':
+        activeTable.style.borderStyle = value;
+        setTableBorderStyle(value);
+        break;
+      case 'borderWidth':
+        activeTable.style.borderWidth = value;
+        setTableBorderWidth(value);
+        break;
+      case 'borderColor':
+        activeTable.style.borderColor = value;
+        setTableBorderColor(value);
+        activeTable.querySelectorAll('td, th').forEach(c => {
+          c.style.borderColor = value;
+        });
+        break;
+      case 'padding':
+        activeTable.querySelectorAll('td, th').forEach(c => {
+          c.style.padding = value;
+        });
+        setTableCellPadding(value);
+        break;
+      case 'zebra':
+        activeTable.classList.toggle('table-zebra', value);
+        setTableHasZebra(value);
+        break;
+      case 'headerStyled':
+        activeTable.classList.toggle('table-header-styled', value);
+        setTableHasStyledHeader(value);
+        break;
+      default:
+        break;
+    }
+    triggerChange();
+  };
+
+  const handleCellPropChange = (property, value) => {
+    if (!activeCell) return;
+
+    switch (property) {
+      case 'backgroundColor':
+        activeCell.style.backgroundColor = value;
+        setCellBgColor(value);
+        break;
+      case 'textAlign':
+        activeCell.style.textAlign = value;
+        setCellTextAlign(value);
+        break;
+      case 'verticalAlign':
+        activeCell.style.verticalAlign = value;
+        setCellVerticalAlign(value);
+        break;
+      default:
+        break;
+    }
+    triggerChange();
+  };
+
+  const insertRow = (above) => {
+    if (!activeCell || !activeTable) return;
+    const row = activeCell.parentNode;
+    const newRow = activeTable.insertRow(above ? row.rowIndex : row.rowIndex + 1);
+    const cellCount = row.cells.length;
+    for (let i = 0; i < cellCount; i++) {
+      const newCell = newRow.insertCell(i);
+      newCell.innerHTML = '<br>';
+      newCell.style.padding = activeCell.style.padding || '8px 12px';
+      newCell.style.borderColor = activeTable.style.borderColor || '#cbd5e1';
+      newCell.style.borderWidth = activeTable.style.borderWidth || '1px';
+      newCell.style.borderStyle = activeTable.style.borderStyle || 'solid';
+    }
+    triggerChange();
+  };
+
+  const insertColumn = (left) => {
+    if (!activeCell || !activeTable) return;
+    const cellIndex = activeCell.cellIndex;
+    const targetIndex = left ? cellIndex : cellIndex + 1;
+    Array.from(activeTable.rows).forEach(row => {
+      const isHeader = row.cells[cellIndex] ? row.cells[cellIndex].tagName === 'TH' : false;
+      const newCell = document.createElement(isHeader ? 'th' : 'td');
+      newCell.innerHTML = '<br>';
+      newCell.style.padding = activeCell.style.padding || '8px 12px';
+      newCell.style.borderColor = activeTable.style.borderColor || '#cbd5e1';
+      newCell.style.borderWidth = activeTable.style.borderWidth || '1px';
+      newCell.style.borderStyle = activeTable.style.borderStyle || 'solid';
+      if (targetIndex >= row.cells.length) {
+        row.appendChild(newCell);
+      } else {
+        row.insertBefore(newCell, row.cells[targetIndex]);
+      }
+    });
+    triggerChange();
+  };
+
+  const deleteRow = () => {
+    if (!activeCell || !activeTable) return;
+    const rowIndex = activeCell.parentNode.rowIndex;
+    activeTable.deleteRow(rowIndex);
+    setActiveCell(null);
+    if (activeTable.rows.length === 0) {
+      activeTable.remove();
+      setActiveTable(null);
+    }
+    triggerChange();
+  };
+
+  const deleteColumn = () => {
+    if (!activeCell || !activeTable) return;
+    const cellIndex = activeCell.cellIndex;
+    Array.from(activeTable.rows).forEach(row => {
+      if (row.cells[cellIndex]) {
+        row.deleteCell(cellIndex);
+      }
+    });
+    setActiveCell(null);
+    if (activeTable.rows.length === 0 || activeTable.rows[0].cells.length === 0) {
+      activeTable.remove();
+      setActiveTable(null);
+    }
+    triggerChange();
+  };
+
+  const deleteTable = () => {
+    if (!activeTable) return;
+    activeTable.remove();
+    setActiveTable(null);
+    setActiveCell(null);
+    triggerChange();
+  };
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/notes/${unitId}`)
@@ -134,6 +360,7 @@ const AdminNoteEditor = () => {
     toolbarAdaptive: false,
     toolbarSticky: false,
     toolbarStickyOffset: 0,
+    tableAllowCellResize: true,
     uploader: {
       insertImageAsBase64URI: true
     },
@@ -311,6 +538,34 @@ const AdminNoteEditor = () => {
         if (editor.events) {
           editor.events.on('keydown', handleShortcutKey);
         }
+
+        const detectTable = () => {
+          if (!editor) return;
+          let node = editor.selection.current();
+          let cellNode = null;
+          let tableNode = null;
+          
+          while (node && node !== editor.container && node !== document.body) {
+            if (node.nodeName === 'TD' || node.nodeName === 'TH') {
+              cellNode = node;
+            }
+            if (node.nodeName === 'TABLE') {
+              tableNode = node;
+              break;
+            }
+            node = node.parentNode;
+          }
+          
+          setActiveTable(tableNode);
+          setActiveCell(cellNode);
+          if (tableNode) {
+            updateTableState(tableNode, cellNode);
+          }
+        };
+
+        if (editor.events) {
+          editor.events.on('changeSelection click keyup change afterProcessPaste cursorActivity', detectTable);
+        }
       }
     }
   }), []);
@@ -394,18 +649,292 @@ const AdminNoteEditor = () => {
         )}
       </div>
 
-      {/* Main Canvas with A4 Paper Sheet */}
-      <div className="ms-word-canvas">
-        <div className="ms-word-document-paper">
-          <JoditEditor
-            ref={editorRef}
-            value={content}
-            config={config}
-            tabIndex={1}
-            onBlur={newContent => setContent(newContent)}
-            onChange={() => {}}
-          />
+      {/* Main Canvas + Sidebar Wrapper */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+        <div className="ms-word-canvas">
+          <div className="ms-word-document-paper">
+            <JoditEditor
+              ref={editorRef}
+              value={content}
+              config={config}
+              tabIndex={1}
+              onBlur={newContent => setContent(newContent)}
+              onChange={() => {}}
+            />
+          </div>
         </div>
+
+        {/* Floating Table Tools Sidebar */}
+        {activeTable && (
+          <div className="ms-word-table-sidebar">
+            <div className="ms-word-sidebar-header">
+              <h3><span>📋</span> Table Design & Layout</h3>
+              <button className="ms-word-sidebar-close" onClick={() => { setActiveTable(null); setActiveCell(null); }}>✕</button>
+            </div>
+            
+            <div className="ms-word-sidebar-content">
+              {/* Section 1: Dimensions */}
+              <div className="ms-word-sidebar-section">
+                <div className="ms-word-sidebar-section-title">Dimensions & Alignment</div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Table Width</span>
+                  <input 
+                    type="text" 
+                    value={tableWidth} 
+                    onChange={(e) => handleTablePropChange('width', e.target.value)} 
+                    className="ms-word-sidebar-input"
+                    placeholder="e.g., 70% or 600px"
+                  />
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Table Height</span>
+                  <input 
+                    type="text" 
+                    value={tableHeight} 
+                    onChange={(e) => handleTablePropChange('height', e.target.value)} 
+                    className="ms-word-sidebar-input"
+                    placeholder="e.g., auto"
+                  />
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Alignment</span>
+                  <div className="ms-word-sidebar-btn-group">
+                    <button 
+                      type="button"
+                      onClick={() => handleTablePropChange('align', 'left')}
+                      className={`ms-word-sidebar-btn-item ${tableAlign === 'left' ? 'active' : ''}`}
+                    >
+                      Left
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleTablePropChange('align', 'center')}
+                      className={`ms-word-sidebar-btn-item ${tableAlign === 'center' ? 'active' : ''}`}
+                    >
+                      Center
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleTablePropChange('align', 'right')}
+                      className={`ms-word-sidebar-btn-item ${tableAlign === 'right' ? 'active' : ''}`}
+                    >
+                      Right
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Quick Styles */}
+              <div className="ms-word-sidebar-section">
+                <div className="ms-word-sidebar-section-title">Table Styles</div>
+                <label className="ms-word-sidebar-toggle-row">
+                  <input 
+                    type="checkbox" 
+                    checked={tableHasZebra} 
+                    onChange={(e) => handleTablePropChange('zebra', e.target.checked)} 
+                  />
+                  <span className="ms-word-sidebar-label">Zebra Stripes</span>
+                </label>
+                <label className="ms-word-sidebar-toggle-row">
+                  <input 
+                    type="checkbox" 
+                    checked={tableHasStyledHeader} 
+                    onChange={(e) => handleTablePropChange('headerStyled', e.target.checked)} 
+                  />
+                  <span className="ms-word-sidebar-label">Blue Header Row</span>
+                </label>
+              </div>
+
+              {/* Section 3: Borders & Padding */}
+              <div className="ms-word-sidebar-section">
+                <div className="ms-word-sidebar-section-title">Borders & Spacing</div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Cell Padding</span>
+                  <select 
+                    value={tableCellPadding} 
+                    onChange={(e) => handleTablePropChange('padding', e.target.value)} 
+                    className="ms-word-sidebar-select"
+                  >
+                    <option value="4px 6px">Compact (4px)</option>
+                    <option value="8px 12px">Normal (8px)</option>
+                    <option value="12px 18px">Spacious (12px)</option>
+                    <option value="16px 24px">Extra (16px)</option>
+                  </select>
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Border Style</span>
+                  <select 
+                    value={tableBorderStyle} 
+                    onChange={(e) => handleTablePropChange('borderStyle', e.target.value)} 
+                    className="ms-word-sidebar-select"
+                  >
+                    <option value="none">None</option>
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="double">Double</option>
+                  </select>
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Border Width</span>
+                  <select 
+                    value={tableBorderWidth} 
+                    onChange={(e) => handleTablePropChange('borderWidth', e.target.value)} 
+                    className="ms-word-sidebar-select"
+                  >
+                    <option value="1px">Thin (1px)</option>
+                    <option value="2px">Medium (2px)</option>
+                    <option value="3px">Thick (3px)</option>
+                    <option value="4px">Extra Thick (4px)</option>
+                  </select>
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Border Color</span>
+                  <div className="ms-word-sidebar-color-picker">
+                    <input 
+                      type="color" 
+                      value={tableBorderColor.startsWith('#') ? tableBorderColor : '#cbd5e1'} 
+                      onChange={(e) => handleTablePropChange('borderColor', e.target.value)} 
+                      className="ms-word-sidebar-color-input"
+                    />
+                    <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{tableBorderColor}</span>
+                  </div>
+                </div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Borders Collapse</span>
+                  <div className="ms-word-sidebar-btn-group">
+                    <button 
+                      type="button"
+                      onClick={() => handleTablePropChange('borderCollapse', 'collapse')}
+                      className={`ms-word-sidebar-btn-item ${tableBorderCollapse === 'collapse' ? 'active' : ''}`}
+                    >
+                      Collapse
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleTablePropChange('borderCollapse', 'separate')}
+                      className={`ms-word-sidebar-btn-item ${tableBorderCollapse === 'separate' ? 'active' : ''}`}
+                    >
+                      Separate
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Cell Styling */}
+              <div className="ms-word-sidebar-section">
+                <div className="ms-word-sidebar-section-title">Cell Properties ({activeCell ? activeCell.tagName : 'None Selected'})</div>
+                <div className="ms-word-sidebar-row">
+                  <span className="ms-word-sidebar-label">Cell Shading</span>
+                  <div className="ms-word-sidebar-color-picker">
+                    <input 
+                      type="color" 
+                      value={cellBgColor.startsWith('#') ? cellBgColor : '#ffffff'} 
+                      onChange={(e) => handleCellPropChange('backgroundColor', e.target.value)} 
+                      className="ms-word-sidebar-color-input"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => handleCellPropChange('backgroundColor', 'transparent')}
+                      className="ms-word-sidebar-btn-item"
+                      style={{ padding: '2px 5px', fontSize: '0.7rem' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                {activeCell && (
+                  <>
+                    <div className="ms-word-sidebar-row">
+                      <span className="ms-word-sidebar-label">Text Align</span>
+                      <div className="ms-word-sidebar-btn-group">
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('textAlign', 'left')}
+                          className={`ms-word-sidebar-btn-item ${cellTextAlign === 'left' ? 'active' : ''}`}
+                        >
+                          Left
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('textAlign', 'center')}
+                          className={`ms-word-sidebar-btn-item ${cellTextAlign === 'center' ? 'active' : ''}`}
+                        >
+                          Center
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('textAlign', 'right')}
+                          className={`ms-word-sidebar-btn-item ${cellTextAlign === 'right' ? 'active' : ''}`}
+                        >
+                          Right
+                        </button>
+                      </div>
+                    </div>
+                    <div className="ms-word-sidebar-row">
+                      <span className="ms-word-sidebar-label">Vertical Align</span>
+                      <div className="ms-word-sidebar-btn-group">
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('verticalAlign', 'top')}
+                          className={`ms-word-sidebar-btn-item ${cellVerticalAlign === 'top' ? 'active' : ''}`}
+                        >
+                          Top
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('verticalAlign', 'middle')}
+                          className={`ms-word-sidebar-btn-item ${cellVerticalAlign === 'middle' ? 'active' : ''}`}
+                        >
+                          Mid
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleCellPropChange('verticalAlign', 'bottom')}
+                          className={`ms-word-sidebar-btn-item ${cellVerticalAlign === 'bottom' ? 'active' : ''}`}
+                        >
+                          Bot
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Section 5: Layout Modifiers */}
+              <div className="ms-word-sidebar-section">
+                <div className="ms-word-sidebar-section-title">Modify Layout</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button type="button" onClick={() => insertRow(true)} className="ms-word-sidebar-btn-action">
+                    ➕ Row Above
+                  </button>
+                  <button type="button" onClick={() => insertRow(false)} className="ms-word-sidebar-btn-action">
+                    ➕ Row Below
+                  </button>
+                  <button type="button" onClick={() => insertColumn(true)} className="ms-word-sidebar-btn-action">
+                    ➕ Col Left
+                  </button>
+                  <button type="button" onClick={() => insertColumn(false)} className="ms-word-sidebar-btn-action">
+                    ➕ Col Right
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                  <button type="button" onClick={deleteRow} className="ms-word-sidebar-btn-action" style={{ color: '#d32f2f' }}>
+                    ➖ Delete Row
+                  </button>
+                  <button type="button" onClick={deleteColumn} className="ms-word-sidebar-btn-action" style={{ color: '#d32f2f' }}>
+                    ➖ Delete Col
+                  </button>
+                </div>
+                <div style={{ marginTop: '12px' }}>
+                  <button type="button" onClick={deleteTable} className="ms-word-sidebar-btn-danger">
+                    🗑️ Delete Table
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MS Word Bottom Status Bar */}
