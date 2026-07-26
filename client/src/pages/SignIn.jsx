@@ -76,6 +76,11 @@ const SignIn = () => {
       localStorage.setItem('userId', user.id || user._id)
       localStorage.setItem('userEmail', user.email)
       
+      // Track Google Login in GA4
+      if (window.gtag) {
+        window.gtag('event', 'login', { method: 'google' });
+      }
+      
       navigate('/profile')
       window.location.reload()
     } catch (err) {
@@ -111,6 +116,11 @@ const SignIn = () => {
       localStorage.setItem('userRole', user.role)
       localStorage.setItem('userId', user.id)
       localStorage.setItem('userEmail', user.email)
+      
+      // Track Email Login in GA4
+      if (window.gtag) {
+        window.gtag('event', 'login', { method: 'email' });
+      }
       
       navigate('/profile')
       window.location.reload()

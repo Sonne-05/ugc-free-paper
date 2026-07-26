@@ -24,6 +24,13 @@ const Contact = () => {
         const data = await res.json()
         if (res.ok) {
           setSubmitted(true)
+          // Track contact form submission in GA4
+          if (window.gtag) {
+            window.gtag('event', 'generate_lead', {
+              event_category: 'contact',
+              event_label: 'Contact Form Submission'
+            });
+          }
         } else {
           setError(data.message || 'Failed to send message. Please try again.')
         }

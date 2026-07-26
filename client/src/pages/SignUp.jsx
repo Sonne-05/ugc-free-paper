@@ -61,6 +61,11 @@ const SignUp = () => {
       localStorage.setItem('userId', user.id || user._id)
       localStorage.setItem('userEmail', user.email)
       
+      // Track Google Sign Up in GA4
+      if (window.gtag) {
+        window.gtag('event', 'sign_up', { method: 'google' });
+      }
+      
       navigate('/profile')
       window.location.reload()
     } catch (err) {
@@ -96,6 +101,11 @@ const SignUp = () => {
       localStorage.setItem('userRole', user.role)
       localStorage.setItem('userId', user.id)
       localStorage.setItem('userEmail', user.email)
+      
+      // Track Email Sign Up in GA4
+      if (window.gtag) {
+        window.gtag('event', 'sign_up', { method: 'email' });
+      }
       
       // Redirect to profile dashboard
       navigate('/profile')

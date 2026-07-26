@@ -545,6 +545,14 @@ const MockTest = () => {
     
     setStep(STEP_TEST)
     setIsTimerRunning(true)
+
+    // Track mock test start in GA4
+    if (window.gtag) {
+      window.gtag('event', 'start_mock_test', {
+        paper_id: paperDetails?.paperId || 'unknown',
+        paper_title: paperDetails?.title || 'unknown'
+      });
+    }
   }
 
   // Toggle fullscreen
@@ -699,6 +707,16 @@ const MockTest = () => {
       score: score,
       maxScore: questionsState.length * 2
     })
+
+    // Track mock test completion in GA4
+    if (window.gtag) {
+      window.gtag('event', 'submit_mock_test', {
+        paper_id: paperDetails?.paperId || 'unknown',
+        paper_title: paperDetails?.title || 'unknown',
+        score: score,
+        max_score: questionsState.length * 2
+      });
+    }
 
     // Save attempt to database in real-time
     const userId = localStorage.getItem('userId')
