@@ -177,18 +177,19 @@ const MockTest = () => {
   const stripPrefix = (str, type) => {
     if (!str) return ''
     let cleaned = str.trim()
+    let stripped = cleaned
     if (type === 'letter') {
-      cleaned = cleaned.replace(/^[\(\[]?[a-eA-E][\)\]\.\:\-\,\，\s]\s*/, '')
+      stripped = cleaned.replace(/^[\(\[][a-eA-E][\)\]]\s*/, '').replace(/^[a-eA-E][\)\]\.\:\-\,\，]\s*/, '')
     } else if (type === 'roman') {
-      cleaned = cleaned.replace(/^[\(\[]?[ivxIVX]+[\)\]\.\:\-\,\，\s]\s*/, '')
+      stripped = cleaned.replace(/^[\(\[][ivxIVX]+[\)\]]\s*/, '').replace(/^[ivxIVX]+[\)\]\.\:\,\，]\s*/, '')
     } else if (type === 'number') {
-      cleaned = cleaned.replace(/^[\(\[]?\d+[\)\]\.\:\-\,\，\s]\s*/, '')
+      stripped = cleaned.replace(/^[\(\[][0-9]+[\)\]]\s*/, '').replace(/^[0-9]+[\)\]\.\:\-\,\，]\s*/, '')
     } else if (type === 'assertion') {
-      cleaned = cleaned.replace(/^assertion\s*\(?A\)?[\s\:\-\.\,\，\s]*/i, '')
+      stripped = cleaned.replace(/^assertion\s*\(?A\)?[\s\:\-\.\,\，\s]*/i, '')
     } else if (type === 'reason') {
-      cleaned = cleaned.replace(/^reason\s*\(?R\)?[\s\:\-\.\,\，\s]*/i, '')
+      stripped = cleaned.replace(/^reason\s*\(?R\)?[\s\:\-\.\,\，\s]*/i, '')
     }
-    return cleaned
+    return stripped.trim() !== '' ? stripped.trim() : cleaned
   }
 
   const formatOptionLabel = (option, idx) => {
@@ -1277,7 +1278,7 @@ const MockTest = () => {
                             <td style={{ border: '1px solid var(--border)', padding: '6px 10px', verticalAlign: 'top' }}>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <strong>{['I', 'II', 'III', 'IV', 'V'][idx] || (idx+1)}.</strong>
-                                <span>{renderTextHtml(stripPrefix((questionsState[activeQuestionIndex].list2 || [])[idx] || '', 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, ''))}</span>
+                                <span>{renderTextHtml(stripPrefix(stripPrefix((questionsState[activeQuestionIndex].list2 || [])[idx] || '', 'roman'), 'number'))}</span>
                               </div>
                             </td>
                           </tr>
@@ -1994,8 +1995,8 @@ const MockTest = () => {
                                 {renderTextHtml(q.list2Header)}
                               </div>
                             )}
-                            {(q.list2 || []).map((l2, lIdx) => (
-                              <div key={lIdx}>{['I', 'II', 'III', 'IV', 'V'][lIdx] || (lIdx+1)}. {renderTextHtml(stripPrefix(l2, 'roman').replace(/^[\(\[]?\d+[\)\]\.\s]*/, ''))}</div>
+                             {(q.list2 || []).map((l2, lIdx) => (
+                              <div key={lIdx}>{['I', 'II', 'III', 'IV', 'V'][lIdx] || (lIdx+1)}. {renderTextHtml(stripPrefix(stripPrefix(l2, 'roman'), 'number'))}</div>
                             ))}
                           </div>
                         </div>
