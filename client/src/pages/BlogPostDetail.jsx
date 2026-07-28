@@ -29,6 +29,19 @@ const BlogPostDetail = () => {
       })
   }, [id])
 
+  useEffect(() => {
+    if (post) {
+      document.title = `${post.title} - UGC Free Paper`;
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', post.excerpt || 'Read this article on UGC Free Paper.');
+    }
+  }, [post])
+
   if (loading) {
     return (
       <div className="blog-detail-page loading-state">

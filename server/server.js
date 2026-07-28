@@ -1516,6 +1516,86 @@ app.post('/api/subscribe', async (req, res) => {
   }
 });
 
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const BlogPost = require('./models/BlogPost');
+    const Note = require('./models/Note');
+
+    const posts = await BlogPost.find({}).select('_id updatedAt').exec();
+    const notes = await Note.find({ isAvailable: true }).select('unitId updatedAt').exec();
+
+    // Standard static pages
+    const staticPages = [
+      '',
+      '/paper1',
+      '/paper2',
+      '/paper1-notes',
+      '/about',
+      '/blog',
+      '/contact',
+      '/support',
+      '/privacy',
+      '/terms'
+    ];
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    // Add static pages
+    const today = new Date().toISOString().split('T')[0];
+    staticPages.forEach(page => {
+      xml += '  <url>\n';
+      xml += `    <loc>https://ugcfreepaper.com${page}</loc>\n`;
+      xml += `    <lastmod>${today}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>' + (page === '' ? '1.0' : '0.8') + '</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    // Add notes pages
+    notes.forEach(note => {
+      const lastmod = note.updatedAt ? new Date(note.updatedAt).toISOString().split('T')[0] : today;
+      xml += '  <url>\n';
+      xml += `    <loc>https://ugcfreepaper.com/paper1-notes/unit-${note.unitId}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>0.7</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    // Fallback units 1 to 10 if not present in the DB
+    for (let i = 1; i <= 10; i++) {
+      if (!notes.some(n => String(n.unitId) === String(i))) {
+        xml += '  <url>\n';
+        xml += `    <loc>https://ugcfreepaper.com/paper1-notes/unit-${i}</loc>\n`;
+        xml += `    <lastmod>${today}</lastmod>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.7</priority>\n';
+        xml += '  </url>\n';
+      }
+    }
+
+    // Add blog posts
+    posts.forEach(post => {
+      const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : today;
+      xml += '  <url>\n';
+      xml += `    <loc>https://ugcfreepaper.com/blog/${post._id}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>0.6</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    xml += '</urlset>';
+
+    res.header('Content-Type', 'application/xml');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Local backend server running on port ${PORT}`);
 });

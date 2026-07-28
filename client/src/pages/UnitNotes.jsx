@@ -37,6 +37,33 @@ const UnitNotes = () => {
       })
   }, [unitId, cleanedId])
 
+  useEffect(() => {
+    let title = '';
+    let desc = '';
+    
+    if (customData) {
+      title = `${customData.unitTitle} Notes - UGC Free Paper`;
+      desc = customData.subtitle || `Practice and read notes for UGC NET Paper 1 - ${customData.unitTitle}.`;
+    } else if (fallbackUnit) {
+      title = `${fallbackUnit.title} Notes - UGC Free Paper`;
+      desc = fallbackUnit.overview || `Practice and read notes for UGC NET Paper 1 - ${fallbackUnit.title}.`;
+    } else if (cleanedId === '1') {
+      title = 'Unit 1: Teaching Aptitude Notes - UGC Free Paper';
+      desc = 'Read teaching aptitude study notes and syllabus guide for UGC NET Paper 1 preparation.';
+    }
+    
+    if (title) {
+      document.title = title;
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', desc);
+    }
+  }, [customData, fallbackUnit, cleanedId])
+
   if (loading) {
     return <div style={{ padding: '100px', textAlign: 'center' }}>Loading notes...</div>
   }

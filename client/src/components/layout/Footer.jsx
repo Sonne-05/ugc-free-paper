@@ -18,7 +18,7 @@ const Footer = () => {
             Empowering NTA NET Aspirants with world-class free education tools.
           </p>
           <div className="footer__socials" style={{ display: 'flex', gap: '8px' }}>
-            <a href="/support" className="footer__social-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', color: '#475569', textDecoration: 'none' }} aria-label="Share">
+            <Link to="/support" className="footer__social-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', color: '#475569', textDecoration: 'none' }} aria-label="Share">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.2" fill="none">
                 <circle cx="18" cy="5" r="3" />
                 <circle cx="6" cy="12" r="3" />
@@ -26,7 +26,7 @@ const Footer = () => {
                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                 <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
               </svg>
-            </a>
+            </Link>
             <a href="mailto:support@ugcfreepaper.com" className="footer__social-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', background: '#e2e8f0', color: '#475569', textDecoration: 'none' }} aria-label="Email">
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.2" fill="none">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
