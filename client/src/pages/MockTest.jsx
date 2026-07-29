@@ -474,6 +474,7 @@ const MockTest = () => {
             dbId: q.id,
             type: q.type || 'mcq',
             question: q.text,
+            unit: q.unit,
             options: q.options || [],
             correct: q.correct,
             assertion: q.assertion || null,

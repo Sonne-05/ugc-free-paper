@@ -18,34 +18,119 @@ export const getQuestionUnit = (question, index = 0) => {
   const passage = (question?.passage || '').toLowerCase();
   const type = question?.type;
 
-  if (type === 'di' || text.includes('table') || text.includes('di') || passage.includes('table')) {
+  // Unit 7: Data Interpretation (DI)
+  if (
+    type === 'di' || 
+    /\btable\b/i.test(text) || 
+    /\bdi\b/i.test(text) || 
+    /\btable\b/i.test(passage)
+  ) {
     return 'Unit 7: Data Interpretation';
   }
-  if (type === 'comprehension' || text.includes('passage') || text.includes('comprehension')) {
+  
+  // Unit 3: Comprehension
+  if (
+    type === 'comprehension' || 
+    /\bpassage\b/i.test(text) || 
+    /\bcomprehension\b/i.test(text)
+  ) {
     return 'Unit 3: Comprehension';
   }
-  if (text.includes('teach') || text.includes('classroom') || text.includes('student') || text.includes('evaluation') || text.includes('pedagogy')) {
+  
+  // Unit 1: Teaching Aptitude
+  if (
+    /\bteach/i.test(text) || 
+    /\bclassroom/i.test(text) || 
+    /\bstudent/i.test(text) || 
+    /\bevaluat/i.test(text) || 
+    /\bpedagog/i.test(text)
+  ) {
     return 'Unit 1: Teaching Aptitude';
   }
-  if (text.includes('research') || text.includes('hypothesis') || text.includes('thesis') || text.includes('variables') || text.includes('sampling')) {
+  
+  // Unit 2: Research Aptitude
+  if (
+    /\bresearch/i.test(text) || 
+    /\bhypothes/i.test(text) || 
+    /\bthesis\b/i.test(text) || 
+    /\btheses\b/i.test(text) || 
+    /\bvariable/i.test(text) || 
+    /\bsampl/i.test(text)
+  ) {
     return 'Unit 2: Research Aptitude';
   }
-  if (text.includes('communicat') || text.includes('message') || text.includes('barrier') || text.includes('media') || text.includes('sender')) {
+  
+  // Unit 4: Communication
+  if (
+    /\bcommunicat/i.test(text) || 
+    /\bmessage/i.test(text) || 
+    /\bbarrier/i.test(text) || 
+    /\bmedia\b/i.test(text) || 
+    /\bmedium\b/i.test(text) || 
+    /\bsender/i.test(text)
+  ) {
     return 'Unit 4: Communication';
   }
-  if (text.includes('series') || text.includes('ratio') || text.includes('interest') || text.includes('coding-decoding') || text.includes('percentage') || text.includes('speed')) {
+  
+  // Unit 5: Mathematical Reasoning and Aptitude
+  if (
+    /\bseries\b/i.test(text) || 
+    /\bratio(s)?\b/i.test(text) || 
+    /\binterest\b/i.test(text) || 
+    /\bcoding-decoding/i.test(text) || 
+    /\bpercent/i.test(text) || 
+    /%/.test(text) ||
+    /\bspeed\b/i.test(text)
+  ) {
     return 'Unit 5: Mathematical Reasoning and Aptitude';
   }
-  if (text.includes('syllogism') || text.includes('argument') || text.includes('fallacy') || text.includes('pramana') || text.includes('vyapti') || text.includes('venn')) {
+  
+  // Unit 6: Logical Reasoning
+  if (
+    /\bsyllogis/i.test(text) || 
+    /\bargument/i.test(text) || 
+    /\bfallac/i.test(text) || 
+    /\bpramana/i.test(text) || 
+    /\bvyapti\b/i.test(text) || 
+    /\bvenn\b/i.test(text)
+  ) {
     return 'Unit 6: Logical Reasoning';
   }
-  if (text.includes('ict') || text.includes('internet') || text.includes('ram') || text.includes('rom') || text.includes('email') || text.includes('computer') || text.includes('software')) {
+  
+  // Unit 8: Information and Communication Technology (ICT)
+  if (
+    /\bict\b/i.test(text) || 
+    /\binternet\b/i.test(text) || 
+    /\bram\b/i.test(text) || 
+    /\brom\b/i.test(text) || 
+    /\bemail\b/i.test(text) || 
+    /\bcomputer/i.test(text) || 
+    /\bsoftware\b/i.test(text)
+  ) {
     return 'Unit 8: Information and Communication Technology (ICT)';
   }
-  if (text.includes('pollution') || text.includes('climate') || text.includes('environment') || text.includes('energy') || text.includes('disaster') || text.includes('sdg')) {
+  
+  // Unit 9: People, Development and Environment
+  if (
+    /\bpollut/i.test(text) || 
+    /\bclimat/i.test(text) || 
+    /\benvironment/i.test(text) || 
+    /\benerg/i.test(text) || 
+    /\bdisaster/i.test(text) || 
+    /\bsdg\b/i.test(text)
+  ) {
     return 'Unit 9: People, Development and Environment';
   }
-  if (text.includes('university') || text.includes('higher education') || text.includes('governance') || text.includes('nep') || text.includes('policy') || text.includes('ugc')) {
+  
+  // Unit 10: Higher Education System
+  if (
+    /\buniversity/i.test(text) || 
+    /\bhigher education/i.test(text) || 
+    /\bgovern/i.test(text) || 
+    /\bnep\b/i.test(text) || 
+    /\bpolic(y|ies)\b/i.test(text) || 
+    /\bugc\b/i.test(text)
+  ) {
     return 'Unit 10: Higher Education System';
   }
 
