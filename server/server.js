@@ -241,10 +241,23 @@ app.get('/api/questions/unit', async (req, res) => {
     if (!unitName) {
       return res.status(400).json({ message: 'unitName query parameter is required' });
     }
-    // Perform a case-insensitive regex query starting with the unit prefix (e.g. "Unit 1")
-    const questions = await Question.find({
-      unit: { $regex: new RegExp('^' + unitName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i') }
-    }).limit(100);
+    
+    // Perform a case-insensitive regex query starting with the unit prefix
+    const escapedUnitName = unitName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const query = {
+      $or: [
+        { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } }
+      ]
+    };
+
+    // Fallback: match by question type if unit fields are missing in database
+    if (unitName.toLowerCase().includes('unit 7') || unitName.toLowerCase().includes('data interpretation')) {
+      query.$or.push({ type: 'di' });
+    } else if (unitName.toLowerCase().includes('unit 3') || unitName.toLowerCase().includes('comprehension')) {
+      query.$or.push({ type: 'comprehension' });
+    }
+
+    const questions = await Question.find(query).limit(100);
     res.json(questions);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch unit questions', error: err.message });
