@@ -57,7 +57,7 @@ function App() {
       title = 'UGC NET Paper 1 PYQ Practice - UGC Free Paper';
       description = 'Practice UGC NET Paper 1 (General Paper on Teaching & Research Aptitude) previous year questions by year and unit. Free mock tests and answers.';
     } else if (path === '/paper1-unit-pyq') {
-      title = 'UGC NET Paper 1 Unit-wise PYQ Practice - UGC Free Paper';
+      title = 'UGC NET Paper 1 (Unit Wise) PYQ Practice - UGC Free Paper';
       description = 'Practice UGC NET Paper 1 previous year questions unit-wise. Completely free CBT practice tests for all 10 general aptitude syllabus units.';
     } else if (path === '/paper2') {
       title = 'UGC NET Paper 2 PYQ Practice - UGC Free Paper';

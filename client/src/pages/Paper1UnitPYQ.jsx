@@ -8,7 +8,7 @@ const Paper1UnitPYQ = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = 'Paper I Unit-wise PYQs - UGC Free Paper'
+    document.title = 'Paper 1 (Unit Wise) PYQs - UGC Free Paper'
   }, [])
 
   const units = [
@@ -143,7 +143,7 @@ const Paper1UnitPYQ = () => {
       state: {
         isUnitWise: true,
         unitName: unit.fullName,
-        title: `Paper I - ${unit.name}`,
+        title: `Paper 1 - ${unit.name}`,
         subtitle: 'Unit-wise Practice PYQ',
         questionsCount: 50
       }
@@ -153,7 +153,7 @@ const Paper1UnitPYQ = () => {
   return (
     <div className="pyq-page">
       <div className="pyq-page__container" style={{ maxWidth: '1100px' }}>
-        <h1 className="pyq-page__title">Paper I Unit-wise PYQs</h1>
+        <h1 className="pyq-page__title">Paper 1 (Unit Wise) PYQs</h1>
         <p className="pyq-page__subtitle">Select a specific syllabus unit to practice official previous years' questions.</p>
 
         <section className="pyq-page__intro">
