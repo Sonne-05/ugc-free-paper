@@ -97,6 +97,13 @@ const Navbar = () => {
                     <span className="navbar__dropdown-desc">General Aptitude & Teaching PYQs</span>
                   </div>
                 </Link>
+                <Link to="/paper1-unit-pyq" className={`navbar__dropdown-item ${isActive('/paper1-unit-pyq') ? 'navbar__dropdown-item--active' : ''}`}>
+                  <div className="navbar__dropdown-icon">U</div>
+                  <div className="navbar__dropdown-content">
+                    <span className="navbar__dropdown-title">Paper I Unit-wise</span>
+                    <span className="navbar__dropdown-desc">Practice PYQs sorted by Unit topics</span>
+                  </div>
+                </Link>
                 <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
                   <div className="navbar__dropdown-icon">II</div>
                   <div className="navbar__dropdown-content">
@@ -244,6 +251,9 @@ const Navbar = () => {
               <div className="navbar__mobile-group-menu">
                 <Link to="/paper1" className={`navbar__mobile-group-item ${isActive('/paper1') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
                   Paper I (General Aptitude)
+                </Link>
+                <Link to="/paper1-unit-pyq" className={`navbar__mobile-group-item ${isActive('/paper1-unit-pyq') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
+                  Paper I (Unit-wise PYQ)
                 </Link>
                 <Link to="/paper2" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
                   Paper II (Subject Specific)

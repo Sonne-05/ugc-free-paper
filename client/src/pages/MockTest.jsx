@@ -463,9 +463,13 @@ const MockTest = () => {
 
   // Initialize questions
   useEffect(() => {
-    if (!paperDetails.paperId) return;
+    if (!paperDetails.paperId && !paperDetails.isUnitWise) return;
     
-    fetch(`${API_BASE_URL}/api/pyqsets/${paperDetails.paperId}/questions`)
+    const url = paperDetails.isUnitWise
+      ? `${API_BASE_URL}/api/questions/unit?unitName=${encodeURIComponent(paperDetails.unitName)}`
+      : `${API_BASE_URL}/api/pyqsets/${paperDetails.paperId}/questions`;
+      
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -722,7 +726,7 @@ const MockTest = () => {
 
     // Save attempt to database in real-time
     const userId = localStorage.getItem('userId')
-    if (userId && paperDetails.paperId) {
+    if (userId && (paperDetails.paperId || paperDetails.isUnitWise)) {
       const breakdown = {}
       questionsState.forEach((q, qIndex) => {
         const unitName = getQuestionUnit(q, qIndex)
@@ -746,7 +750,7 @@ const MockTest = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          setId: paperDetails.paperId,
+          setId: paperDetails.paperId || 'unit-wise',
           title: paperDetails.title,
           score: `${correctCount}/${questionsState.length}`,
           timeSpent: `${timeSpentMins} mins`,

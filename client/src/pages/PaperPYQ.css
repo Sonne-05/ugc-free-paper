@@ -165,3 +165,9 @@
   color: var(--primary);
   background: rgba(37, 99, 235, 0.005);
 }
+
+.unit-pyq-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.08) !important;
+  border-color: var(--primary) !important;
+}

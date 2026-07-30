@@ -15,6 +15,7 @@ import Paper1Notes from './pages/Paper1Notes'
 import UnitNotes from './pages/UnitNotes'
 import Paper1PYQ from './pages/Paper1PYQ'
 import Paper2PYQ from './pages/Paper2PYQ'
+import Paper1UnitPYQ from './pages/Paper1UnitPYQ'
 import Profile from './pages/Profile'
 import ManageSet from './pages/ManageSet'
 import AdminNoteEditor from './pages/AdminNoteEditor'
@@ -55,6 +56,9 @@ function App() {
     } else if (path === '/paper1') {
       title = 'UGC NET Paper 1 PYQ Practice - UGC Free Paper';
       description = 'Practice UGC NET Paper 1 (General Paper on Teaching & Research Aptitude) previous year questions by year and unit. Free mock tests and answers.';
+    } else if (path === '/paper1-unit-pyq') {
+      title = 'UGC NET Paper 1 Unit-wise PYQ Practice - UGC Free Paper';
+      description = 'Practice UGC NET Paper 1 previous year questions unit-wise. Completely free CBT practice tests for all 10 general aptitude syllabus units.';
     } else if (path === '/paper2') {
       title = 'UGC NET Paper 2 PYQ Practice - UGC Free Paper';
       description = 'Practice UGC NET Paper 2 subject-specific previous year questions. Free online CBT mock tests and detailed explanations for your subject.';
@@ -145,6 +149,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/paper1" element={<Paper1PYQ />} />
+          <Route path="/paper1-unit-pyq" element={<Paper1UnitPYQ />} />
           <Route path="/paper2" element={<Paper2PYQ />} />
           <Route path="/paper1-notes" element={<Paper1Notes />} />
           <Route path="/paper1-notes/:unitId" element={<UnitNotes />} />

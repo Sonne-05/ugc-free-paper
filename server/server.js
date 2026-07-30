@@ -234,6 +234,23 @@ app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   }
 });
 
+// Get all questions for a unit (Paper 1 unit-wise)
+app.get('/api/questions/unit', async (req, res) => {
+  try {
+    const { unitName } = req.query;
+    if (!unitName) {
+      return res.status(400).json({ message: 'unitName query parameter is required' });
+    }
+    // Perform a case-insensitive regex query starting with the unit prefix (e.g. "Unit 1")
+    const questions = await Question.find({
+      unit: { $regex: new RegExp('^' + unitName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i') }
+    }).limit(100);
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch unit questions', error: err.message });
+  }
+});
+
 // Bulk add questions
 app.post('/api/questions/bulk', async (req, res) => {
   try {
