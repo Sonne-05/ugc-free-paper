@@ -367,6 +367,7 @@ const MockTest = () => {
   
   // Timer state
   const [timerSeconds, setTimerSeconds] = useState(paperDetails.questionsCount === 50 ? 3600 : 7200) // 1hr for 50Qs, 2hrs for 100Qs
+  const [initialTimerSeconds, setInitialTimerSeconds] = useState(paperDetails.questionsCount === 50 ? 3600 : 7200)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const timerIntervalRef = useRef(null)
   
@@ -494,6 +495,10 @@ const MockTest = () => {
             status: 'UNVISITED'
           }))
           setQuestionsState(formattedQuestions)
+          const qCount = formattedQuestions.length
+          const initialTime = qCount === 50 ? 3600 : qCount === 100 ? 7200 : Math.round(qCount * 72)
+          setTimerSeconds(initialTime)
+          setInitialTimerSeconds(initialTime)
         }
       })
       .catch(err => {
@@ -745,7 +750,7 @@ const MockTest = () => {
         }
       })
 
-      const timeSpentMins = Math.round(((paperDetails.questionsCount === 50 ? 3600 : 7200) - timerSeconds) / 60)
+      const timeSpentMins = Math.max(1, Math.round((initialTimerSeconds - timerSeconds) / 60))
       fetch(`${API_BASE_URL}/api/users/${userId}/attempts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -993,31 +998,39 @@ const MockTest = () => {
               <div className="mt-instructions">
                 <h2>{paperDetails.title}</h2>
                 <div className="mt-instructions__body">
-                  <table className="declaration-table">
-                    <tbody>
-                      <tr>
-                        <td colSpan="2">UGC NET Paper Analysis & Details</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Duration:</strong></td>
-                        <td>{paperDetails.questionsCount === 50 ? "60 Minutes" : "120 Minutes"}</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Maximum Marks:</strong></td>
-                        <td>{paperDetails.questionsCount * 2} Marks</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  {(() => {
+                    const totalQs = questionsState.length > 0 ? questionsState.length : paperDetails.questionsCount;
+                    const durationMins = totalQs === 50 ? 60 : totalQs === 100 ? 120 : Math.round(totalQs * 1.2);
+                    return (
+                      <>
+                        <table className="declaration-table">
+                          <tbody>
+                            <tr>
+                              <td colSpan="2">UGC NET Paper Analysis & Details</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Duration:</strong></td>
+                              <td>{durationMins} Minutes</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Maximum Marks:</strong></td>
+                              <td>{totalQs * 2} Marks</td>
+                            </tr>
+                          </tbody>
+                        </table>
 
-                  <p><strong>Read the following instructions carefully:</strong></p>
-                  <ol>
-                    <li>The Test contains a total of {paperDetails.questionsCount} questions.</li>
-                    <li>Each question has 4 options out of which only one is correct.</li>
-                    <li>You have to finish the test in {paperDetails.questionsCount === 50 ? "60" : "120"} minutes.</li>
-                    <li>There is no negative marking in this test.</li>
-                    <li>You will be awarded 2 marks for each correct answer.</li>
-                    <li>Once you start the test, you will not be allowed to reattempt it. Make sure that you complete the test before you submit the test and/or close the browser.</li>
-                  </ol>
+                        <p><strong>Read the following instructions carefully:</strong></p>
+                        <ol>
+                          <li>The Test contains a total of {totalQs} questions.</li>
+                          <li>Each question has 4 options out of which only one is correct.</li>
+                          <li>You have to finish the test in {durationMins} minutes.</li>
+                          <li>There is no negative marking in this test.</li>
+                          <li>You will be awarded 2 marks for each correct answer.</li>
+                          <li>Once you start the test, you will not be allowed to reattempt it. Make sure that you complete the test before you submit the test and/or close the browser.</li>
+                        </ol>
+                      </>
+                    );
+                  })()}
 
                   <div className="lang-selector-container">
                     <label htmlFor="lang-select">Choose your default language:</label>
@@ -1752,7 +1765,7 @@ const MockTest = () => {
                         setStep(STEP_INSTRUCTIONS_1)
                         setDeclarationChecked(false)
                         setDefaultLanguage('')
-                        setTimerSeconds(paperDetails.questionsCount === 50 ? 3600 : 7200)
+                        setTimerSeconds(initialTimerSeconds)
                       }}
                     >
                       Re-take Test
