@@ -228,7 +228,13 @@ app.delete('/api/pyqsets/:id', async (req, res) => {
 app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   try {
     const questions = await Question.find({ setId: req.params.setId }).sort({ qIndex: 1, createdAt: 1 });
-    res.json(questions);
+    const set = await PyqSet.findById(req.params.setId);
+    const questionsWithYear = questions.map(q => {
+      const qObj = q.toJSON();
+      qObj.year = set ? set.year : null;
+      return qObj;
+    });
+    res.json(questionsWithYear);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch questions' });
   }
@@ -258,7 +264,22 @@ app.get('/api/questions/unit', async (req, res) => {
     }
 
     const questions = await Question.find(query).limit(100);
-    res.json(questions);
+    
+    // Fetch unique set ids and load their years
+    const setIds = [...new Set(questions.map(q => q.setId.toString()).filter(Boolean))];
+    const sets = await PyqSet.find({ _id: { $in: setIds } });
+    const yearMap = {};
+    sets.forEach(s => {
+      yearMap[s._id.toString()] = s.year;
+    });
+
+    const questionsWithYear = questions.map(q => {
+      const qObj = q.toJSON();
+      qObj.year = q.setId ? (yearMap[q.setId.toString()] || null) : null;
+      return qObj;
+    });
+
+    res.json(questionsWithYear);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch unit questions', error: err.message });
   }

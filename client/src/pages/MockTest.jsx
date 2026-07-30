@@ -491,6 +491,7 @@ const MockTest = () => {
             statements: q.statements || [],
             passage: q.passage || null,
             explanation: q.explanation || null,
+            year: q.year || null,
             userAnswer: null,
             status: 'UNVISITED'
           }))
@@ -1120,7 +1121,14 @@ const MockTest = () => {
                   </div>
                   <div className="question-pane">
                     <div className="question-header">
-                      <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                      <div className="question-num">
+                        Question No. {activeQuestionIndex + 1}
+                        {questionsState[activeQuestionIndex]?.year && (
+                          <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                            {questionsState[activeQuestionIndex].year} PYQ
+                          </span>
+                        )}
+                      </div>
                       <div className="question-meta">
                         <span className="meta-badge meta-badge--positive">Marks +2</span>
                         <span className="meta-badge meta-badge--negative">-0</span>
@@ -1158,7 +1166,14 @@ const MockTest = () => {
               {questionsState[activeQuestionIndex].type === 'di' && (
                 <div className="question-area">
                   <div className="question-header">
-                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-num">
+                      Question No. {activeQuestionIndex + 1}
+                      {questionsState[activeQuestionIndex]?.year && (
+                        <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                          {questionsState[activeQuestionIndex].year} PYQ
+                        </span>
+                      )}
+                    </div>
                     <div className="question-meta">
                       <span className="meta-badge meta-badge--positive">Marks +2</span>
                       <span className="meta-badge meta-badge--negative">-0</span>
@@ -1205,7 +1220,14 @@ const MockTest = () => {
               {questionsState[activeQuestionIndex].type === 'assertion-reason' && (
                 <div className="question-area">
                   <div className="question-header">
-                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-num">
+                      Question No. {activeQuestionIndex + 1}
+                      {questionsState[activeQuestionIndex]?.year && (
+                        <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                          {questionsState[activeQuestionIndex].year} PYQ
+                        </span>
+                      )}
+                    </div>
                     <div className="question-meta">
                       <span className="meta-badge meta-badge--positive">Marks +2</span>
                       <span className="meta-badge meta-badge--negative">-0</span>
@@ -1253,7 +1275,14 @@ const MockTest = () => {
               {questionsState[activeQuestionIndex].type === 'match-column' && (
                 <div className="question-area">
                   <div className="question-header">
-                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-num">
+                      Question No. {activeQuestionIndex + 1}
+                      {questionsState[activeQuestionIndex]?.year && (
+                        <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                          {questionsState[activeQuestionIndex].year} PYQ
+                        </span>
+                      )}
+                    </div>
                     <div className="question-meta">
                       <span className="meta-badge meta-badge--positive">Marks +2</span>
                       <span className="meta-badge meta-badge--negative">-0</span>
@@ -1335,7 +1364,14 @@ const MockTest = () => {
               {questionsState[activeQuestionIndex].type === 'multiple-statement' && (
                 <div className="question-area">
                   <div className="question-header">
-                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-num">
+                      Question No. {activeQuestionIndex + 1}
+                      {questionsState[activeQuestionIndex]?.year && (
+                        <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                          {questionsState[activeQuestionIndex].year} PYQ
+                        </span>
+                      )}
+                    </div>
                     <div className="question-meta">
                       <span className="meta-badge meta-badge--positive">Marks +2</span>
                       <span className="meta-badge meta-badge--negative">-0</span>
@@ -1387,7 +1423,14 @@ const MockTest = () => {
               {(!questionsState[activeQuestionIndex].type || questionsState[activeQuestionIndex].type === 'mcq') && (
                 <div className="question-area">
                   <div className="question-header">
-                    <div className="question-num">Question No. {activeQuestionIndex + 1}</div>
+                    <div className="question-num">
+                      Question No. {activeQuestionIndex + 1}
+                      {questionsState[activeQuestionIndex]?.year && (
+                        <span style={{ marginLeft: '8px', fontSize: '0.82rem', color: '#64748b', fontWeight: '500', padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px' }}>
+                          {questionsState[activeQuestionIndex].year} PYQ
+                        </span>
+                      )}
+                    </div>
                     <div className="question-meta">
                       <span className="meta-badge meta-badge--positive">Marks +2</span>
                       <span className="meta-badge meta-badge--negative">-0</span>
