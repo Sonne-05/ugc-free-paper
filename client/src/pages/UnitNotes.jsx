@@ -11,6 +11,8 @@ const UnitNotes = () => {
   const [selectedAnswers, setSelectedAnswers] = useState({})
   const [customData, setCustomData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [studyNotesEnabled, setStudyNotesEnabled] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
   
   // Extract number from param (e.g. "unit-1" -> "1")
   const cleanedId = unitId?.replace('unit-', '') || ''
@@ -19,22 +21,35 @@ const UnitNotes = () => {
   // Scroll to top and fetch custom data
   useEffect(() => {
     window.scrollTo(0, 0)
+    setIsAdmin(localStorage.getItem('userRole') === 'admin')
     
-    // Fetch custom note data from local backend
+    // Fetch custom note data and settings status from local backend
     setLoading(true)
-    fetch(`${API_BASE_URL}/api/notes/${cleanedId}`)
+
+    const fetchSettings = fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.studyNotesEnabled !== undefined) {
+          setStudyNotesEnabled(data.studyNotesEnabled)
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings:', err))
+
+    const fetchNote = fetch(`${API_BASE_URL}/api/notes/${cleanedId}`)
       .then(res => {
         if (!res.ok) throw new Error('Not found')
         return res.json()
       })
       .then(data => {
         setCustomData(data)
-        setLoading(false)
       })
       .catch(err => {
         setCustomData(null)
-        setLoading(false)
       })
+
+    Promise.all([fetchSettings, fetchNote]).finally(() => {
+      setLoading(false)
+    })
   }, [unitId, cleanedId])
 
   useEffect(() => {
@@ -66,6 +81,31 @@ const UnitNotes = () => {
 
   if (loading) {
     return <div style={{ padding: '100px', textAlign: 'center' }}>Loading notes...</div>
+  }
+
+  if (!studyNotesEnabled && !isAdmin) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: '20px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '40px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🚧</div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text)' }}>Section Under Construction</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
+            The Study Notes section is temporarily hidden while we complete data entry. Please check back soon!
+          </p>
+          <Link to="/" style={{ 
+            display: 'inline-block', 
+            background: 'var(--primary)', 
+            color: 'white', 
+            textDecoration: 'none', 
+            padding: '10px 24px',
+            borderRadius: '6px',
+            fontWeight: 600
+          }}>
+            Go Back to Home
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   // If the notes are marked coming soon, block student access

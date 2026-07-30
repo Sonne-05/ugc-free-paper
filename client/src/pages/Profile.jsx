@@ -20,7 +20,7 @@ const Profile = () => {
   const [settings, setSettings] = useState({
     maintenanceMode: false,
     adsenseEnabled: true,
-    passPercentage: 40,
+    studyNotesEnabled: true,
     timerDuration: 120 // minutes
   })
 
@@ -85,15 +85,16 @@ const Profile = () => {
   }, [])
 
   useEffect(() => {
+    // 1. Fetch settings (for all users)
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) setSettings(data);
+      })
+      .catch(err => console.error('Failed to fetch settings:', err));
+
     const role = localStorage.getItem('userRole')
     if (role === 'admin') {
-      // 1. Fetch settings
-      fetch(`${API_BASE_URL}/api/settings`)
-        .then(res => res.json())
-        .then(data => {
-          if (data) setSettings(data);
-        })
-        .catch(err => console.error('Failed to fetch settings:', err));
 
       // 2. Fetch notes
       fetch(`${API_BASE_URL}/api/notes`)
@@ -1447,13 +1448,15 @@ const Profile = () => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="12 8 8 12 12 16 16 12 12 8"></polygon></svg>
                 <span>Prep Overview</span>
               </button>
-              <button 
-                className={`student-tab-btn ${studentTab === 'syllabus' ? 'student-tab-btn--active' : ''}`}
-                onClick={() => setStudentTab('syllabus')}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                <span>Study Material</span>
-              </button>
+              {(settings.studyNotesEnabled !== false || isAdmin) && (
+                <button 
+                  className={`student-tab-btn ${studentTab === 'syllabus' ? 'student-tab-btn--active' : ''}`}
+                  onClick={() => setStudentTab('syllabus')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <span>Study Material</span>
+                </button>
+              )}
               <button 
                 className={`student-tab-btn ${studentTab === 'practice' ? 'student-tab-btn--active' : ''}`}
                 onClick={() => setStudentTab('practice')}
@@ -1530,7 +1533,7 @@ const Profile = () => {
               )}
 
               {/* 2. SYLLABUS STUDY MATERIAL */}
-              {studentTab === 'syllabus' && (
+              {studentTab === 'syllabus' && (settings.studyNotesEnabled !== false || isAdmin) && (
                 <div className="student-pane">
                   <h2 className="pane-title">Syllabus Study Material</h2>
                   <p className="pane-desc">Track reading progress across syllabus units. Click complete to toggle read status.</p>
@@ -1813,6 +1816,19 @@ const Profile = () => {
                     <button 
                       className={`toggle-switch ${settings.adsenseEnabled ? 'toggle-switch--active' : ''}`}
                       onClick={handleToggleAdsense}
+                    >
+                      <span className="toggle-slider"></span>
+                    </button>
+                  </div>
+
+                  <div className="setting-row">
+                    <div className="setting-info">
+                      <strong className="setting-name">Study Notes Section</strong>
+                      <span className="setting-help">Control the visibility of the Study Notes section across the platform.</span>
+                    </div>
+                    <button 
+                      className={`toggle-switch ${settings.studyNotesEnabled !== false ? 'toggle-switch--active' : ''}`}
+                      onClick={() => handleSettingsChange('studyNotesEnabled', settings.studyNotesEnabled === false)}
                     >
                       <span className="toggle-slider"></span>
                     </button>

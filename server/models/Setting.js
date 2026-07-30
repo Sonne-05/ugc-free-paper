@@ -16,6 +16,10 @@ const settingSchema = new mongoose.Schema({
   timerDuration: {
     type: Number,
     default: 120
+  },
+  studyNotesEnabled: {
+    type: Boolean,
+    default: true
   }
 }, { timestamps: true });
 

@@ -617,15 +617,16 @@ app.get('/api/settings', async (req, res) => {
 
 app.post('/api/settings', async (req, res) => {
   try {
-    const { maintenanceMode, adsenseEnabled, passPercentage, timerDuration } = req.body;
+    const { maintenanceMode, adsenseEnabled, passPercentage, timerDuration, studyNotesEnabled } = req.body;
     let settings = await Setting.findOne();
     if (!settings) {
-      settings = new Setting({ maintenanceMode, adsenseEnabled, passPercentage, timerDuration });
+      settings = new Setting({ maintenanceMode, adsenseEnabled, passPercentage, timerDuration, studyNotesEnabled });
     } else {
       if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
       if (adsenseEnabled !== undefined) settings.adsenseEnabled = adsenseEnabled;
       if (passPercentage !== undefined) settings.passPercentage = passPercentage;
       if (timerDuration !== undefined) settings.timerDuration = timerDuration;
+      if (studyNotesEnabled !== undefined) settings.studyNotesEnabled = studyNotesEnabled;
     }
     await settings.save();
     res.json(settings);

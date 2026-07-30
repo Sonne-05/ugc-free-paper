@@ -4,6 +4,9 @@ import { API_BASE_URL } from '../services/api'
 import './Paper1Notes.css'
 
 const Paper1Notes = () => {
+  const [studyNotesEnabled, setStudyNotesEnabled] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [settingsLoading, setSettingsLoading] = useState(true)
   const [units, setUnits] = useState([
     { id: '1', name: 'Teaching Aptitude', isAvailable: true },
     { id: '2', name: 'Research Aptitude', isAvailable: true },
@@ -18,7 +21,18 @@ const Paper1Notes = () => {
   ])
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/notes`)
+    setIsAdmin(localStorage.getItem('userRole') === 'admin')
+
+    const fetchSettings = fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.studyNotesEnabled !== undefined) {
+          setStudyNotesEnabled(data.studyNotesEnabled)
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings:', err))
+
+    const fetchNotes = fetch(`${API_BASE_URL}/api/notes`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -34,7 +48,32 @@ const Paper1Notes = () => {
         }
       })
       .catch(err => console.error('Failed to fetch notes availability:', err))
+
+    Promise.all([fetchSettings, fetchNotes]).finally(() => {
+      setSettingsLoading(false)
+    })
   }, [])
+
+  if (settingsLoading) {
+    return <div style={{ padding: '100px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</div>
+  }
+
+  if (!studyNotesEnabled && !isAdmin) {
+    return (
+      <div className="notes-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', maxWidth: '500px', padding: '40px 20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🚧</div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text)' }}>Section Under Construction</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
+            The Study Notes section is temporarily hidden while we complete data entry. Please check back soon!
+          </p>
+          <Link to="/" className="notes-table__btn-link" style={{ display: 'inline-block', textDecoration: 'none', padding: '10px 24px' }}>
+            Go Back to Home
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="notes-page">
