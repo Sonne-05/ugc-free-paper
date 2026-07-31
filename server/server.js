@@ -263,7 +263,7 @@ app.get('/api/questions/unit', async (req, res) => {
       query.$or.push({ type: 'comprehension' });
     }
 
-    const questions = await Question.find(query).limit(100);
+    const questions = await Question.find(query);
     
     // Fetch unique set ids and load their years
     const setIds = [...new Set(questions.map(q => q.setId.toString()).filter(Boolean))];
