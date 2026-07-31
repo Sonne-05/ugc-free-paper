@@ -990,18 +990,7 @@ const MockTest = () => {
       </div>
     );
 
-    // Rough work sheet (continuous at the end)
-    bookletPages.push(
-      <div className="booklet-page-flowless" id="page-rough" key="page-rough" style={{ height: 'auto', overflow: 'visible' }}>
-        <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
-        <div className="rough-grid-lines" style={{ minHeight: '400px' }}></div>
-        <div className="page-footer">
-          <span className="footer-series">UGC-PYQ/A</span>
-          <span className="footer-page-num">ROUGH WORK</span>
-          <span className="footer-pto"></span>
-        </div>
-      </div>
-    );
+
 
     return (
       <div className="mocktest-container booklet-mode-active" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -1037,22 +1026,7 @@ const MockTest = () => {
             >
               {bookletShowKeys ? 'Hide Answer Key' : 'Show Answer Key'}
             </button>
-            <button 
-              onClick={() => window.print()} 
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                padding: '8px 16px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Print Booklet
-            </button>
+
             {isReviewMode ? (
               <button 
                 onClick={() => {
