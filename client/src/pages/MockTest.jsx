@@ -845,20 +845,139 @@ const MockTest = () => {
       );
     }
 
-    const questionsPerPage = 5;
-    const totalPagesOfQuestions = Math.ceil(questionsState.length / questionsPerPage);
+    const totalPagesOfQuestions = questionsState.length <= 3 
+      ? 1 
+      : 1 + Math.ceil((questionsState.length - 3) / 5);
+
+    // Helper to render a question block
+    const renderQuestionBlock = (q, globalIndex) => {
+      if (!q) return null;
+      return (
+        <div className="question-block" id={`q-block-${q.id}`} key={q.dbId || q.id}>
+          <div className="q-number-cell">{globalIndex + 1}.</div>
+          <div className="q-content-cell">
+            {/* Handle different question formats */}
+            {q.type === 'assertion-reason' ? (
+              <div className="q-text">
+                <p style={{ marginBottom: '10px', whiteSpace: 'pre-line' }}>
+                  {renderTextHtml(q.question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):")}
+                </p>
+                <p style={{ marginBottom: '8px' }}>
+                  <strong>Assertion (A):</strong> {renderTextHtml(stripPrefix(q.assertion, 'assertion'))}
+                </p>
+                <p style={{ marginBottom: '10px' }}>
+                  <strong>Reason (R):</strong> {renderTextHtml(stripPrefix(q.reason, 'reason'))}
+                </p>
+                <p style={{ fontWeight: 'bold' }}>
+                  {renderTextHtml(q.subPrompt || "In the light of the above statements, choose the most appropriate answer from the options given below:")}
+                </p>
+              </div>
+            ) : q.type === 'match-column' ? (
+              <div className="q-text">
+                <p style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>{renderTextHtml(q.question)}</p>
+                <table className="booklet-match-table">
+                  <thead>
+                    <tr>
+                      <th>LIST-I</th>
+                      <th>LIST-II</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: Math.max((q.list1 || []).length, (q.list2 || []).length) }).map((_, idx) => (
+                      <tr key={idx}>
+                        <td>
+                          <strong>{String.fromCharCode(65 + idx)}.</strong>{' '}
+                          {renderTextHtml(stripPrefix((q.list1 || [])[idx] || '', 'letter'))}
+                        </td>
+                        <td>
+                          <strong>{['I', 'II', 'III', 'IV', 'V'][idx] || (idx+1)}.</strong>{' '}
+                          {renderTextHtml(stripPrefix(stripPrefix((q.list2 || [])[idx] || '', 'roman'), 'number'))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ fontWeight: 'bold', marginTop: '10px' }}>
+                  {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
+                </p>
+              </div>
+            ) : q.type === 'multiple-statement' ? (
+              <div className="q-text">
+                <div style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>
+                  {renderTextHtml(q.question)}
+                </div>
+                <div style={{ marginLeft: '10px', marginBottom: '15px' }}>
+                  {(q.statements || []).map((stmt, idx) => (
+                    <div key={idx} style={{ marginBottom: '5px' }}>
+                      <strong>{String.fromCharCode(65 + idx)}.</strong> {renderTextHtml(stripPrefix(stmt, 'letter'))}
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontWeight: 'bold' }}>
+                  {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
+                </p>
+              </div>
+            ) : (
+              // Default MCQ or Comprehension/DI
+              <div>
+                {q.passage && (
+                  <div className="booklet-passage-box">
+                    {renderPassageWithTable(q.passage)}
+                  </div>
+                )}
+                <div className="q-text" style={{ whiteSpace: 'pre-line' }}>
+                  {renderTextHtml(q.question)}
+                </div>
+              </div>
+            )}
+
+            {/* Render Options */}
+            <div className="q-options-container">
+              {(q.options || []).map((option, oIdx) => {
+                const letter = ['A', 'B', 'C', 'D'][oIdx];
+                const isSelected = q.userAnswer === oIdx + 1;
+                const isCorrect = q.correct === oIdx + 1;
+                const showAsCorrect = bookletShowKeys && isCorrect;
+                const showAsIncorrect = bookletShowKeys && isSelected && !isCorrect;
+
+                let optClass = 'q-opt';
+                if (isSelected) optClass += ' selected';
+                if (showAsCorrect) optClass += ' correct-key';
+                if (showAsIncorrect) optClass += ' incorrect-selected';
+
+                return (
+                  <div 
+                    key={oIdx} 
+                    className={optClass}
+                    onClick={() => {
+                      if (!isReviewMode) {
+                        handleSelectOptionInBooklet(globalIndex, oIdx + 1);
+                      }
+                    }}
+                  >
+                    <span className="opt-letter">({letter})</span>
+                    <span className="opt-val">{renderTextHtml(formatOptionLabel(option, oIdx))}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    };
 
     // Generate pages dynamically
     const bookletPages = [];
 
-    // Page 1: Cover Page
+    // Page 1: Cover elements + First 3 questions
+    const page1Questions = questionsState.slice(0, Math.min(3, questionsState.length));
     bookletPages.push(
       <div className="booklet-page" id="page-1" key="page-1">
         <div className="cover-top-warning">
           DO NOT OPEN THIS TEST BOOKLET UNTIL YOU ARE ASKED TO DO SO
         </div>
 
-        <div className="cover-header-row">
+        <div className="cover-header-row" style={{ marginTop: '10px', marginBottom: '10px' }}>
           <div className="header-col-left">
             <div className="sl-no-block">
               T.B.C. : Sl. No. <span className="serial-underline">108254</span>
@@ -877,16 +996,16 @@ const MockTest = () => {
           </div>
         </div>
 
-        <div className="cover-meta-row">
+        <div className="cover-meta-row" style={{ marginTop: '10px', marginBottom: '10px' }}>
           <div className="meta-item">
             <strong>Time Allowed: {questionsState.length <= 50 ? '1 Hr.' : '2 Hrs.'}</strong>
           </div>
           <div className="meta-item text-center">
-            <h1 className="booklet-title">TEST BOOKLET</h1>
-            <h2 className="booklet-subject">
+            <h1 className="booklet-title" style={{ fontSize: '1.8rem', marginBottom: '4px' }}>TEST BOOKLET</h1>
+            <h2 className="booklet-subject" style={{ fontSize: '1.2rem' }}>
               {paperDetails.title.toUpperCase()}
               <br />
-              <small style={{ fontSize: '1rem', fontWeight: 'normal' }}>
+              <small style={{ fontSize: '0.85rem', fontWeight: 'normal' }}>
                 ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
               </small>
             </h2>
@@ -896,7 +1015,7 @@ const MockTest = () => {
           </div>
         </div>
 
-        <div className="roll-no-container">
+        <div className="roll-no-container" style={{ marginTop: '10px', marginBottom: '15px' }}>
           <div className="roll-no-box">
             <div className="roll-no-label">Roll No.</div>
             <div className="roll-no-grid">
@@ -912,55 +1031,28 @@ const MockTest = () => {
           </div>
         </div>
 
-        <div className="instructions-block">
-          <h3>INSTRUCTIONS TO CANDIDATES</h3>
-          <ol>
-            <li>
-              IMMEDIATELY AFTER COMMENCEMENT OF THE EXAMINATION, YOU SHOULD
-              CHECK THAT THIS TEST BOOKLET DOES NOT HAVE ANY UNPRINTED OR TORN
-              OR MISSING PAGES OR ITEMS ETC. IF SO, GET IT REPLACED BY A
-              COMPLETE TEST BOOKLET OF SAME SERIES ISSUED TO YOU.
-            </li>
-            <li>
-              Encode clearly the Test Booklet Series A, B, C or D in the appropriate place as needed.
-            </li>
-            <li>
-              Enter your Roll Number in the Box provided above. DO NOT write anything else on the Test Booklet.
-            </li>
-            <li>
-              This Test Booklet contains {questionsState.length} items (questions). Each item comprises four responses (options).
-              Select the correct option by clicking on it interactively.
-            </li>
-            <li>
-              You can toggle the <strong>Show Answer Key</strong> button in the top bar to verify the correct answers.
-            </li>
-            <li>
-              All items carry equal marks (2 marks each). There is no negative marking for incorrect responses.
-            </li>
-            <li>
-              Sheets for rough work are appended in the Test Booklet at the end.
-            </li>
-          </ol>
-        </div>
+        {/* Separator Line */}
+        <hr style={{ border: '0', borderTop: '2px double #333', margin: '0 0 20px 0' }} />
 
-        <div className="cover-bottom-warning">
-          DO NOT OPEN THIS TEST BOOKLET UNTIL YOU ARE ASKED TO DO SO
+        {/* Questions on Page 1 (first 3 questions) */}
+        <div className="booklet-page-single-column">
+          {page1Questions.map((q, pIndex) => renderQuestionBlock(q, pIndex))}
         </div>
 
         <div className="page-footer">
           <span className="footer-series">UGC-PYQ/A</span>
           <span className="footer-page-num">1</span>
-          <span className="footer-pto"></span>
+          <span className="footer-pto">{totalPagesOfQuestions > 1 ? '[P.T.O.' : ''}</span>
         </div>
       </div>
     );
 
-    // Question pages
-    for (let pageNum = 2; pageNum <= 1 + totalPagesOfQuestions; pageNum++) {
-      const qStartIndex = (pageNum - 2) * questionsPerPage;
-      const pageQuestions = questionsState.slice(qStartIndex, qStartIndex + questionsPerPage);
+    // Question pages (from pageNum = 2 onwards)
+    for (let pageNum = 2; pageNum <= totalPagesOfQuestions; pageNum++) {
+      const qStartIndex = 3 + (pageNum - 2) * 5;
+      const pageQuestions = questionsState.slice(qStartIndex, qStartIndex + 5);
 
-      const isLastQPage = pageNum === 1 + totalPagesOfQuestions;
+      const isLastQPage = pageNum === totalPagesOfQuestions;
       const showPto = (pageNum % 2 !== 0) && !isLastQPage; // Page Turn Over text on odd pages except last
 
       bookletPages.push(
@@ -968,118 +1060,7 @@ const MockTest = () => {
           <div className="booklet-page-single-column">
             {pageQuestions.map((q, pIndex) => {
               const globalIndex = qStartIndex + pIndex;
-              return (
-                <div className="question-block" id={`q-block-${q.id}`} key={q.dbId || q.id}>
-                  <div className="q-number-cell">{globalIndex + 1}.</div>
-                  <div className="q-content-cell">
-                    {/* Handle different question formats */}
-                    {q.type === 'assertion-reason' ? (
-                      <div className="q-text">
-                        <p style={{ marginBottom: '10px', whiteSpace: 'pre-line' }}>
-                          {renderTextHtml(q.question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):")}
-                        </p>
-                        <p style={{ marginBottom: '8px' }}>
-                          <strong>Assertion (A):</strong> {renderTextHtml(stripPrefix(q.assertion, 'assertion'))}
-                        </p>
-                        <p style={{ marginBottom: '10px' }}>
-                          <strong>Reason (R):</strong> {renderTextHtml(stripPrefix(q.reason, 'reason'))}
-                        </p>
-                        <p style={{ fontWeight: 'bold' }}>
-                          {renderTextHtml(q.subPrompt || "In the light of the above statements, choose the most appropriate answer from the options given below:")}
-                        </p>
-                      </div>
-                    ) : q.type === 'match-column' ? (
-                      <div className="q-text">
-                        <p style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>{renderTextHtml(q.question)}</p>
-                        <table className="booklet-match-table">
-                          <thead>
-                            <tr>
-                              <th>LIST-I</th>
-                              <th>LIST-II</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Array.from({ length: Math.max((q.list1 || []).length, (q.list2 || []).length) }).map((_, idx) => (
-                              <tr key={idx}>
-                                <td>
-                                  <strong>{String.fromCharCode(65 + idx)}.</strong>{' '}
-                                  {renderTextHtml(stripPrefix((q.list1 || [])[idx] || '', 'letter'))}
-                                </td>
-                                <td>
-                                  <strong>{['I', 'II', 'III', 'IV', 'V'][idx] || (idx+1)}.</strong>{' '}
-                                  {renderTextHtml(stripPrefix(stripPrefix((q.list2 || [])[idx] || '', 'roman'), 'number'))}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <p style={{ fontWeight: 'bold', marginTop: '10px' }}>
-                          {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
-                        </p>
-                      </div>
-                    ) : q.type === 'multiple-statement' ? (
-                      <div className="q-text">
-                        <div style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>
-                          {renderTextHtml(q.question)}
-                        </div>
-                        <div style={{ marginLeft: '10px', marginBottom: '15px' }}>
-                          {(q.statements || []).map((stmt, idx) => (
-                            <div key={idx} style={{ marginBottom: '5px' }}>
-                              <strong>{String.fromCharCode(65 + idx)}.</strong> {renderTextHtml(stripPrefix(stmt, 'letter'))}
-                            </div>
-                          ))}
-                        </div>
-                        <p style={{ fontWeight: 'bold' }}>
-                          {renderTextHtml(q.subPrompt || 'Choose the correct answer from the options given below:')}
-                        </p>
-                      </div>
-                    ) : (
-                      // Default MCQ or Comprehension/DI
-                      <div>
-                        {q.passage && (
-                          <div className="booklet-passage-box">
-                            {renderPassageWithTable(q.passage)}
-                          </div>
-                        )}
-                        <div className="q-text" style={{ whiteSpace: 'pre-line' }}>
-                          {renderTextHtml(q.question)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Render Options */}
-                    <div className="q-options-container">
-                      {(q.options || []).map((option, oIdx) => {
-                        const letter = ['A', 'B', 'C', 'D'][oIdx];
-                        const isSelected = q.userAnswer === oIdx + 1;
-                        const isCorrect = q.correct === oIdx + 1;
-                        const showAsCorrect = bookletShowKeys && isCorrect;
-                        const showAsIncorrect = bookletShowKeys && isSelected && !isCorrect;
-
-                        let optClass = 'q-opt';
-                        if (isSelected) optClass += ' selected';
-                        if (showAsCorrect) optClass += ' correct-key';
-                        if (showAsIncorrect) optClass += ' incorrect-selected';
-
-                        return (
-                          <div 
-                            key={oIdx} 
-                            className={optClass}
-                            onClick={() => {
-                              if (!isReviewMode) {
-                                handleSelectOptionInBooklet(globalIndex, oIdx + 1);
-                              }
-                            }}
-                          >
-                            <span className="opt-letter">({letter})</span>
-                            <span className="opt-val">{renderTextHtml(formatOptionLabel(option, oIdx))}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
+              return renderQuestionBlock(q, globalIndex);
             })}
           </div>
           <div className="page-footer">
@@ -1092,8 +1073,8 @@ const MockTest = () => {
     }
 
     // Rough work pages
-    const roughPage1 = 2 + totalPagesOfQuestions;
-    const roughPage2 = 3 + totalPagesOfQuestions;
+    const roughPage1 = 1 + totalPagesOfQuestions;
+    const roughPage2 = 2 + totalPagesOfQuestions;
 
     bookletPages.push(
       <div className="booklet-page" id={`page-${roughPage1}`} key={`page-${roughPage1}`}>
