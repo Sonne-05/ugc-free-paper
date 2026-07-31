@@ -990,18 +990,16 @@ const MockTest = () => {
       </div>
     );
 
-
-
     return (
       <div className="mocktest-container booklet-mode-active" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* Booklet Toolbar */}
         <header className="booklet-top-bar" style={{
           height: '60px',
-          backgroundColor: '#0b0f19',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          color: '#ffffff',
+          color: '#0f172a',
           padding: '0 20px',
           justifyContent: 'space-between',
           flexShrink: 0
@@ -1013,9 +1011,9 @@ const MockTest = () => {
             <button 
               onClick={() => setShowAnswerKey(!showAnswerKey)} 
               style={{
-                backgroundColor: bookletShowKeys ? '#10b981' : 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
+                backgroundColor: bookletShowKeys ? '#10b981' : '#f1f5f9',
+                border: bookletShowKeys ? '1px solid #10b981' : '1px solid #e2e8f0',
+                color: bookletShowKeys ? '#ffffff' : '#475569',
                 padding: '8px 16px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
@@ -1026,7 +1024,7 @@ const MockTest = () => {
             >
               {bookletShowKeys ? 'Hide Answer Key' : 'Show Answer Key'}
             </button>
-
+ 
             {isReviewMode ? (
               <button 
                 onClick={() => {
@@ -1034,8 +1032,8 @@ const MockTest = () => {
                   setStep(STEP_RESULTS);
                 }} 
                 style={{
-                  backgroundColor: '#4f46e5',
-                  border: '1px solid #4f46e5',
+                  backgroundColor: '#ef4444',
+                  border: '1px solid #ef4444',
                   color: '#ffffff',
                   padding: '8px 16px',
                   fontSize: '0.85rem',
@@ -1055,8 +1053,8 @@ const MockTest = () => {
                   }
                 }} 
                 style={{
-                  backgroundColor: '#4f46e5',
-                  border: '1px solid #4f46e5',
+                  backgroundColor: '#2563eb',
+                  border: '1px solid #2563eb',
                   color: '#ffffff',
                   padding: '8px 16px',
                   fontSize: '0.85rem',
@@ -1074,7 +1072,7 @@ const MockTest = () => {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: '#64748b',
                 padding: '8px 16px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
@@ -1087,14 +1085,14 @@ const MockTest = () => {
             </button>
           </div>
         </header>
-
+ 
         {/* Booklet Pages Scrolling Container */}
         <div 
           className="booklet-scroll-container" 
           style={{
             flex: 1,
             overflowY: 'auto',
-            backgroundColor: '#1e2530',
+            backgroundColor: '#f8fafc',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

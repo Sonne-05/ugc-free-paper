@@ -1006,7 +1006,8 @@
   min-height: var(--page-height);
   height: auto;
   background-color: var(--page-bg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   padding: 50px 60px 40px;
   position: relative;
@@ -1025,7 +1026,8 @@
   min-height: auto !important;
   height: auto !important;
   background-color: var(--page-bg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
   border-radius: 4px;
   padding: 50px 60px 40px;
   position: relative;
