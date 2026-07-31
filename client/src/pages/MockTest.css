@@ -1004,6 +1004,7 @@
 .booklet-page {
   width: var(--page-width);
   min-height: var(--page-height);
+  height: auto;
   background-color: var(--page-bg);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   border-radius: 4px;
@@ -1011,7 +1012,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 10px;
   font-family: var(--font-serif);
   color: var(--text-color);
@@ -1358,7 +1359,9 @@
     box-shadow: none !important;
     border: none !important;
     width: 210mm !important;
-    height: 297mm !important;
+    min-height: 297mm !important;
+    height: auto !important;
+    overflow: visible !important;
     page-break-after: always !important;
     page-break-inside: avoid !important;
     margin: 0 !important;
