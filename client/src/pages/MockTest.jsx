@@ -969,7 +969,7 @@ const MockTest = () => {
 
     // All questions in one single flowless page
     bookletPages.push(
-      <div className="booklet-page" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible' }}>
+      <div className="booklet-page-flowless" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible' }}>
         <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
             {paperDetails.title.toUpperCase()}
@@ -992,7 +992,7 @@ const MockTest = () => {
 
     // Rough work sheet (continuous at the end)
     bookletPages.push(
-      <div className="booklet-page" id="page-rough" key="page-rough" style={{ height: 'auto', overflow: 'visible' }}>
+      <div className="booklet-page-flowless" id="page-rough" key="page-rough" style={{ height: 'auto', overflow: 'visible' }}>
         <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
         <div className="rough-grid-lines" style={{ minHeight: '400px' }}></div>
         <div className="page-footer">

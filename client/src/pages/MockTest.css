@@ -1001,7 +1001,7 @@
 }
 
 /* Booklet Page Sheet */
-.booklet-page {
+.booklet-page, .booklet-page-flowless {
   width: var(--page-width);
   min-height: var(--page-height);
   height: auto;
@@ -1356,7 +1356,7 @@
   }
 
   /* Booklet Page dimensions & break properties for high quality A4 printing */
-  .booklet-page {
+  .booklet-page, .booklet-page-flowless {
     box-shadow: none !important;
     border: none !important;
     width: 210mm !important;
