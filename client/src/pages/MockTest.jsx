@@ -969,7 +969,7 @@ const MockTest = () => {
 
     // All questions in one single flowless page
     bookletPages.push(
-      <div className="booklet-page" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible', minHeight: '100%' }}>
+      <div className="booklet-page" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible' }}>
         <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
             {paperDetails.title.toUpperCase()}
