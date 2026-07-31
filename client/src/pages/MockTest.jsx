@@ -845,8 +845,7 @@ const MockTest = () => {
       );
     }
 
-    const questionsPerPage = 5;
-    const totalPagesOfQuestions = Math.ceil(questionsState.length / questionsPerPage);
+
 
     // Helper to render a question block
     const renderQuestionBlock = (q, globalIndex) => {
@@ -968,65 +967,37 @@ const MockTest = () => {
     // Generate pages dynamically
     const bookletPages = [];
 
-    // Question pages loop (1 to totalPagesOfQuestions)
-    for (let pageNum = 1; pageNum <= totalPagesOfQuestions; pageNum++) {
-      const qStartIndex = (pageNum - 1) * questionsPerPage;
-      const pageQuestions = questionsState.slice(qStartIndex, qStartIndex + questionsPerPage);
-
-      const isLastQPage = pageNum === totalPagesOfQuestions;
-      const showPto = (pageNum % 2 !== 0) && !isLastQPage; // Page Turn Over text on odd pages except last
-
-      bookletPages.push(
-        <div className="booklet-page" id={`page-${pageNum}`} key={`page-${pageNum}`} style={{ height: 'auto', overflow: 'visible' }}>
-          {pageNum === 1 && (
-            <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
-                {paperDetails.title.toUpperCase()}
-              </h1>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 'normal', margin: 0, fontStyle: 'italic', color: '#333' }}>
-                ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
-              </h2>
-              <hr style={{ border: '0', borderTop: '1px solid #333', margin: '15px 0 0 0' }} />
-            </div>
-          )}
-          <div className="booklet-page-single-column">
-            {pageQuestions.map((q, pIndex) => {
-              const globalIndex = qStartIndex + pIndex;
-              return renderQuestionBlock(q, globalIndex);
-            })}
-          </div>
-          <div className="page-footer">
-            <span className="footer-series">UGC-PYQ/A</span>
-            <span className="footer-page-num">{pageNum}</span>
-            <span className="footer-pto">{showPto ? '[P.T.O.' : ''}</span>
-          </div>
-        </div>
-      );
-    }
-
-    // Rough work pages
-    const roughPage1 = 1 + totalPagesOfQuestions;
-    const roughPage2 = 2 + totalPagesOfQuestions;
-
+    // All questions in one single flowless page
     bookletPages.push(
-      <div className="booklet-page" id={`page-${roughPage1}`} key={`page-${roughPage1}`} style={{ height: 'auto', overflow: 'visible' }}>
-        <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
-        <div className="rough-grid-lines"></div>
-        <div className="page-footer">
+      <div className="booklet-page" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible', minHeight: '100%' }}>
+        <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
+            {paperDetails.title.toUpperCase()}
+          </h1>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 'normal', margin: 0, fontStyle: 'italic', color: '#333' }}>
+            ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
+          </h2>
+          <hr style={{ border: '0', borderTop: '1px solid #333', margin: '15px 0 0 0' }} />
+        </div>
+        <div className="booklet-page-single-column">
+          {questionsState.map((q, index) => renderQuestionBlock(q, index))}
+        </div>
+        <div className="page-footer" style={{ marginTop: '40px' }}>
           <span className="footer-series">UGC-PYQ/A</span>
-          <span className="footer-page-num">{roughPage1}</span>
+          <span className="footer-page-num">END OF TEST</span>
           <span className="footer-pto"></span>
         </div>
       </div>
     );
 
+    // Rough work sheet (continuous at the end)
     bookletPages.push(
-      <div className="booklet-page" id={`page-${roughPage2}`} key={`page-${roughPage2}`} style={{ height: 'auto', overflow: 'visible' }}>
+      <div className="booklet-page" id="page-rough" key="page-rough" style={{ height: 'auto', overflow: 'visible' }}>
         <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
-        <div className="rough-grid-lines"></div>
+        <div className="rough-grid-lines" style={{ minHeight: '400px' }}></div>
         <div className="page-footer">
           <span className="footer-series">UGC-PYQ/A</span>
-          <span className="footer-page-num">{roughPage2}</span>
+          <span className="footer-page-num">ROUGH WORK</span>
           <span className="footer-pto"></span>
         </div>
       </div>

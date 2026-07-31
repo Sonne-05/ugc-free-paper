@@ -1214,6 +1214,7 @@
   font-size: 0.92rem;
   line-height: 1.45;
   text-align: justify;
+  page-break-inside: avoid; /* Prevent a single question from splitting across pages when printing */
 }
 
 .q-number-cell {
