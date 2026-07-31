@@ -977,7 +977,7 @@ const MockTest = () => {
       const showPto = (pageNum % 2 !== 0) && !isLastQPage; // Page Turn Over text on odd pages except last
 
       bookletPages.push(
-        <div className="booklet-page" id={`page-${pageNum}`} key={`page-${pageNum}`}>
+        <div className="booklet-page" id={`page-${pageNum}`} key={`page-${pageNum}`} style={{ height: 'auto', overflow: 'visible' }}>
           {pageNum === 1 && (
             <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
               <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
@@ -1009,7 +1009,7 @@ const MockTest = () => {
     const roughPage2 = 2 + totalPagesOfQuestions;
 
     bookletPages.push(
-      <div className="booklet-page" id={`page-${roughPage1}`} key={`page-${roughPage1}`}>
+      <div className="booklet-page" id={`page-${roughPage1}`} key={`page-${roughPage1}`} style={{ height: 'auto', overflow: 'visible' }}>
         <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
         <div className="rough-grid-lines"></div>
         <div className="page-footer">
@@ -1021,7 +1021,7 @@ const MockTest = () => {
     );
 
     bookletPages.push(
-      <div className="booklet-page" id={`page-${roughPage2}`} key={`page-${roughPage2}`}>
+      <div className="booklet-page" id={`page-${roughPage2}`} key={`page-${roughPage2}`} style={{ height: 'auto', overflow: 'visible' }}>
         <div className="rough-work-header">SPACE FOR ROUGH WORK</div>
         <div className="rough-grid-lines"></div>
         <div className="page-footer">
