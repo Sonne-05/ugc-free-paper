@@ -1001,10 +1001,29 @@
 }
 
 /* Booklet Page Sheet */
-.booklet-page, .booklet-page-flowless {
+.booklet-page {
   width: var(--page-width);
   min-height: var(--page-height);
   height: auto;
+  background-color: var(--page-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  padding: 50px 60px 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  margin-bottom: 10px;
+  font-family: var(--font-serif);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+/* Booklet Flowless Page Sheet */
+.booklet-page-flowless {
+  width: var(--page-width);
+  min-height: auto !important;
+  height: auto !important;
   background-color: var(--page-bg);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   border-radius: 4px;
