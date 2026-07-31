@@ -983,4 +983,395 @@
   background-color: #f8fafc;
 }
 
+/* ==========================================================================
+   OFFLINE BOOKLET STYLES FOR UNIT-WISE PRACTICE
+   ========================================================================== */
+
+/* Brand variables for Booklet */
+.booklet-mode-active {
+  --page-bg: #ffffff;
+  --paper-color: #faf9f6;
+  --text-color: #111111;
+  --border-color: #333333;
+  --page-width: 820px;
+  --page-height: 1160px;
+  --font-serif: "Times New Roman", Times, Georgia, serif;
+  --font-sans: Arial, Helvetica, sans-serif;
+  user-select: text !important; /* Allow highlighting/copying in offline booklet */
+}
+
+/* Booklet Page Sheet */
+.booklet-page {
+  width: var(--page-width);
+  min-height: var(--page-height);
+  background-color: var(--page-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  padding: 50px 60px 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 10px;
+  font-family: var(--font-serif);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+/* Cover Page (Page 1) Header & Warnings */
+.cover-top-warning, .cover-bottom-warning {
+  border-top: 3px solid var(--text-color);
+  border-bottom: 3px solid var(--text-color);
+  padding: 8px 0;
+  font-size: 1.02rem;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+}
+
+.cover-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 15px;
+}
+
+.sl-no-block {
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+.serial-underline {
+  border-bottom: 1px solid var(--text-color);
+  padding-bottom: 2px;
+  font-family: var(--font-sans);
+  font-weight: normal;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.series-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.series-label {
+  font-size: 0.88rem;
+  font-weight: bold;
+}
+
+.series-boxes {
+  display: flex;
+  gap: 5px;
+}
+
+.series-box {
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: bold;
+  font-family: var(--font-sans);
+}
+
+.series-box.active {
+  background-color: var(--text-color);
+  color: var(--page-bg);
+}
+
+.cover-meta-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 160px;
+  align-items: start;
+  margin: 20px 0;
+}
+
+.booklet-title {
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.booklet-subject {
+  font-size: 1.4rem;
+  font-weight: bold;
+  line-height: 1.25;
+  text-align: center;
+}
+
+/* Roll Number Box */
+.roll-no-container {
+  display: flex;
+  justify-content: flex-end;
+  margin: 15px 0 25px;
+}
+
+.roll-no-box {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--text-color);
+}
+
+.roll-no-label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  padding: 0 12px;
+  border-right: 1.5px solid var(--text-color);
+  text-transform: uppercase;
+  font-family: var(--font-sans);
+}
+
+.roll-no-grid {
+  display: flex;
+}
+
+.roll-no-grid div {
+  width: 32px;
+  height: 38px;
+  border-right: 1px solid var(--text-color);
+}
+
+.roll-no-grid div:last-child {
+  border-right: none;
+}
+
+/* Instructions to Candidates */
+.instructions-block {
+  text-align: left;
+  margin-bottom: auto;
+}
+
+.instructions-block h3 {
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 12px;
+  text-decoration: underline;
+}
+
+.instructions-block ol {
+  margin-left: 20px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: justify;
+}
+
+.instructions-block li {
+  margin-bottom: 8px;
+  padding-left: 5px;
+}
+
+/* Page Footer styling */
+.page-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  font-family: var(--font-serif);
+}
+
+.footer-series {
+  flex: 1;
+}
+
+.footer-page-num {
+  flex: 1;
+  text-align: center;
+}
+
+.footer-pto {
+  flex: 1;
+  text-align: right;
+  font-style: italic;
+}
+
+/* Single column layout for question pages */
+.booklet-page-single-column {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  flex-grow: 1;
+  margin-bottom: auto;
+  padding-top: 10px;
+}
+
+/* Question block layouts */
+.question-block {
+  display: flex;
+  gap: 15px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  text-align: justify;
+}
+
+.q-number-cell {
+  width: 25px;
+  font-weight: bold;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.q-content-cell {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.q-text {
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+/* Question formats formatting in booklet */
+.booklet-match-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+
+.booklet-match-table th, .booklet-match-table td {
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.booklet-match-table th {
+  background-color: rgba(0, 0, 0, 0.04);
+  font-weight: bold;
+  text-align: center;
+}
+
+.booklet-passage-box {
+  border: 1px solid var(--border-color);
+  padding: 12px 15px;
+  margin-bottom: 15px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  background-color: rgba(0, 0, 0, 0.01);
+  border-radius: 4px;
+  text-align: justify;
+}
+
+/* Interactive Option Selection */
+.q-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.q-opt {
+  display: flex;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+  font-family: var(--font-serif);
+}
+
+.q-opt:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.q-opt.selected {
+  background-color: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  font-weight: bold;
+}
+
+/* Answer Key Highlighting */
+.q-opt.correct-key {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border: 1.5px dashed #10b981 !important;
+  color: #065f46 !important;
+  font-weight: bold !important;
+}
+
+.q-opt.incorrect-selected {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border: 1.5px dashed #ef4444 !important;
+  color: #991b1b !important;
+  font-weight: bold !important;
+}
+
+/* Rough Work Section */
+.rough-work-header {
+  font-size: 1.15rem;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-family: var(--font-sans);
+}
+
+.rough-grid-lines {
+  flex-grow: 1;
+  background-size: 100% 30px;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  min-height: 750px;
+}
+
+/* PRINT MEDIA OVERRIDES */
+@media print {
+  /* Reset document flow and containers */
+  html, body, #root, .mocktest-container {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    background-color: white !important;
+    color: #000000 !important;
+  }
+
+  /* Hide screen-only interactive elements */
+  .booklet-top-bar, .mt-header, .mt-sidebar, .top-bar {
+    display: none !important;
+  }
+
+  .booklet-scroll-container {
+    padding: 0 !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+    background-color: white !important;
+  }
+
+  /* Booklet Page dimensions & break properties for high quality A4 printing */
+  .booklet-page {
+    box-shadow: none !important;
+    border: none !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    margin: 0 !important;
+    padding: 20mm !important;
+    box-sizing: border-box !important;
+    background: white !important;
+    background-color: white !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}
+
 
