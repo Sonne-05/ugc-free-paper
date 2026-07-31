@@ -845,9 +845,8 @@ const MockTest = () => {
       );
     }
 
-    const totalPagesOfQuestions = questionsState.length <= 3 
-      ? 1 
-      : 1 + Math.ceil((questionsState.length - 3) / 5);
+    const questionsPerPage = 5;
+    const totalPagesOfQuestions = Math.ceil(questionsState.length / questionsPerPage);
 
     // Helper to render a question block
     const renderQuestionBlock = (q, globalIndex) => {
@@ -969,94 +968,27 @@ const MockTest = () => {
     // Generate pages dynamically
     const bookletPages = [];
 
-    // Page 1: Cover elements + First 3 questions
-    const page1Questions = questionsState.slice(0, Math.min(3, questionsState.length));
-    bookletPages.push(
-      <div className="booklet-page" id="page-1" key="page-1">
-        <div className="cover-top-warning">
-          DO NOT OPEN THIS TEST BOOKLET UNTIL YOU ARE ASKED TO DO SO
-        </div>
-
-        <div className="cover-header-row" style={{ marginTop: '10px', marginBottom: '10px' }}>
-          <div className="header-col-left">
-            <div className="sl-no-block">
-              T.B.C. : Sl. No. <span className="serial-underline">108254</span>
-            </div>
-          </div>
-          <div className="header-col-right">
-            <div className="series-block">
-              <span className="series-label">Test Booklet Series</span>
-              <div className="series-boxes">
-                <div className="series-box active">A</div>
-                <div className="series-box">B</div>
-                <div className="series-box">C</div>
-                <div className="series-box">D</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="cover-meta-row" style={{ marginTop: '10px', marginBottom: '10px' }}>
-          <div className="meta-item">
-            <strong>Time Allowed: {questionsState.length <= 50 ? '1 Hr.' : '2 Hrs.'}</strong>
-          </div>
-          <div className="meta-item text-center">
-            <h1 className="booklet-title" style={{ fontSize: '1.8rem', marginBottom: '4px' }}>TEST BOOKLET</h1>
-            <h2 className="booklet-subject" style={{ fontSize: '1.2rem' }}>
-              {paperDetails.title.toUpperCase()}
-              <br />
-              <small style={{ fontSize: '0.85rem', fontWeight: 'normal' }}>
-                ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
-              </small>
-            </h2>
-          </div>
-          <div className="meta-item text-right">
-            <strong>Maximum Marks: {questionsState.length * 2}</strong>
-          </div>
-        </div>
-
-        <div className="roll-no-container" style={{ marginTop: '10px', marginBottom: '15px' }}>
-          <div className="roll-no-box">
-            <div className="roll-no-label">Roll No.</div>
-            <div className="roll-no-grid">
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Separator Line */}
-        <hr style={{ border: '0', borderTop: '2px double #333', margin: '0 0 20px 0' }} />
-
-        {/* Questions on Page 1 (first 3 questions) */}
-        <div className="booklet-page-single-column">
-          {page1Questions.map((q, pIndex) => renderQuestionBlock(q, pIndex))}
-        </div>
-
-        <div className="page-footer">
-          <span className="footer-series">UGC-PYQ/A</span>
-          <span className="footer-page-num">1</span>
-          <span className="footer-pto">{totalPagesOfQuestions > 1 ? '[P.T.O.' : ''}</span>
-        </div>
-      </div>
-    );
-
-    // Question pages (from pageNum = 2 onwards)
-    for (let pageNum = 2; pageNum <= totalPagesOfQuestions; pageNum++) {
-      const qStartIndex = 3 + (pageNum - 2) * 5;
-      const pageQuestions = questionsState.slice(qStartIndex, qStartIndex + 5);
+    // Question pages loop (1 to totalPagesOfQuestions)
+    for (let pageNum = 1; pageNum <= totalPagesOfQuestions; pageNum++) {
+      const qStartIndex = (pageNum - 1) * questionsPerPage;
+      const pageQuestions = questionsState.slice(qStartIndex, qStartIndex + questionsPerPage);
 
       const isLastQPage = pageNum === totalPagesOfQuestions;
       const showPto = (pageNum % 2 !== 0) && !isLastQPage; // Page Turn Over text on odd pages except last
 
       bookletPages.push(
         <div className="booklet-page" id={`page-${pageNum}`} key={`page-${pageNum}`}>
+          {pageNum === 1 && (
+            <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
+              <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
+                {paperDetails.title.toUpperCase()}
+              </h1>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 'normal', margin: 0, fontStyle: 'italic', color: '#333' }}>
+                ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
+              </h2>
+              <hr style={{ border: '0', borderTop: '1px solid #333', margin: '15px 0 0 0' }} />
+            </div>
+          )}
           <div className="booklet-page-single-column">
             {pageQuestions.map((q, pIndex) => {
               const globalIndex = qStartIndex + pIndex;
