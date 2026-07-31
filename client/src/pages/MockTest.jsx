@@ -858,6 +858,7 @@ const MockTest = () => {
             {q.type === 'assertion-reason' ? (
               <div className="q-text">
                 <p style={{ marginBottom: '10px', whiteSpace: 'pre-line' }}>
+                  {q.year && <span style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '6px', fontFamily: 'var(--font-sans)' }}>[{q.year}-PYQ]</span>}
                   {renderTextHtml(q.question || "Given below are two statements: one is labelled as Assertion (A) and the other is labelled as Reason (R):")}
                 </p>
                 <p style={{ marginBottom: '8px' }}>
@@ -872,7 +873,10 @@ const MockTest = () => {
               </div>
             ) : q.type === 'match-column' ? (
               <div className="q-text">
-                <p style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>{renderTextHtml(q.question)}</p>
+                <p style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>
+                  {q.year && <span style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '6px', fontFamily: 'var(--font-sans)' }}>[{q.year}-PYQ]</span>}
+                  {renderTextHtml(q.question)}
+                </p>
                 <table className="booklet-match-table">
                   <thead>
                     <tr>
@@ -902,6 +906,7 @@ const MockTest = () => {
             ) : q.type === 'multiple-statement' ? (
               <div className="q-text">
                 <div style={{ whiteSpace: 'pre-line', marginBottom: '10px' }}>
+                  {q.year && <span style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '6px', fontFamily: 'var(--font-sans)', display: 'inline-block' }}>[{q.year}-PYQ]</span>}
                   {renderTextHtml(q.question)}
                 </div>
                 <div style={{ marginLeft: '10px', marginBottom: '15px' }}>
@@ -924,6 +929,7 @@ const MockTest = () => {
                   </div>
                 )}
                 <div className="q-text" style={{ whiteSpace: 'pre-line' }}>
+                  {q.year && <span style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '6px', fontFamily: 'var(--font-sans)', display: 'inline-block' }}>[{q.year}-PYQ]</span>}
                   {renderTextHtml(q.question)}
                 </div>
               </div>
