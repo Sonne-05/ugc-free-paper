@@ -1004,8 +1004,16 @@ const MockTest = () => {
           justifyContent: 'space-between',
           flexShrink: 0
         }}>
-          <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>
-            {paperDetails.title} - Test Booklet
+          <div className="mt-header__left" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <Link to="/" className="mt-header__logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="navbar__logo-icon" style={{ width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+              <span className="mt-header__logo-text-dark" style={{ color: '#1C2355', fontWeight: 'bold', fontSize: '1.1rem', marginLeft: '-5px' }}>GC Free Paper</span>
+            </Link>
+            <div className="mt-header__title" style={{ fontSize: '0.85rem', color: '#64748b', borderLeft: '1px solid #cbd5e1', paddingLeft: '15px', fontWeight: 500 }}>
+              {paperDetails.title} - Test Booklet
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button 
