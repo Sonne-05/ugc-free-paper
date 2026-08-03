@@ -1230,7 +1230,7 @@ Submitted by User: ${userName}
                     }}
                   >
                     <span className="opt-letter">({letter})</span>
-                    <span className="opt-val">{renderTextHtml(formatOptionLabel(option, oIdx))}</span>
+                    <span className="opt-val">{renderTextHtml(option.trim().replace(/^[\(\[]?[1-4][\.\)\]](\s+|$)/, ''))}</span>
                   </div>
                 );
               })}
