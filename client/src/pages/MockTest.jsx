@@ -359,6 +359,59 @@ const MockTest = () => {
   const [step, setStep] = useState(STEP_INSTRUCTIONS_1)
   const [defaultLanguage, setDefaultLanguage] = useState('')
   const [declarationChecked, setDeclarationChecked] = useState(false)
+
+  const [activeSessionIndex, setActiveSessionIndex] = useState(
+    paperDetails.skip !== undefined ? Math.floor(paperDetails.skip / 25) : 0
+  )
+  const [unitCounts, setUnitCounts] = useState({
+    '1': 145,
+    '2': 90,
+    '3': 100,
+    '4': 91,
+    '5': 86,
+    '6': 101,
+    '7': 102,
+    '8': 91,
+    '9': 98,
+    '10': 95
+  })
+
+  const getUnitIdFromName = (name) => {
+    if (!name) return null;
+    const match = name.match(/Unit\s+(\d+)/i);
+    return match ? match[1] : null;
+  }
+
+  useEffect(() => {
+    if (paperDetails.isUnitWise) {
+      fetch(`${API_BASE_URL}/api/questions/unit-counts`)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch counts');
+          return res.json();
+        })
+        .then(data => {
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            setUnitCounts(data)
+          }
+        })
+        .catch(err => console.error("Failed to load unit question counts in MockTest:", err))
+    }
+  }, [paperDetails])
+
+  useEffect(() => {
+    if (paperDetails.isUnitWise) {
+      const initialSession = paperDetails.skip !== undefined ? Math.floor(paperDetails.skip / 25) : 0;
+      setActiveSessionIndex(initialSession);
+    }
+  }, [paperDetails])
+
+  const handleSessionChange = (index) => {
+    if (index === activeSessionIndex) return;
+    if (window.confirm(`Switch to Session ${index + 1}? Your current answers in Session ${activeSessionIndex + 1} will be cleared.`)) {
+      setActiveSessionIndex(index);
+      setActiveQuestionIndex(0);
+    }
+  }
   
   // Test parameters
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
@@ -366,8 +419,13 @@ const MockTest = () => {
   const [selectedOption, setSelectedOption] = useState(null)
   
   // Timer state
-  const [timerSeconds, setTimerSeconds] = useState(paperDetails.questionsCount === 50 ? 3600 : 7200) // 1hr for 50Qs, 2hrs for 100Qs
-  const [initialTimerSeconds, setInitialTimerSeconds] = useState(paperDetails.questionsCount === 50 ? 3600 : 7200)
+  const getInitialTime = (count) => {
+    if (count === 50) return 3600
+    if (count === 100) return 7200
+    return Math.round(count * 72)
+  }
+  const [timerSeconds, setTimerSeconds] = useState(getInitialTime(paperDetails.questionsCount))
+  const [initialTimerSeconds, setInitialTimerSeconds] = useState(getInitialTime(paperDetails.questionsCount))
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const timerIntervalRef = useRef(null)
   
@@ -471,9 +529,15 @@ const MockTest = () => {
     
     setShowAnswerKey(false);
     
-    const url = paperDetails.isUnitWise
+    let url = paperDetails.isUnitWise
       ? `${API_BASE_URL}/api/questions/unit?unitName=${encodeURIComponent(paperDetails.unitName)}`
       : `${API_BASE_URL}/api/pyqsets/${paperDetails.paperId}/questions`;
+      
+    if (paperDetails.isUnitWise) {
+      const skip = activeSessionIndex * 25;
+      const limit = 25;
+      url += `&skip=${skip}&limit=${limit}`;
+    }
       
     fetch(url)
       .then(res => res.json())
@@ -510,7 +574,7 @@ const MockTest = () => {
       .catch(err => {
         console.error("Failed to load mocktest questions", err)
       })
-  }, [paperDetails])
+  }, [paperDetails, activeSessionIndex])
 
   // Timer runner
   useEffect(() => {
@@ -972,6 +1036,20 @@ const MockTest = () => {
       );
     };
 
+    const bookletShowKeys = showAnswerKey;
+    const unitNameShort = paperDetails.unitName ? paperDetails.unitName.replace(/Unit\s+\d+:\s+/i, '') : '';
+    const currentTitle = paperDetails.isUnitWise 
+      ? `PAPER 1 - ${unitNameShort.toUpperCase()} (SESSION ${activeSessionIndex + 1})`
+      : paperDetails.title.toUpperCase();
+    const currentSubtitle = paperDetails.isUnitWise
+      ? 'Unit-wise Practice PYQ'
+      : paperDetails.subtitle;
+
+    const unitIdForCount = getUnitIdFromName(paperDetails.unitName);
+    const totalQsForBar = unitIdForCount ? (unitCounts[unitIdForCount] || 0) : 0;
+    const sessionSize = 25;
+    const sessionCount = totalQsForBar > 0 ? Math.ceil(totalQsForBar / sessionSize) : 0;
+
     // Generate pages dynamically
     const bookletPages = [];
 
@@ -980,10 +1058,10 @@ const MockTest = () => {
       <div className="booklet-page-flowless" id="page-main" key="page-main" style={{ height: 'auto', overflow: 'visible' }}>
         <div style={{ textAlign: 'center', marginBottom: '25px', fontFamily: 'var(--font-serif)' }}>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 8px 0', letterSpacing: '0.5px' }}>
-            {paperDetails.title.toUpperCase()}
+            {currentTitle}
           </h1>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 'normal', margin: 0, fontStyle: 'italic', color: '#333' }}>
-            ({paperDetails.subtitle || 'Unit-wise Practice PYQ'})
+            ({currentSubtitle})
           </h2>
           <hr style={{ border: '0', borderTop: '1px solid #333', margin: '15px 0 0 0' }} />
         </div>
@@ -1020,7 +1098,9 @@ const MockTest = () => {
               <span className="mt-header__logo-text-dark" style={{ color: '#1C2355', fontWeight: 'bold', fontSize: '1.1rem', marginLeft: '-5px' }}>GC Free Paper</span>
             </Link>
             <div className="mt-header__title" style={{ fontSize: '0.85rem', color: '#64748b', borderLeft: '1px solid #cbd5e1', paddingLeft: '15px', fontWeight: 500 }}>
-              {paperDetails.title} - Test Booklet
+              {paperDetails.isUnitWise 
+                ? `Paper 1 - ${unitNameShort} (Session ${activeSessionIndex + 1}) - Test Booklet` 
+                : `${paperDetails.title} - Test Booklet`}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -1101,6 +1181,52 @@ const MockTest = () => {
             </button>
           </div>
         </header>
+
+        {/* Secondary Sessions Horizontal Bar */}
+        {paperDetails.isUnitWise && sessionCount > 0 && (
+          <div className="booklet-sessions-bar" style={{
+            height: '42px',
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 20px',
+            gap: '12px',
+            flexShrink: 0,
+            overflowX: 'auto',
+            scrollbarWidth: 'none', // Firefox
+            msOverflowStyle: 'none' // IE 10+
+          }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Sessions:
+            </span>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              {Array.from({ length: sessionCount }).map((_, idx) => {
+                const isActive = idx === activeSessionIndex;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleSessionChange(idx)}
+                    style={{
+                      padding: '4px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: isActive ? '1px solid var(--primary, #2563eb)' : '1px solid #e2e8f0',
+                      backgroundColor: isActive ? 'rgba(37, 99, 235, 0.08)' : '#ffffff',
+                      color: isActive ? 'var(--primary, #2563eb)' : '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Session {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
  
         {/* Booklet Pages Scrolling Container */}
         <div 

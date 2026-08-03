@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import { API_BASE_URL } from '../services/api'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
@@ -143,9 +142,11 @@ const Paper1UnitPYQ = () => {
       state: {
         isUnitWise: true,
         unitName: unit.fullName,
-        title: `Paper 1 - ${unit.name}`,
+        title: `Paper 1 - ${unit.name} (Session 1)`,
         subtitle: 'Unit-wise Practice PYQ',
-        questionsCount: 50
+        questionsCount: 25,
+        skip: 0,
+        limit: 25
       }
     })
   }

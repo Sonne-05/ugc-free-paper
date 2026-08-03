@@ -240,10 +240,51 @@ app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   }
 });
 
-// Get all questions for a unit (Paper 1 unit-wise)
+// Get total counts of questions for each unit (Paper 1 unit-wise)
+app.get('/api/questions/unit-counts', async (req, res) => {
+  try {
+    const units = [
+      { id: '1', name: 'Unit 1: Teaching Aptitude' },
+      { id: '2', name: 'Unit 2: Research Aptitude' },
+      { id: '3', name: 'Unit 3: Comprehension' },
+      { id: '4', name: 'Unit 4: Communication' },
+      { id: '5', name: 'Unit 5: Mathematical Reasoning' },
+      { id: '6', name: 'Unit 6: Logical Reasoning' },
+      { id: '7', name: 'Unit 7: Data Interpretation' },
+      { id: '8', name: 'Unit 8: Information and Communication Technology' },
+      { id: '9', name: 'Unit 9: People, Development and Environment' },
+      { id: '10', name: 'Unit 10: Higher Education' }
+    ];
+
+    const counts = {};
+    for (const u of units) {
+      const escapedUnitName = u.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const query = {
+        $or: [
+          { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } }
+        ]
+      };
+
+      if (u.name.toLowerCase().includes('unit 7') || u.name.toLowerCase().includes('data interpretation')) {
+        query.$or.push({ type: 'di' });
+      } else if (u.name.toLowerCase().includes('unit 3') || u.name.toLowerCase().includes('comprehension')) {
+        query.$or.push({ type: 'comprehension' });
+      }
+
+      const count = await Question.countDocuments(query);
+      counts[u.id] = count;
+    }
+
+    res.json(counts);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch unit counts', error: err.message });
+  }
+});
+
+// Get all questions for a unit (Paper 1 unit-wise) with pagination support
 app.get('/api/questions/unit', async (req, res) => {
   try {
-    const { unitName } = req.query;
+    const { unitName, skip, limit } = req.query;
     if (!unitName) {
       return res.status(400).json({ message: 'unitName query parameter is required' });
     }
@@ -263,10 +304,19 @@ app.get('/api/questions/unit', async (req, res) => {
       query.$or.push({ type: 'comprehension' });
     }
 
-    const questions = await Question.find(query);
+    let qQuery = Question.find(query).sort({ _id: 1 });
+    
+    if (skip !== undefined) {
+      qQuery = qQuery.skip(parseInt(skip, 10));
+    }
+    if (limit !== undefined) {
+      qQuery = qQuery.limit(parseInt(limit, 10));
+    }
+
+    const questions = await qQuery;
     
     // Fetch unique set ids and load their years
-    const setIds = [...new Set(questions.map(q => q.setId.toString()).filter(Boolean))];
+    const setIds = [...new Set(questions.map(q => q.setId ? q.setId.toString() : null).filter(Boolean))];
     const sets = await PyqSet.find({ _id: { $in: setIds } });
     const yearMap = {};
     sets.forEach(s => {
@@ -284,6 +334,7 @@ app.get('/api/questions/unit', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch unit questions', error: err.message });
   }
 });
+
 
 // Bulk add questions
 app.post('/api/questions/bulk', async (req, res) => {
