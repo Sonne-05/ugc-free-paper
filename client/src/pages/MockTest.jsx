@@ -362,7 +362,7 @@ const MockTest = () => {
 
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportQuestionId, setReportQuestionId] = useState('')
-  const [reportEmail, setReportEmail] = useState(localStorage.getItem('userEmail') || '')
+  const [reportEmail, setReportEmail] = useState('support@ugcfreepaper.com')
   const [reportIssue, setReportIssue] = useState('Incorrect Answer Key')
   const [reportDescription, setReportDescription] = useState('')
   const [isSubmittingReport, setIsSubmittingReport] = useState(false)
