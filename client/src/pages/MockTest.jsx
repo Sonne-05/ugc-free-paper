@@ -382,6 +382,7 @@ const MockTest = () => {
   const [testResult, setTestResult] = useState(null)
   const [isReviewMode, setIsReviewMode] = useState(false)
   const [showAnswerKey, setShowAnswerKey] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const bookletShowKeys = showAnswerKey || isReviewMode
 
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
@@ -594,6 +595,7 @@ const MockTest = () => {
   // Navigate between questions via grid palette
   const handleSelectQuestion = (index) => {
     if (index < 0 || index >= questionsState.length) return
+    setMobileSidebarOpen(false)
     if (isReviewMode) {
       setActiveQuestionIndex(index)
       setSelectedOption(questionsState[index].userAnswer)
@@ -1165,6 +1167,12 @@ const MockTest = () => {
                   setShowPauseModal(true)
                 }}>
                   Pause
+                </button>
+                <button 
+                  className="mt-header__btn mt-header__btn--palette" 
+                  onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                >
+                  {mobileSidebarOpen ? "✕ Close" : "Grid ☰"}
                 </button>
               </>
             )}
@@ -1835,8 +1843,13 @@ const MockTest = () => {
             </footer>
           </div>
 
+          {/* Sidebar backdrop */}
+          {mobileSidebarOpen && (
+            <div className="mt-sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)}></div>
+          )}
+
           {/* Sidebar */}
-          <aside className="mt-sidebar">
+          <aside className={`mt-sidebar ${mobileSidebarOpen ? 'mt-sidebar--open' : ''}`}>
             <div className="mt-sidebar__user">
               <div className="mt-sidebar__avatar">{userInitial}</div>
               <div>
@@ -1938,7 +1951,7 @@ const MockTest = () => {
 
       {/* STEP 5: RESULTS SCREEN */}
       {step === STEP_RESULTS && testResult && (
-        <div style={{
+        <div className="results-container" style={{
           height: 'calc(100vh - 70px)', 
           backgroundColor: '#f8fafc',
           padding: '20px',
@@ -1948,7 +1961,7 @@ const MockTest = () => {
           alignItems: 'center',
           overflow: 'hidden'
         }}>
-          <div style={{
+          <div className="results-report-card" style={{
             width: '100%',
             maxWidth: '1100px',
             height: '100%',
@@ -1989,7 +2002,7 @@ const MockTest = () => {
             </div>
 
             {/* Split Content Pane */}
-            <div style={{
+            <div className="results-split-pane" style={{
               flex: 1,
               display: 'grid',
               gridTemplateColumns: '360px 1fr',
@@ -1999,7 +2012,7 @@ const MockTest = () => {
               boxSizing: 'border-box'
             }}>
               {/* Left Pane: Stats, Score, Actions */}
-              <div style={{
+              <div className="results-left-pane" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
@@ -2163,7 +2176,7 @@ const MockTest = () => {
               </div>
 
               {/* Right Pane: Unit breakdown */}
-              <div style={{
+              <div className="results-right-pane" style={{
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
@@ -2338,7 +2351,7 @@ const MockTest = () => {
       {/* MODAL: Question Paper View */}
       {showQuestionPaperModal && (
         <div className="mt-modal-overlay" onClick={() => setShowQuestionPaperModal(false)}>
-          <div className="mt-modal" style={{width: '800px', maxHeight: '80%', overflowY: 'auto'}} onClick={(e) => e.stopPropagation()}>
+          <div className="mt-modal mt-modal--large" style={{width: '800px', maxHeight: '80%', overflowY: 'auto'}} onClick={(e) => e.stopPropagation()}>
             <h3>Question Paper Overview</h3>
             <div style={{maxHeight: '400px', overflowY: 'auto', paddingRight: '10px'}}>
               {questionsState.map((q, idx) => (
@@ -2365,7 +2378,7 @@ const MockTest = () => {
                     {q.type === 'match-column' && (
                       <div>
                         <p style={{ marginBottom: '8px' }}>{renderTextHtml(q.question)}</p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px', fontSize: '0.85rem' }}>
+                        <div className="modal-grid-two-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px', fontSize: '0.85rem' }}>
                           <div>
                             <strong>LIST I</strong>
                             {q.list1Header && (
@@ -2413,7 +2426,7 @@ const MockTest = () => {
                   </div>
                   
                   {/* Options */}
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingLeft: '15px'}}>
+                  <div className="modal-options-grid" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', paddingLeft: '15px'}}>
                     {q.options.map((opt, oIdx) => (
                       <div key={oIdx} style={{fontSize: '0.85rem', color: '#475569'}}>
                         {renderTextHtml(formatOptionLabel(opt, oIdx))}
