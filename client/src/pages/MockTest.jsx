@@ -367,67 +367,6 @@ const MockTest = () => {
   const [reportDescription, setReportDescription] = useState('')
   const [isSubmittingReport, setIsSubmittingReport] = useState(false)
 
-  // Pre-fill question report id based on active question index
-  useEffect(() => {
-    if (showReportModal && questionsState.length > 0) {
-      const activeQ = questionsState[activeQuestionIndex];
-      if (activeQ) {
-        setReportQuestionId(activeQ.dbId || activeQ.id);
-      }
-    }
-  }, [showReportModal, activeQuestionIndex, questionsState]);
-
-  const handleSubmitReport = () => {
-    if (!reportEmail || !reportDescription) {
-      alert("Please provide email and description.");
-      return;
-    }
-    
-    setIsSubmittingReport(true);
-
-    const selectedQ = questionsState.find(q => (q.dbId || q.id).toString() === reportQuestionId.toString());
-    const qDetails = selectedQ 
-      ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
-      : '';
-
-    const messageText = `[Question Error Report]
-Unit: ${paperDetails.unitName || 'Paper 1'}
-Active Session: Session ${activeSessionIndex + 1}
-Question ID: ${reportQuestionId}
-Issue Category: ${reportIssue}
-Description: ${reportDescription}
-${qDetails}
-Submitted by User: ${userName}
-`;
-
-    fetch(`${API_BASE_URL}/api/contact`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: `[Error Report] ${userName}`,
-        email: reportEmail,
-        message: messageText
-      })
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('API failed');
-        return res.json();
-      })
-      .then(() => {
-        alert("Thank you! The error report has been submitted to the administrator.");
-        setShowReportModal(false);
-        setReportDescription('');
-      })
-      .catch(err => {
-        console.error("Failed to submit error report:", err);
-        alert("Failed to submit the report. Please check your internet connection.");
-      })
-      .finally(() => {
-        setIsSubmittingReport(false);
-      });
-  }
 
   const [activeSessionIndex, setActiveSessionIndex] = useState(
     paperDetails.skip !== undefined ? Math.floor(paperDetails.skip / 25) : 0
@@ -515,6 +454,68 @@ Submitted by User: ${userName}
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
   const userName = isLoggedIn ? (localStorage.getItem('userName') || 'Aspirant') : 'Aspirant'
   const userInitial = userName.charAt(0).toUpperCase()
+
+  // Pre-fill question report id based on active question index
+  useEffect(() => {
+    if (showReportModal && questionsState.length > 0) {
+      const activeQ = questionsState[activeQuestionIndex];
+      if (activeQ) {
+        setReportQuestionId(activeQ.dbId || activeQ.id);
+      }
+    }
+  }, [showReportModal, activeQuestionIndex, questionsState]);
+
+  const handleSubmitReport = () => {
+    if (!reportEmail || !reportDescription) {
+      alert("Please provide email and description.");
+      return;
+    }
+    
+    setIsSubmittingReport(true);
+
+    const selectedQ = questionsState.find(q => (q.dbId || q.id).toString() === reportQuestionId.toString());
+    const qDetails = selectedQ 
+      ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
+      : '';
+
+    const messageText = `[Question Error Report]
+Unit: ${paperDetails.unitName || 'Paper 1'}
+Active Session: Session ${activeSessionIndex + 1}
+Question ID: ${reportQuestionId}
+Issue Category: ${reportIssue}
+Description: ${reportDescription}
+${qDetails}
+Submitted by User: ${userName}
+`;
+
+    fetch(`${API_BASE_URL}/api/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: `[Error Report] ${userName}`,
+        email: reportEmail,
+        message: messageText
+      })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('API failed');
+        return res.json();
+      })
+      .then(() => {
+        alert("Thank you! The error report has been submitted to the administrator.");
+        setShowReportModal(false);
+        setReportDescription('');
+      })
+      .catch(err => {
+        console.error("Failed to submit error report:", err);
+        alert("Failed to submit the report. Please check your internet connection.");
+      })
+      .finally(() => {
+        setIsSubmittingReport(false);
+      });
+  }
 
   const getQuestionUnit = (q, index) => {
     return getUnitFromHelper(q, index);
