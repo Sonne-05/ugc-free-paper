@@ -360,6 +360,75 @@ const MockTest = () => {
   const [defaultLanguage, setDefaultLanguage] = useState('')
   const [declarationChecked, setDeclarationChecked] = useState(false)
 
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportQuestionId, setReportQuestionId] = useState('')
+  const [reportEmail, setReportEmail] = useState(localStorage.getItem('userEmail') || '')
+  const [reportIssue, setReportIssue] = useState('Incorrect Answer Key')
+  const [reportDescription, setReportDescription] = useState('')
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false)
+
+  // Pre-fill question report id based on active question index
+  useEffect(() => {
+    if (showReportModal && questionsState.length > 0) {
+      const activeQ = questionsState[activeQuestionIndex];
+      if (activeQ) {
+        setReportQuestionId(activeQ.dbId || activeQ.id);
+      }
+    }
+  }, [showReportModal, activeQuestionIndex, questionsState]);
+
+  const handleSubmitReport = () => {
+    if (!reportEmail || !reportDescription) {
+      alert("Please provide email and description.");
+      return;
+    }
+    
+    setIsSubmittingReport(true);
+
+    const selectedQ = questionsState.find(q => (q.dbId || q.id).toString() === reportQuestionId.toString());
+    const qDetails = selectedQ 
+      ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
+      : '';
+
+    const messageText = `[Question Error Report]
+Unit: ${paperDetails.unitName || 'Paper 1'}
+Active Session: Session ${activeSessionIndex + 1}
+Question ID: ${reportQuestionId}
+Issue Category: ${reportIssue}
+Description: ${reportDescription}
+${qDetails}
+Submitted by User: ${userName}
+`;
+
+    fetch(`${API_BASE_URL}/api/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: `[Error Report] ${userName}`,
+        email: reportEmail,
+        message: messageText
+      })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('API failed');
+        return res.json();
+      })
+      .then(() => {
+        alert("Thank you! The error report has been submitted to the administrator.");
+        setShowReportModal(false);
+        setReportDescription('');
+      })
+      .catch(err => {
+        console.error("Failed to submit error report:", err);
+        alert("Failed to submit the report. Please check your internet connection.");
+      })
+      .finally(() => {
+        setIsSubmittingReport(false);
+      });
+  }
+
   const [activeSessionIndex, setActiveSessionIndex] = useState(
     paperDetails.skip !== undefined ? Math.floor(paperDetails.skip / 25) : 0
   )
@@ -1244,6 +1313,169 @@ const MockTest = () => {
         >
           {bookletPages}
         </div>
+
+        {/* Floating Report Button */}
+        {paperDetails.isUnitWise && (
+          <button 
+            onClick={() => setShowReportModal(true)}
+            style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              width: '46px',
+              height: '46px',
+              borderRadius: '50%',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999,
+              transition: 'transform 0.2s ease, background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.08)';
+              e.currentTarget.style.backgroundColor = '#dc2626';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.backgroundColor = '#ef4444';
+            }}
+            title="Report Question Error"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+        )}
+
+        {/* MODAL: Report Question Error */}
+        {showReportModal && (
+          <div className="mt-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowReportModal(false)}>
+            <div className="mt-modal" style={{ width: '480px' }} onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '15px', color: '#1e293b' }}>
+                Report Question Error
+              </h3>
+              
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                  Your Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={reportEmail}
+                  onChange={(e) => setReportEmail(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                  Select Question
+                </label>
+                <select
+                  value={reportQuestionId}
+                  onChange={(e) => setReportQuestionId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <option value="">-- Choose Question --</option>
+                  {questionsState.map((q, idx) => (
+                    <option key={q.id} value={q.dbId || q.id}>
+                      Question {idx + 1}: {q.question ? q.question.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : `Type: ${q.type}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                  Type of Issue
+                </label>
+                <select
+                  value={reportIssue}
+                  onChange={(e) => setReportIssue(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <option value="Incorrect Answer Key">Incorrect Answer Key</option>
+                  <option value="Typo / Spelling Error">Typo / Spelling Error in Question</option>
+                  <option value="Wrong Options">Wrong or Overlapping Options</option>
+                  <option value="Incorrect Explanation">Incorrect or Unhelpful Explanation</option>
+                  <option value="Formatting Issue">Mathematical/Formatting Symbols Broken</option>
+                  <option value="Other">Other Issues</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                  Describe the issue
+                </label>
+                <textarea
+                  placeholder="Please describe what is wrong with the question..."
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  required
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              <div className="mt-modal__buttons">
+                <button 
+                  type="button" 
+                  className="modal-btn modal-btn--cancel" 
+                  onClick={() => setShowReportModal(false)}
+                  disabled={isSubmittingReport}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="modal-btn modal-btn--confirm" 
+                  onClick={handleSubmitReport}
+                  disabled={isSubmittingReport || !reportEmail || !reportDescription}
+                  style={{ backgroundColor: '#ef4444' }}
+                >
+                  {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
