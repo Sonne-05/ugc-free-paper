@@ -478,9 +478,16 @@ const MockTest = () => {
       ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
       : '';
 
+    const qNo = selectedQ ? `Question ${selectedQ.id}` : 'N/A';
+    const qYear = selectedQ ? (selectedQ.year || 'N/A') : 'N/A';
+    const qSet = selectedQ ? `${selectedQ.setTitle || 'N/A'} (ID: ${selectedQ.setId || 'N/A'})` : 'N/A';
+
     const messageText = `[Question Error Report]
 Unit: ${paperDetails.unitName || 'Paper 1'}
 Active Session: Session ${activeSessionIndex + 1}
+Question Number: ${qNo}
+Question PYQ Year: ${qYear}
+Question PYQ Set: ${qSet}
 Question ID: ${reportQuestionId}
 Issue Category: ${reportIssue}
 Description: ${reportDescription}
@@ -631,6 +638,8 @@ Submitted by User: ${userName}
             passage: q.passage || null,
             explanation: q.explanation || null,
             year: q.year || null,
+            setTitle: q.setTitle || null,
+            setId: q.setId || null,
             userAnswer: null,
             status: 'UNVISITED'
           }))

@@ -319,13 +319,16 @@ app.get('/api/questions/unit', async (req, res) => {
     const setIds = [...new Set(questions.map(q => q.setId ? q.setId.toString() : null).filter(Boolean))];
     const sets = await PyqSet.find({ _id: { $in: setIds } });
     const yearMap = {};
+    const setTitleMap = {};
     sets.forEach(s => {
       yearMap[s._id.toString()] = s.year;
+      setTitleMap[s._id.toString()] = s.title;
     });
 
     const questionsWithYear = questions.map(q => {
       const qObj = q.toJSON();
       qObj.year = q.setId ? (yearMap[q.setId.toString()] || null) : null;
+      qObj.setTitle = q.setId ? (setTitleMap[q.setId.toString()] || null) : null;
       return qObj;
     });
 
