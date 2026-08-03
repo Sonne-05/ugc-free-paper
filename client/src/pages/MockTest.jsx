@@ -524,6 +524,131 @@ Submitted by User: ${userName}
       });
   }
 
+  const renderReportModal = () => {
+    if (!showReportModal) return null;
+    return (
+      <div className="mt-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowReportModal(false)}>
+        <div className="mt-modal" style={{ width: '480px' }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '15px', color: '#1e293b' }}>
+            Report Question Error
+          </h3>
+          
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+              Your Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="email@example.com"
+              value={reportEmail}
+              onChange={(e) => setReportEmail(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+              Select Question
+            </label>
+            <select
+              value={reportQuestionId}
+              onChange={(e) => setReportQuestionId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                backgroundColor: '#ffffff'
+              }}
+            >
+              <option value="">-- Choose Question --</option>
+              {questionsState.map((q, idx) => (
+                <option key={q.id} value={q.dbId || q.id}>
+                  Question {idx + 1}: {q.question ? q.question.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : `Type: ${q.type}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+              Type of Issue
+            </label>
+            <select
+              value={reportIssue}
+              onChange={(e) => setReportIssue(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                backgroundColor: '#ffffff'
+              }}
+            >
+              <option value="Incorrect Answer Key">Incorrect Answer Key</option>
+              <option value="Typo / Spelling Error">Typo / Spelling Error in Question</option>
+              <option value="Wrong Options">Wrong or Overlapping Options</option>
+              <option value="Incorrect Explanation">Incorrect or Unhelpful Explanation</option>
+              <option value="Formatting Issue">Mathematical/Formatting Symbols Broken</option>
+              <option value="Other">Other Issues</option>
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+              Describe the issue
+            </label>
+            <textarea
+              placeholder="Please describe what is wrong with the question..."
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              required
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.85rem',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+          </div>
+
+          <div className="mt-modal__buttons">
+            <button 
+              type="button" 
+              className="modal-btn modal-btn--cancel" 
+              onClick={() => setShowReportModal(false)}
+              disabled={isSubmittingReport}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="modal-btn modal-btn--confirm" 
+              onClick={handleSubmitReport}
+              disabled={isSubmittingReport || !reportEmail || !reportDescription}
+              style={{ backgroundColor: '#ef4444' }}
+            >
+              {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getQuestionUnit = (q, index) => {
     return getUnitFromHelper(q, index);
   };
@@ -1363,6 +1488,7 @@ Submitted by User: ${userName}
             </svg>
           </button>
         )}
+        {renderReportModal()}
       </div>
     );
   };
@@ -2727,128 +2853,7 @@ Submitted by User: ${userName}
         </div>
       )}
 
-      {/* MODAL: Report Question Error */}
-      {showReportModal && (
-        <div className="mt-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowReportModal(false)}>
-          <div className="mt-modal" style={{ width: '480px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '15px', color: '#1e293b' }}>
-              Report Question Error
-            </h3>
-            
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                Your Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="email@example.com"
-                value={reportEmail}
-                onChange={(e) => setReportEmail(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                Select Question
-              </label>
-              <select
-                value={reportQuestionId}
-                onChange={(e) => setReportQuestionId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem',
-                  backgroundColor: '#ffffff'
-                }}
-              >
-                <option value="">-- Choose Question --</option>
-                {questionsState.map((q, idx) => (
-                  <option key={q.id} value={q.dbId || q.id}>
-                    Question {idx + 1}: {q.question ? q.question.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : `Type: ${q.type}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                Type of Issue
-              </label>
-              <select
-                value={reportIssue}
-                onChange={(e) => setReportIssue(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem',
-                  backgroundColor: '#ffffff'
-                }}
-              >
-                <option value="Incorrect Answer Key">Incorrect Answer Key</option>
-                <option value="Typo / Spelling Error">Typo / Spelling Error in Question</option>
-                <option value="Wrong Options">Wrong or Overlapping Options</option>
-                <option value="Incorrect Explanation">Incorrect or Unhelpful Explanation</option>
-                <option value="Formatting Issue">Mathematical/Formatting Symbols Broken</option>
-                <option value="Other">Other Issues</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                Describe the issue
-              </label>
-              <textarea
-                placeholder="Please describe what is wrong with the question..."
-                value={reportDescription}
-                onChange={(e) => setReportDescription(e.target.value)}
-                required
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.85rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-              />
-            </div>
-
-            <div className="mt-modal__buttons">
-              <button 
-                type="button" 
-                className="modal-btn modal-btn--cancel" 
-                onClick={() => setShowReportModal(false)}
-                disabled={isSubmittingReport}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                className="modal-btn modal-btn--confirm" 
-                onClick={handleSubmitReport}
-                disabled={isSubmittingReport || !reportEmail || !reportDescription}
-                style={{ backgroundColor: '#ef4444' }}
-              >
-                {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderReportModal()}
     </div>
   )
 }
