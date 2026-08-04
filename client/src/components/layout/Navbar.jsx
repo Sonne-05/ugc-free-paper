@@ -6,6 +6,7 @@ import './Navbar.css'
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobilePracticeOpen, setMobilePracticeOpen] = useState(false)
+  const [mobileCorePaperOpen, setMobileCorePaperOpen] = useState(false)
   const [mobileNotesOpen, setMobileNotesOpen] = useState(false)
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false)
   const [desktopProfileOpen, setDesktopProfileOpen] = useState(false)
@@ -109,6 +110,25 @@ const Navbar = () => {
                   <div className="navbar__dropdown-content">
                     <span className="navbar__dropdown-title">Paper II</span>
                     <span className="navbar__dropdown-desc">Subject Specific Syllabus PYQs</span>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
+            {/* Core Paper Dropdown */}
+            <div className="navbar__nav-dropdown">
+              <button className="navbar__nav-item navbar__dropdown-trigger">
+                <span>Core Paper</span>
+                <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <div className="navbar__dropdown-menu">
+                <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
+                  <div className="navbar__dropdown-icon">S</div>
+                  <div className="navbar__dropdown-content">
+                    <span className="navbar__dropdown-title">Sociology</span>
+                    <span className="navbar__dropdown-desc">Paper II Core Subject PYQs & Study Material</span>
                   </div>
                 </Link>
               </div>
@@ -257,6 +277,26 @@ const Navbar = () => {
                 </Link>
                 <Link to="/paper2" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
                   Paper II (Subject Specific)
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Core Paper Header */}
+          <div className="navbar__mobile-group">
+            <button 
+              className="navbar__mobile-group-trigger"
+              onClick={() => setMobileCorePaperOpen(!mobileCorePaperOpen)}
+            >
+              <span>Core Paper</span>
+              <svg className={`navbar__chevron ${mobileCorePaperOpen ? 'navbar__chevron--rotated' : ''}`} viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {mobileCorePaperOpen && (
+              <div className="navbar__mobile-group-menu">
+                <Link to="/paper2" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
+                  Sociology
                 </Link>
               </div>
             )}
