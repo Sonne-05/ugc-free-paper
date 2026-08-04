@@ -105,13 +105,6 @@ const Navbar = () => {
                     <span className="navbar__dropdown-desc">Practice PYQs sorted by Unit topics</span>
                   </div>
                 </Link>
-                <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">II</div>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">Paper II</span>
-                    <span className="navbar__dropdown-desc">Subject Specific Syllabus PYQs</span>
-                  </div>
-                </Link>
               </div>
             </div>
 
@@ -274,9 +267,6 @@ const Navbar = () => {
                 </Link>
                 <Link to="/paper1-unit-pyq" className={`navbar__mobile-group-item ${isActive('/paper1-unit-pyq') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
                   Paper 1 (Unit Wise)
-                </Link>
-                <Link to="/paper2" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  Paper II (Subject Specific)
                 </Link>
               </div>
             )}
