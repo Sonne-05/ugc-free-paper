@@ -92,14 +92,12 @@ const Navbar = () => {
               </button>
               <div className="navbar__dropdown-menu">
                 <Link to="/paper1" className={`navbar__dropdown-item ${isActive('/paper1') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">I</div>
                   <div className="navbar__dropdown-content">
                     <span className="navbar__dropdown-title">Paper I</span>
                     <span className="navbar__dropdown-desc">General Aptitude & Teaching PYQs</span>
                   </div>
                 </Link>
                 <Link to="/paper1-unit-pyq" className={`navbar__dropdown-item ${isActive('/paper1-unit-pyq') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">U</div>
                   <div className="navbar__dropdown-content">
                     <span className="navbar__dropdown-title">Paper 1 (Unit Wise)</span>
                     <span className="navbar__dropdown-desc">Practice PYQs sorted by Unit topics</span>
@@ -118,7 +116,6 @@ const Navbar = () => {
               </button>
               <div className="navbar__dropdown-menu">
                 <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-icon">S</div>
                   <div className="navbar__dropdown-content">
                     <span className="navbar__dropdown-title">Sociology</span>
                     <span className="navbar__dropdown-desc">Paper II Core Subject PYQs & Study Material</span>
@@ -138,7 +135,6 @@ const Navbar = () => {
                 </button>
                 <div className="navbar__dropdown-menu">
                   <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
-                    <div className="navbar__dropdown-icon">N</div>
                     <div className="navbar__dropdown-content">
                       <span className="navbar__dropdown-title">Paper I Notes</span>
                       <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
