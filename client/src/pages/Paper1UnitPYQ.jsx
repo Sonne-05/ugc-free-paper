@@ -7,7 +7,7 @@ const Paper1UnitPYQ = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = 'Paper 1 (Unit Wise) PYQs - UGC Free Paper'
+    document.title = 'UGC NET Paper I PYQs (Unit Wise) - UGC Free Paper'
   }, [])
 
   const units = [
@@ -153,10 +153,11 @@ const Paper1UnitPYQ = () => {
 
   return (
     <div className="pyq-page">
-      <div className="pyq-page__container" style={{ maxWidth: '1100px' }}>
-        <h1 className="pyq-page__title">Paper 1 (Unit Wise) PYQs</h1>
-        <p className="pyq-page__subtitle">Select a specific syllabus unit to practice official previous years' questions.</p>
+      <div className="pyq-page__container">
+        <h1 className="pyq-page__title">UGC NET Paper I PYQs (Unit Wise)</h1>
+        <p className="pyq-page__subtitle">Practice previous year questions organized by syllabus units.</p>
 
+        {/* SEO Intro */}
         <section className="pyq-page__intro">
           <h2>About Unit-wise Practice</h2>
           <p>
@@ -164,87 +165,58 @@ const Paper1UnitPYQ = () => {
           </p>
         </section>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '24px',
-          marginTop: '32px'
-        }}>
-          {units.map((unit) => (
-            <div 
-              key={unit.id} 
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '12px',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-              }}
-              className="unit-pyq-card"
-            >
-              <div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{
-                    background: 'rgba(37, 99, 235, 0.08)',
-                    color: 'var(--primary)',
-                    borderRadius: '8px',
-                    width: '40px',
-                    height: '40px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {unit.icon}
-                  </div>
-                  <div>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em'
-                    }}>
-                      Unit {unit.id}
-                    </span>
-                    <h3 style={{
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      color: 'var(--text)',
-                      margin: 0
-                    }}>
-                      {unit.name}
-                    </h3>
-                  </div>
-                </div>
-                <p style={{
-                  fontSize: '0.88rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.5',
-                  marginBottom: '20px',
-                  minHeight: '72px'
-                }}>
-                  {unit.desc}
-                </p>
-              </div>
-
-              <button 
-                onClick={() => handleStartPractice(unit)}
-                className="pyq-table__btn"
-                style={{ width: '100%', padding: '10px' }}
-              >
-                Practice Questions
-              </button>
-            </div>
-          ))}
+        <div className="pyq-page__content">
+          <table className="pyq-table">
+            <thead>
+              <tr>
+                <th className="pyq-table__th col-year" style={{ textAlign: 'center' }}>Unit</th>
+                <th className="pyq-table__th col-cycle">Syllabus Unit Name & Description</th>
+                <th className="pyq-table__th col-action">Practice</th>
+              </tr>
+            </thead>
+            <tbody>
+              {units.map((unit) => (
+                <tr key={unit.id} className="pyq-table__tr">
+                  <td className="pyq-table__td font-semibold pyq-table__td--year-group">
+                    {unit.id}
+                  </td>
+                  <td className="pyq-table__td">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        background: 'rgba(37, 99, 235, 0.08)',
+                        color: 'var(--primary)',
+                        borderRadius: '8px',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        {unit.icon}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                          {unit.name}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                          {unit.desc}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="pyq-table__td">
+                    <button 
+                      className="pyq-table__btn"
+                      onClick={() => handleStartPractice(unit)}
+                    >
+                      Practice
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
