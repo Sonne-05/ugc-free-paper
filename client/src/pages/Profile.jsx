@@ -65,6 +65,7 @@ const Profile = () => {
   const [corePaperIsAvailable, setCorePaperIsAvailable] = useState(true)
   const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
   const [selectedFilterYear, setSelectedFilterYear] = useState('All')
+  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
   const uniqueSetYears = useMemo(() => {
     const years = pyqSets.map(s => s.year).filter(Boolean).map(y => String(y))
     return [...new Set(years)].sort((a, b) => b - a)
@@ -2161,187 +2162,206 @@ const Profile = () => {
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
                       Active PYQ Sets Database
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Year:</label>
-                      <select 
-                        className="pane-select" 
-                        value={selectedFilterYear} 
-                        onChange={(e) => setSelectedFilterYear(e.target.value)}
-                        style={{ width: '120px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
-                      >
-                        <option value="All">All Years</option>
-                        {uniqueSetYears.map(year => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Paper:</label>
+                        <select 
+                          className="pane-select" 
+                          value={selectedFilterPaperType} 
+                          onChange={(e) => setSelectedFilterPaperType(e.target.value)}
+                          style={{ width: '150px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
+                        >
+                          <option value="All">All Papers</option>
+                          <option value="Paper I">Paper I (General)</option>
+                          <option value="Paper II">Paper II (Core)</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Year:</label>
+                        <select 
+                          className="pane-select" 
+                          value={selectedFilterYear} 
+                          onChange={(e) => setSelectedFilterYear(e.target.value)}
+                          style={{ width: '120px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
+                        >
+                          <option value="All">All Years</option>
+                          {uniqueSetYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
 
                   {/* PAPER I TABLE */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '8px', height: '8px', background: 'var(--primary)', borderRadius: '50%' }}></span>
-                      Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
-                    </h4>
-                    {pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                        No active Paper I sets.
-                      </p>
-                    ) : (
-                      <table className="admin-table" style={{ marginBottom: 0 }}>
-                        <thead>
-                          <tr>
-                            <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
-                            <th style={{ width: '80px' }}>ID</th>
-                            <th>Exam Set Title</th>
-                            <th>Status / Questions</th>
-                            <th style={{ textAlign: 'right' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
-                            const grouped = getGroupedSetsByYear(paper1Sets)
-                            return Object.keys(grouped)
-                              .sort((a, b) => b - a)
-                              .map(year => {
-                                const yearSets = grouped[year]
-                                return yearSets.map((set, index) => (
-                                  <tr key={set.id || set._id}>
-                                    {index === 0 && (
-                                      <td 
-                                        rowSpan={yearSets.length} 
-                                        style={{ 
-                                          verticalAlign: 'middle', 
-                                          borderRight: '1px solid var(--border)', 
-                                          textAlign: 'center', 
-                                          fontWeight: '700', 
-                                          fontSize: '0.95rem',
-                                          color: 'var(--primary)',
-                                          background: 'rgba(37, 99, 235, 0.02)' 
-                                        }}
-                                      >
-                                        {year}
-                                      </td>
-                                    )}
-                                    <td>#{set.id}</td>
-                                    <td>
-                                      <strong style={{ display: 'block' }}>{set.title}</strong>
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
-                                    </td>
-                                    <td>
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                          {set.questionsLoaded} / {set.questionsCount} Qs
-                                        </span>
-                                        <div>
-                                          {set.isPublished ? (
-                                            <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
-                                          ) : (
-                                            <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                      <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                      {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                        <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                      ) : (
-                                        <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                  {(selectedFilterPaperType === 'All' || selectedFilterPaperType === 'Paper I') && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '8px', height: '8px', background: 'var(--primary)', borderRadius: '50%' }}></span>
+                        Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
+                      </h4>
+                      {pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
+                          No active Paper I sets.
+                        </p>
+                      ) : (
+                        <table className="admin-table" style={{ marginBottom: 0 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
+                              <th style={{ width: '80px' }}>ID</th>
+                              <th>Exam Set Title</th>
+                              <th>Status / Questions</th>
+                              <th style={{ textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
+                              const grouped = getGroupedSetsByYear(paper1Sets)
+                              return Object.keys(grouped)
+                                .sort((a, b) => b - a)
+                                .map(year => {
+                                  const yearSets = grouped[year]
+                                  return yearSets.map((set, index) => (
+                                    <tr key={set.id || set._id}>
+                                      {index === 0 && (
+                                        <td 
+                                          rowSpan={yearSets.length} 
+                                          style={{ 
+                                            verticalAlign: 'middle', 
+                                            borderRight: '1px solid var(--border)', 
+                                            textAlign: 'center', 
+                                            fontWeight: '700', 
+                                            fontSize: '0.95rem',
+                                            color: 'var(--primary)',
+                                            background: 'rgba(37, 99, 235, 0.02)' 
+                                          }}
+                                        >
+                                          {year}
+                                        </td>
                                       )}
-                                    </td>
-                                  </tr>
-                                ))
-                              })
-                          })()}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                                      <td>#{set.id}</td>
+                                      <td>
+                                        <strong style={{ display: 'block' }}>{set.title}</strong>
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
+                                      </td>
+                                      <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                            {set.questionsLoaded} / {set.questionsCount} Qs
+                                          </span>
+                                          <div>
+                                            {set.isPublished ? (
+                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                            ) : (
+                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                        {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                          <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                        ) : (
+                                          <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))
+                                })
+                            })()}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
 
                   {/* PAPER II TABLE */}
-                  <div>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
-                      Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
-                    </h4>
-                    {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                        No active Paper II sets.
-                      </p>
-                    ) : (
-                      <table className="admin-table" style={{ marginBottom: 0 }}>
-                        <thead>
-                          <tr>
-                            <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
-                            <th style={{ width: '80px' }}>ID</th>
-                            <th>Exam Set Title</th>
-                            <th>Status / Questions</th>
-                            <th style={{ textAlign: 'right' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
-                            const grouped = getGroupedSetsByYear(paper2Sets)
-                            return Object.keys(grouped)
-                              .sort((a, b) => b - a)
-                              .map(year => {
-                                const yearSets = grouped[year]
-                                return yearSets.map((set, index) => (
-                                  <tr key={set.id || set._id}>
-                                    {index === 0 && (
-                                      <td 
-                                        rowSpan={yearSets.length} 
-                                        style={{ 
-                                          verticalAlign: 'middle', 
-                                          borderRight: '1px solid var(--border)', 
-                                          textAlign: 'center', 
-                                          fontWeight: '700', 
-                                          fontSize: '0.95rem',
-                                          color: '#dc2626',
-                                          background: 'rgba(220, 38, 38, 0.02)' 
-                                        }}
-                                      >
-                                        {year}
-                                      </td>
-                                    )}
-                                    <td>#{set.id}</td>
-                                    <td>
-                                      <strong style={{ display: 'block' }}>{set.title}</strong>
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
-                                    </td>
-                                    <td>
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                          {set.questionsLoaded} / {set.questionsCount} Qs
-                                        </span>
-                                        <div>
-                                          {set.isPublished ? (
-                                            <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
-                                          ) : (
-                                            <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                      <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                      {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                        <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                      ) : (
-                                        <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                  {(selectedFilterPaperType === 'All' || selectedFilterPaperType === 'Paper II') && (
+                    <div>
+                      <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
+                        Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
+                      </h4>
+                      {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
+                          No active Paper II sets.
+                        </p>
+                      ) : (
+                        <table className="admin-table" style={{ marginBottom: 0 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
+                              <th style={{ width: '80px' }}>ID</th>
+                              <th>Exam Set Title</th>
+                              <th>Status / Questions</th>
+                              <th style={{ textAlign: 'right' }}>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
+                              const grouped = getGroupedSetsByYear(paper2Sets)
+                              return Object.keys(grouped)
+                                .sort((a, b) => b - a)
+                                .map(year => {
+                                  const yearSets = grouped[year]
+                                  return yearSets.map((set, index) => (
+                                    <tr key={set.id || set._id}>
+                                      {index === 0 && (
+                                        <td 
+                                          rowSpan={yearSets.length} 
+                                          style={{ 
+                                            verticalAlign: 'middle', 
+                                            borderRight: '1px solid var(--border)', 
+                                            textAlign: 'center', 
+                                            fontWeight: '700', 
+                                            fontSize: '0.95rem',
+                                            color: '#dc2626',
+                                            background: 'rgba(220, 38, 38, 0.02)' 
+                                          }}
+                                        >
+                                          {year}
+                                        </td>
                                       )}
-                                    </td>
-                                  </tr>
-                                ))
-                              })
-                          })()}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                                      <td>#{set.id}</td>
+                                      <td>
+                                        <strong style={{ display: 'block' }}>{set.title}</strong>
+                                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
+                                      </td>
+                                      <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                            {set.questionsLoaded} / {set.questionsCount} Qs
+                                          </span>
+                                          <div>
+                                            {set.isPublished ? (
+                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                            ) : (
+                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                        {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                          <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                        ) : (
+                                          <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))
+                                })
+                            })()}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="creator-grid">
