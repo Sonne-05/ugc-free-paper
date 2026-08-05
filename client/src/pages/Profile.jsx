@@ -1853,6 +1853,16 @@ const Profile = () => {
     )
   }
 
+  const getGroupedSetsByYear = (sets) => {
+    const grouped = {}
+    sets.forEach(set => {
+      const year = set.year || 'Unknown'
+      if (!grouped[year]) grouped[year] = []
+      grouped[year].push(set)
+    })
+    return grouped
+  }
+
   // RENDER ADMIN DASHBOARD (WITHOUT STUDY PROGRESS CARD)
   return (
     <div className="profile-page">
@@ -2160,46 +2170,70 @@ const Profile = () => {
                       <table className="admin-table" style={{ marginBottom: 0 }}>
                         <thead>
                           <tr>
+                            <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
                             <th style={{ width: '80px' }}>ID</th>
                             <th>Exam Set Title</th>
-                            <th>Year</th>
                             <th>Status / Questions</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {pyqSets.filter(s => s.paperType === 'Paper I').map(set => (
-                            <tr key={set.id}>
-                              <td>#{set.id}</td>
-                              <td>
-                                <strong style={{ display: 'block' }}>{set.title}</strong>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
-                              </td>
-                              <td>{set.year}</td>
-                              <td>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                    {set.questionsLoaded} / {set.questionsCount} Qs
-                                  </span>
-                                  <div>
-                                    {set.isPublished ? (
-                                      <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
-                                    ) : (
-                                      <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                          {(() => {
+                            const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I')
+                            const grouped = getGroupedSetsByYear(paper1Sets)
+                            return Object.keys(grouped)
+                              .sort((a, b) => b - a)
+                              .map(year => {
+                                const yearSets = grouped[year]
+                                return yearSets.map((set, index) => (
+                                  <tr key={set.id || set._id}>
+                                    {index === 0 && (
+                                      <td 
+                                        rowSpan={yearSets.length} 
+                                        style={{ 
+                                          verticalAlign: 'middle', 
+                                          borderRight: '1px solid var(--border)', 
+                                          textAlign: 'center', 
+                                          fontWeight: '700', 
+                                          fontSize: '0.95rem',
+                                          color: 'var(--primary)',
+                                          background: 'rgba(37, 99, 235, 0.02)' 
+                                        }}
+                                      >
+                                        {year}
+                                      </td>
                                     )}
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                  <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                ) : (
-                                  <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                                    <td>#{set.id}</td>
+                                    <td>
+                                      <strong style={{ display: 'block' }}>{set.title}</strong>
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
+                                    </td>
+                                    <td>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                          {set.questionsLoaded} / {set.questionsCount} Qs
+                                        </span>
+                                        <div>
+                                          {set.isPublished ? (
+                                            <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                          ) : (
+                                            <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                      <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                      {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                        <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                      ) : (
+                                        <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              })
+                          })()}
                         </tbody>
                       </table>
                     )}
@@ -2209,56 +2243,80 @@ const Profile = () => {
                   <div>
                     <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
-                      Paper II (Sociology) Sets ({pyqSets.filter(s => s.paperType === 'Paper II').length})
+                      Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II').length})
                     </h4>
                     {pyqSets.filter(s => s.paperType === 'Paper II').length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                        No active Paper II Sociology sets.
+                        No active Paper II sets.
                       </p>
                     ) : (
                       <table className="admin-table" style={{ marginBottom: 0 }}>
                         <thead>
                           <tr>
+                            <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
                             <th style={{ width: '80px' }}>ID</th>
                             <th>Exam Set Title</th>
-                            <th>Year</th>
                             <th>Status / Questions</th>
                             <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {pyqSets.filter(s => s.paperType === 'Paper II').map(set => (
-                            <tr key={set.id}>
-                              <td>#{set.id}</td>
-                              <td>
-                                <strong style={{ display: 'block' }}>{set.title}</strong>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
-                              </td>
-                              <td>{set.year}</td>
-                              <td>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                                    {set.questionsLoaded} / {set.questionsCount} Qs
-                                  </span>
-                                  <div>
-                                    {set.isPublished ? (
-                                      <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
-                                    ) : (
-                                      <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                          {(() => {
+                            const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II')
+                            const grouped = getGroupedSetsByYear(paper2Sets)
+                            return Object.keys(grouped)
+                              .sort((a, b) => b - a)
+                              .map(year => {
+                                const yearSets = grouped[year]
+                                return yearSets.map((set, index) => (
+                                  <tr key={set.id || set._id}>
+                                    {index === 0 && (
+                                      <td 
+                                        rowSpan={yearSets.length} 
+                                        style={{ 
+                                          verticalAlign: 'middle', 
+                                          borderRight: '1px solid var(--border)', 
+                                          textAlign: 'center', 
+                                          fontWeight: '700', 
+                                          fontSize: '0.95rem',
+                                          color: '#dc2626',
+                                          background: 'rgba(220, 38, 38, 0.02)' 
+                                        }}
+                                      >
+                                        {year}
+                                      </td>
                                     )}
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                  <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                ) : (
-                                  <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                                    <td>#{set.id}</td>
+                                    <td>
+                                      <strong style={{ display: 'block' }}>{set.title}</strong>
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
+                                    </td>
+                                    <td>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                          {set.questionsLoaded} / {set.questionsCount} Qs
+                                        </span>
+                                        <div>
+                                          {set.isPublished ? (
+                                            <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                          ) : (
+                                            <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                      <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                      {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                        <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                      ) : (
+                                        <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              })
+                          })()}
                         </tbody>
                       </table>
                     )}
