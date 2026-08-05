@@ -1,24 +1,29 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../services/api'
 import './PaperPYQ.css'
 
 const Paper2PYQ = () => {
   const navigate = useNavigate()
+  const { search } = useLocation()
   const [groupedPapers, setGroupedPapers] = useState({})
 
+  const query = new URLSearchParams(search)
+  const activeSubject = query.get('subject') || 'Sociology'
+
   useEffect(() => {
+    document.title = `UGC NET Paper II ${activeSubject} PYQs - UGC Free Paper`
     fetch(`${API_BASE_URL}/api/pyqsets`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const paper2Sets = data.filter(set => set.paperType === 'Paper II')
+          const paper2Sets = data.filter(set => set.paperType === 'Paper II' && (set.subject || 'Sociology') === activeSubject)
           const grouped = {}
           paper2Sets.forEach(set => {
             if (!grouped[set.year]) grouped[set.year] = []
             grouped[set.year].push({
               id: set.id,
-              subject: 'Sociology',
+              subject: activeSubject,
               cycle: set.subtitle,
               questions: set.questionsCount,
               title: set.title
@@ -28,19 +33,19 @@ const Paper2PYQ = () => {
         }
       })
       .catch(err => console.error('Failed to fetch pyq sets:', err))
-  }, [])
+  }, [activeSubject])
 
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
-        <h1 className="pyq-page__title">UGC NET Paper II Sociology PYQs</h1>
-        <p className="pyq-page__subtitle">Solve official year-wise UGC NET Sociology Previous Year Question papers.</p>
+        <h1 className="pyq-page__title">UGC NET Paper II {activeSubject} PYQs</h1>
+        <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} Previous Year Question papers.</p>
 
         {/* SEO Intro */}
         <section className="pyq-page__intro">
-          <h2>Master Paper II Sociology</h2>
+          <h2>Master Paper II {activeSubject}</h2>
           <p>
-            Paper 2 Sociology tests your depth of knowledge in sociological theories, research methodology, social institutions, and developments in India. Regularly solving Sociology previous years' question papers allows you to analyze question patterns and maximize your JRF qualification rate.
+            Paper 2 {activeSubject} tests your depth of knowledge in advanced subject curriculum, core concepts, research methodologies, and theoretical frameworks. Regularly solving {activeSubject} previous years' question papers allows you to analyze question patterns and maximize your JRF qualification rate.
           </p>
         </section>
 

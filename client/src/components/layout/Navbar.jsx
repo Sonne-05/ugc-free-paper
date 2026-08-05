@@ -20,6 +20,7 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false)
   const [userName, setUserName] = useState('')
   const [studyNotesEnabled, setStudyNotesEnabled] = useState(true)
+  const [corePapers, setCorePapers] = useState([])
 
   useEffect(() => {
     setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true')
@@ -36,6 +37,16 @@ const Navbar = () => {
         }
       })
       .catch(err => console.error('Failed to fetch settings in Navbar:', err))
+
+    // Fetch active core papers
+    fetch(`${API_BASE_URL}/api/core-papers`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCorePapers(data.filter(p => p.isAvailable !== false))
+        }
+      })
+      .catch(err => console.error('Failed to fetch core papers in Navbar:', err))
   }, [location])
 
   // Close profile dropdown when clicking outside
@@ -115,12 +126,27 @@ const Navbar = () => {
                 </svg>
               </button>
               <div className="navbar__dropdown-menu">
-                <Link to="/paper2" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">Sociology</span>
-                    <span className="navbar__dropdown-desc">Paper II Core Subject PYQs & Study Material</span>
-                  </div>
-                </Link>
+                {corePapers.length === 0 ? (
+                  <Link to="/paper2?subject=Sociology" className={`navbar__dropdown-item ${isActive('/paper2') ? 'navbar__dropdown-item--active' : ''}`}>
+                    <div className="navbar__dropdown-content">
+                      <span className="navbar__dropdown-title">Sociology</span>
+                      <span className="navbar__dropdown-desc">Paper II Core Subject PYQs & Study Material</span>
+                    </div>
+                  </Link>
+                ) : (
+                  corePapers.map(paper => (
+                    <Link 
+                      key={paper.id} 
+                      to={`/paper2?subject=${paper.name}`} 
+                      className={`navbar__dropdown-item ${location.search.includes(`subject=${paper.name}`) ? 'navbar__dropdown-item--active' : ''}`}
+                    >
+                      <div className="navbar__dropdown-content">
+                        <span className="navbar__dropdown-title">{paper.name}</span>
+                        <span className="navbar__dropdown-desc">{paper.description || `Paper II ${paper.name} PYQs & Study Material`}</span>
+                      </div>
+                    </Link>
+                  ))
+                )}
               </div>
             </div>
 
@@ -281,9 +307,22 @@ const Navbar = () => {
             </button>
             {mobileCorePaperOpen && (
               <div className="navbar__mobile-group-menu">
-                <Link to="/paper2" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  Sociology
-                </Link>
+                {corePapers.length === 0 ? (
+                  <Link to="/paper2?subject=Sociology" className={`navbar__mobile-group-item ${isActive('/paper2') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
+                    Sociology
+                  </Link>
+                ) : (
+                  corePapers.map(paper => (
+                    <Link 
+                      key={paper.id} 
+                      to={`/paper2?subject=${paper.name}`} 
+                      className={`navbar__mobile-group-item ${location.search.includes(`subject=${paper.name}`) ? 'navbar__mobile-group-item--active' : ''}`} 
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {paper.name}
+                    </Link>
+                  ))
+                )}
               </div>
             )}
           </div>

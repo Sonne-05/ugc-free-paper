@@ -11,6 +11,7 @@ const Setting = require('./models/Setting');
 const User = require('./models/User');
 const ContactMessage = require('./models/ContactMessage');
 const BlogPost = require('./models/BlogPost');
+const CorePaper = require('./models/CorePaper');
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -737,6 +738,81 @@ app.post('/api/settings', async (req, res) => {
     res.json(settings);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update settings' });
+  }
+});
+
+// --- Core Papers Routes ---
+app.get('/api/core-papers', async (req, res) => {
+  try {
+    let papers = await CorePaper.find();
+    if (papers.length === 0) {
+      const defaultPaper = new CorePaper({
+        name: 'Sociology',
+        code: 'Sociology',
+        description: 'Paper II Core Subject PYQs & Study Material',
+        isAvailable: true
+      });
+      await defaultPaper.save();
+      papers = [defaultPaper];
+    }
+    res.json(papers);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch core papers' });
+  }
+});
+
+app.post('/api/core-papers', async (req, res) => {
+  try {
+    const { name, code, description, isAvailable } = req.body;
+    if (!name || !code) {
+      return res.status(400).json({ message: 'Name and Code are required' });
+    }
+    const existing = await CorePaper.findOne({ $or: [{ name }, { code }] });
+    if (existing) {
+      return res.status(400).json({ message: 'Core Paper with this name or code already exists' });
+    }
+    const newPaper = new CorePaper({ name, code, description, isAvailable });
+    await newPaper.save();
+    res.status(201).json(newPaper);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to create core paper', error: err.message });
+  }
+});
+
+app.put('/api/core-papers/:id', async (req, res) => {
+  try {
+    const { name, code, description, isAvailable } = req.body;
+    const updated = await CorePaper.findByIdAndUpdate(
+      req.params.id,
+      { name, code, description, isAvailable },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Core paper not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update core paper', error: err.message });
+  }
+});
+
+app.delete('/api/core-papers/:id', async (req, res) => {
+  try {
+    const deleted = await CorePaper.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Core paper not found' });
+    res.json({ message: 'Core paper deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete core paper' });
+  }
+});
+
+app.patch('/api/core-papers/:id/toggle-availability', async (req, res) => {
+  try {
+    const paper = await CorePaper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ message: 'Core paper not found' });
+    paper.isAvailable = !paper.isAvailable;
+    await paper.save();
+    res.json(paper);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to toggle core paper availability' });
   }
 });
 

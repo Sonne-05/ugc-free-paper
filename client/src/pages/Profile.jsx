@@ -12,7 +12,7 @@ const Profile = () => {
   const [userEmail, setUserEmail] = useState('aspirant@ugcfreepaper.com')
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '')
-    const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages']
+    const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages', 'blogs', 'core-papers']
     return validTabs.includes(hash) ? hash : 'settings'
   })
 
@@ -54,6 +54,16 @@ const Profile = () => {
   const [newSetIsPublished, setNewSetIsPublished] = useState(false)
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
+  const [corePapers, setCorePapers] = useState([])
+  const [newSetSubject, setNewSetSubject] = useState('Sociology')
+
+  // Core Papers form states
+  const [corePaperId, setCorePaperId] = useState(null)
+  const [corePaperName, setCorePaperName] = useState('')
+  const [corePaperCode, setCorePaperCode] = useState('')
+  const [corePaperDesc, setCorePaperDesc] = useState('')
+  const [corePaperIsAvailable, setCorePaperIsAvailable] = useState(true)
+  const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
 
   useEffect(() => {
     window.location.hash = activeTab
@@ -62,7 +72,7 @@ const Profile = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '')
-      const validTabs = ['settings', 'notes', 'users', 'pyq', 'messages', 'blogs']
+      const validTabs = ['settings', 'notes', 'users', 'pyq', 'messages', 'blogs', 'core-papers']
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       }
@@ -127,10 +137,22 @@ const Profile = () => {
           if (Array.isArray(data)) setAdminPosts(data);
         })
         .catch(err => console.error('Failed to fetch admin blog posts:', err));
+
+      // 7. Fetch core papers
+      fetch(`${API_BASE_URL}/api/core-papers`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setCorePapers(data);
+        })
+        .catch(err => console.error('Failed to fetch core papers:', err));
     }
   }, [isAdmin])
 
-
+  useEffect(() => {
+    if (corePapers.length > 0 && !corePapers.find(p => p.name === newSetSubject)) {
+      setNewSetSubject(corePapers[0].name);
+    }
+  }, [corePapers, newSetSubject])
 
   // New Question Form states
   const [selectedSetId, setSelectedSetId] = useState('')
@@ -690,6 +712,112 @@ const Profile = () => {
     }
   }
 
+  // --- Core Papers Handlers ---
+  const handleResetCorePaperForm = () => {
+    setCorePaperId(null)
+    setCorePaperName('')
+    setCorePaperCode('')
+    setCorePaperDesc('')
+    setCorePaperIsAvailable(true)
+    setIsCorePaperFormOpen(false)
+  }
+
+  const handleSaveCorePaper = async (e) => {
+    e.preventDefault()
+    if (!corePaperName.trim() || !corePaperCode.trim()) {
+      alert('Please fill in both Name and Code fields.')
+      return
+    }
+
+    const paperData = {
+      name: corePaperName.trim(),
+      code: corePaperCode.trim(),
+      description: corePaperDesc.trim(),
+      isAvailable: corePaperIsAvailable
+    }
+
+    try {
+      if (corePaperId) {
+        const res = await fetch(`${API_BASE_URL}/api/core-papers/${corePaperId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paperData)
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          setCorePapers(prev => prev.map(p => p.id === corePaperId ? updated : p))
+          alert('Core paper updated successfully!')
+          handleResetCorePaperForm()
+        } else {
+          alert('Failed to update core paper.')
+        }
+      } else {
+        const res = await fetch(`${API_BASE_URL}/api/core-papers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(paperData)
+        })
+        if (res.ok) {
+          const created = await res.json()
+          setCorePapers(prev => [...prev, created])
+          alert('Core paper created successfully!')
+          handleResetCorePaperForm()
+        } else {
+          const errData = await res.json();
+          alert(`Failed to create core paper: ${errData.message || 'Server error'}`)
+        }
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while saving core paper.')
+    }
+  }
+
+  const handleEditCorePaper = (paper) => {
+    setCorePaperId(paper.id)
+    setCorePaperName(paper.name)
+    setCorePaperCode(paper.code)
+    setCorePaperDesc(paper.description || '')
+    setCorePaperIsAvailable(paper.isAvailable !== false)
+    setIsCorePaperFormOpen(true)
+  }
+
+  const handleDeleteCorePaper = async (id) => {
+    if (window.confirm('Are you sure you want to delete this core paper?')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/core-papers/${id}`, {
+          method: 'DELETE'
+        })
+        if (res.ok) {
+          setCorePapers(prev => prev.filter(p => p.id !== id))
+          alert('Core paper deleted successfully!')
+        } else {
+          alert('Failed to delete core paper.')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Network error while deleting core paper.')
+      }
+    }
+  }
+
+  const handleToggleCorePaperAvailability = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/core-papers/${id}/toggle-availability`, {
+        method: 'PATCH'
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setCorePapers(prev => prev.map(p => p.id === id ? updated : p))
+      } else {
+        alert('Failed to toggle availability.')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while toggling availability.')
+    }
+  }
+
   const handleToggleUserRole = async (id) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/users/${id}/role`, {
@@ -786,11 +914,17 @@ const Profile = () => {
       return
     }
     
-    const title = `UGC NET ${newSetPaperType} ${newSetPaperType === 'Paper II' ? 'Sociology ' : ''}(${newSetYear})`
+    const title = `UGC NET ${newSetPaperType} ${newSetPaperType === 'Paper II' ? `${newSetSubject} ` : ''}(${newSetYear})`
     
     let finalSubtitle = newSetSubtitle
-    if (!finalSubtitle.startsWith('Sociology') && !finalSubtitle.startsWith('General')) {
-      finalSubtitle = `${newSetPaperType === 'Paper II' ? 'Sociology' : 'General Paper'} ${newSetYear} ${newSetSubtitle}`
+    if (newSetPaperType === 'Paper II') {
+      if (!finalSubtitle.startsWith(newSetSubject) && !finalSubtitle.startsWith('General')) {
+        finalSubtitle = `${newSetSubject} ${newSetYear} ${newSetSubtitle}`
+      }
+    } else {
+      if (!finalSubtitle.startsWith('General')) {
+        finalSubtitle = `General Paper ${newSetYear} ${newSetSubtitle}`
+      }
     }
 
     try {
@@ -799,6 +933,7 @@ const Profile = () => {
           title,
           subtitle: finalSubtitle,
           paperType: newSetPaperType,
+          subject: newSetPaperType === 'Paper II' ? newSetSubject : '',
           year: newSetYear,
           questionsCount: Number(newSetCount),
           isPublished: newSetIsPublished
@@ -819,6 +954,7 @@ const Profile = () => {
         title,
         subtitle: finalSubtitle,
         paperType: newSetPaperType,
+        subject: newSetPaperType === 'Paper II' ? newSetSubject : '',
         year: newSetYear,
         questionsCount: Number(newSetCount),
         questionsLoaded: 0,
@@ -1741,6 +1877,13 @@ const Profile = () => {
               <span>Manage Notes</span>
             </button>
             <button 
+              className={`admin-tab-link ${activeTab === 'core-papers' ? 'admin-tab-link--active' : ''}`}
+              onClick={() => setActiveTab('core-papers')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+              <span>Manage Core Papers</span>
+            </button>
+            <button 
               className={`admin-tab-link ${activeTab === 'users' ? 'admin-tab-link--active' : ''}`}
               onClick={() => setActiveTab('users')}
             >
@@ -2134,9 +2277,28 @@ const Profile = () => {
                         onChange={(e) => setNewSetPaperType(e.target.value)}
                       >
                         <option value="Paper I">Paper I (General Aptitude)</option>
-                        <option value="Paper II">Paper II (Sociology)</option>
+                        <option value="Paper II">Paper II (Core Subject)</option>
                       </select>
                     </div>
+
+                    {newSetPaperType === 'Paper II' && (
+                      <div className="form-field" style={{ marginBottom: '12px' }}>
+                        <label>Core Paper Subject</label>
+                        <select 
+                          className="pane-select"
+                          value={newSetSubject}
+                          onChange={(e) => setNewSetSubject(e.target.value)}
+                        >
+                          {corePapers.length === 0 ? (
+                            <option value="Sociology">Sociology (Default)</option>
+                          ) : (
+                            corePapers.map(paper => (
+                              <option key={paper.id} value={paper.name}>{paper.name}</option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-field" style={{ marginBottom: '12px' }}>
                       <label>Exam Year</label>
@@ -2483,6 +2645,117 @@ const Profile = () => {
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* 8. MANAGE CORE PAPERS */}
+            {activeTab === 'core-papers' && (
+              <div className="admin-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div>
+                    <h2 className="pane-title">Manage Core Papers (Paper II)</h2>
+                    <p className="pane-desc">Manage Paper II subjects listed on the website for PYQs and study material.</p>
+                  </div>
+                  <button 
+                    className="table-btn table-btn--upload" 
+                    style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                    onClick={() => {
+                      handleResetCorePaperForm();
+                      setIsCorePaperFormOpen(true);
+                    }}
+                  >
+                    + Add Core Paper
+                  </button>
+                </div>
+
+                {isCorePaperFormOpen && (
+                  <form onSubmit={handleSaveCorePaper} className="pane-form" style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'block' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '16px' }}>{corePaperId ? 'Edit Core Paper' : 'Add New Core Paper'}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Subject Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Sociology" 
+                          value={corePaperName} 
+                          onChange={e => setCorePaperName(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                          required
+                        />
+                      </div>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Subject Code / URL Parameter</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Sociology" 
+                          value={corePaperCode} 
+                          onChange={e => setCorePaperCode(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field" style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Description</label>
+                      <textarea 
+                        placeholder="e.g. Paper II Core Subject PYQs & Study Material" 
+                        value={corePaperDesc} 
+                        onChange={e => setCorePaperDesc(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', height: '80px', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="corePaperIsAvailable" 
+                        checked={corePaperIsAvailable} 
+                        onChange={e => setCorePaperIsAvailable(e.target.checked)} 
+                      />
+                      <label htmlFor="corePaperIsAvailable" style={{ fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer' }}>Make this subject active and visible on the website</label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button type="submit" className="table-btn table-btn--upload" style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700 }}>Save Subject</button>
+                      <button type="button" className="table-btn table-btn--delete" style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700 }} onClick={handleResetCorePaperForm}>Cancel</button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '25%' }}>Subject Name</th>
+                        <th style={{ width: '20%' }}>Code / URL</th>
+                        <th style={{ width: '35%' }}>Description</th>
+                        <th style={{ width: '20%', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {corePapers.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>No core papers added yet.</td>
+                        </tr>
+                      ) : (
+                        corePapers.map(paper => (
+                          <tr key={paper.id}>
+                            <td style={{ fontWeight: 'bold', color: '#1e293b' }}>{paper.name}</td>
+                            <td><code>{paper.code}</code></td>
+                            <td style={{ fontSize: '0.85rem', color: '#475569' }}>{paper.description}</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                <button className="table-btn table-btn--edit" onClick={() => handleEditCorePaper(paper)}>Edit</button>
+                                <button className={paper.isAvailable ? "table-btn table-btn--edit" : "table-btn table-btn--delete"} style={{ background: paper.isAvailable ? 'rgba(22, 163, 74, 0.08)' : 'rgba(148, 163, 184, 0.08)', color: paper.isAvailable ? '#16a34a' : '#64748b', borderColor: paper.isAvailable ? 'rgba(22, 163, 74, 0.15)' : 'rgba(148, 163, 184, 0.15)' }} onClick={() => handleToggleCorePaperAvailability(paper.id)}>
+                                  {paper.isAvailable ? 'Active' : 'Hidden'}
+                                </button>
+                                <button className="table-btn table-btn--delete" onClick={() => handleDeleteCorePaper(paper.id)}>Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </main>

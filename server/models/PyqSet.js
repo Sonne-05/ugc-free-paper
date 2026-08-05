@@ -31,6 +31,10 @@ const pyqSetSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  subject: {
+    type: String,
+    default: 'Sociology'
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
