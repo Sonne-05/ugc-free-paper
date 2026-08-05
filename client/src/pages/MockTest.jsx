@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import { getQuestionUnit as getUnitFromHelper } from '../constants/paper1Units'
 import './MockTest.css'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 
 // 5 Rich sample questions for UGC NET Paper I (General teaching & research aptitude)
 const paper1BaseQuestions = [
@@ -1446,7 +1447,37 @@ Submitted by User: ${userName}
             padding: '30px 20px'
           }}
         >
-          {bookletPages}
+          <div className="booklet-layout-wrapper" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+            gap: '24px',
+            width: '100%',
+            maxWidth: '1200px'
+          }}>
+            {/* Left Vertical Ad */}
+            <div className="booklet-ad-sidebar booklet-ad-sidebar--left" style={{
+              position: 'sticky',
+              top: '20px',
+              flexShrink: 0
+            }}>
+              <AdSensePlaceholder type="display" format="vertical" />
+            </div>
+
+            {/* Main Booklet Content */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {bookletPages}
+            </div>
+
+            {/* Right Vertical Ad */}
+            <div className="booklet-ad-sidebar booklet-ad-sidebar--right" style={{
+              position: 'sticky',
+              top: '20px',
+              flexShrink: 0
+            }}>
+              <AdSensePlaceholder type="display" format="vertical" />
+            </div>
+          </div>
         </div>
 
         {/* Floating Report Button */}

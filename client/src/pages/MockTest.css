@@ -1681,5 +1681,17 @@
   }
 }
 
+/* Booklet sidebars for ads */
+.booklet-ad-sidebar {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  .booklet-ad-sidebar {
+    display: block;
+  }
+}
+
+
 
 
