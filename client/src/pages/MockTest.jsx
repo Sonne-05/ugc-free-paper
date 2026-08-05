@@ -1456,11 +1456,7 @@ Submitted by User: ${userName}
             maxWidth: '1200px'
           }}>
             {/* Left Vertical Ad */}
-            <div className="booklet-ad-sidebar booklet-ad-sidebar--left" style={{
-              position: 'sticky',
-              top: '20px',
-              flexShrink: 0
-            }}>
+            <div className="booklet-ad-sidebar booklet-ad-sidebar--left">
               <AdSensePlaceholder type="display" format="vertical" />
             </div>
 
@@ -1470,11 +1466,7 @@ Submitted by User: ${userName}
             </div>
 
             {/* Right Vertical Ad */}
-            <div className="booklet-ad-sidebar booklet-ad-sidebar--right" style={{
-              position: 'sticky',
-              top: '20px',
-              flexShrink: 0
-            }}>
+            <div className="booklet-ad-sidebar booklet-ad-sidebar--right">
               <AdSensePlaceholder type="display" format="vertical" />
             </div>
           </div>
