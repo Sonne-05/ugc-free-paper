@@ -181,27 +181,12 @@ const Paper1UnitPYQ = () => {
                     {unit.id}
                   </td>
                   <td className="pyq-table__td">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{
-                        background: 'rgba(37, 99, 235, 0.08)',
-                        color: 'var(--primary)',
-                        borderRadius: '8px',
-                        width: '40px',
-                        height: '40px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        {unit.icon}
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                        {unit.name}
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                          {unit.name}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                          {unit.desc}
-                        </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        {unit.desc}
                       </div>
                     </div>
                   </td>
