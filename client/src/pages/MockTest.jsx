@@ -1252,7 +1252,7 @@ Submitted by User: ${userName}
     const unitIdForCount = getUnitIdFromName(paperDetails.unitName);
     const totalQsForBar = unitIdForCount ? (unitCounts[unitIdForCount] || 0) : 0;
     const sessionSize = 25;
-    const sessionCount = totalQsForBar > 0 ? Math.ceil(totalQsForBar / sessionSize) : 0;
+    const sessionCount = totalQsForBar > 0 ? Math.floor(totalQsForBar / sessionSize) : 0;
 
     // Generate pages dynamically
     const bookletPages = [];
