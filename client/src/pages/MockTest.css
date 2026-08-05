@@ -1680,22 +1680,3 @@
     padding-left: 5px !important;
   }
 }
-
-/* Booklet sidebars for ads */
-.booklet-ad-sidebar {
-  display: none;
-  position: sticky;
-  top: 20px;
-  bottom: 20px;
-  flex-shrink: 0;
-}
-
-@media (min-width: 1200px) {
-  .booklet-ad-sidebar {
-    display: block;
-  }
-}
-
-
-
-
