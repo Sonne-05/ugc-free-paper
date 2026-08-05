@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import RichExplanationEditor from '../components/RichExplanationEditor'
@@ -64,6 +64,11 @@ const Profile = () => {
   const [corePaperDesc, setCorePaperDesc] = useState('')
   const [corePaperIsAvailable, setCorePaperIsAvailable] = useState(true)
   const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
+  const [selectedFilterYear, setSelectedFilterYear] = useState('All')
+  const uniqueSetYears = useMemo(() => {
+    const years = pyqSets.map(s => s.year).filter(Boolean).map(y => String(y))
+    return [...new Set(years)].sort((a, b) => b - a)
+  }, [pyqSets])
 
   useEffect(() => {
     window.location.hash = activeTab
@@ -2152,17 +2157,33 @@ const Profile = () => {
 
                 {/* 4.1 ACTIVE PYQ SETS SECTION */}
                 <div className="creator-section" style={{ marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '16px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>
-                    Active PYQ Sets Database
-                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                      Active PYQ Sets Database
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Year:</label>
+                      <select 
+                        className="pane-select" 
+                        value={selectedFilterYear} 
+                        onChange={(e) => setSelectedFilterYear(e.target.value)}
+                        style={{ width: '120px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
+                      >
+                        <option value="All">All Years</option>
+                        {uniqueSetYears.map(year => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
                   {/* PAPER I TABLE */}
                   <div style={{ marginBottom: '24px' }}>
                     <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ width: '8px', height: '8px', background: 'var(--primary)', borderRadius: '50%' }}></span>
-                      Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I').length})
+                      Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
                     </h4>
-                    {pyqSets.filter(s => s.paperType === 'Paper I').length === 0 ? (
+                    {pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
                         No active Paper I sets.
                       </p>
@@ -2179,7 +2200,7 @@ const Profile = () => {
                         </thead>
                         <tbody>
                           {(() => {
-                            const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I')
+                            const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
                             const grouped = getGroupedSetsByYear(paper1Sets)
                             return Object.keys(grouped)
                               .sort((a, b) => b - a)
@@ -2243,9 +2264,9 @@ const Profile = () => {
                   <div>
                     <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
-                      Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II').length})
+                      Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
                     </h4>
-                    {pyqSets.filter(s => s.paperType === 'Paper II').length === 0 ? (
+                    {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
                         No active Paper II sets.
                       </p>
@@ -2262,7 +2283,7 @@ const Profile = () => {
                         </thead>
                         <tbody>
                           {(() => {
-                            const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II')
+                            const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
                             const grouped = getGroupedSetsByYear(paper2Sets)
                             return Object.keys(grouped)
                               .sort((a, b) => b - a)
