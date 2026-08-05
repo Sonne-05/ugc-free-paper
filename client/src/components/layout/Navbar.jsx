@@ -120,7 +120,7 @@ const Navbar = () => {
             {/* Core Paper Dropdown */}
             <div className="navbar__nav-dropdown">
               <button className="navbar__nav-item navbar__dropdown-trigger">
-                <span>Core Paper</span>
+                <span>Core Paper (PYQ)</span>
                 <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
@@ -300,7 +300,7 @@ const Navbar = () => {
               className="navbar__mobile-group-trigger"
               onClick={() => setMobileCorePaperOpen(!mobileCorePaperOpen)}
             >
-              <span>Core Paper</span>
+              <span>Core Paper (PYQ)</span>
               <svg className={`navbar__chevron ${mobileCorePaperOpen ? 'navbar__chevron--rotated' : ''}`} viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
