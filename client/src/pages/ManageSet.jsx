@@ -3385,25 +3385,36 @@ const ManageSet = () => {
     formData.append('setId', editingSetId)
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/questions/import-pdf`, {
+      const uploadRes = await fetch(`${API_BASE_URL}/api/questions/import-pdf`, {
         method: 'POST',
         body: formData
       })
       
-      if (!res.ok) {
-        let errText = 'Failed to parse questions.'
+      if (!uploadRes.ok) {
+        let errText = 'Failed to upload PDF.'
         try {
-          const data = await res.json()
+          const data = await uploadRes.json()
           errText = data.message || errText
         } catch (_) {
           try {
-            errText = await res.text() || errText
+            errText = await uploadRes.text() || errText
           } catch (__) {}
         }
         throw new Error(errText)
       }
 
-      const reader = res.body.getReader()
+      const { jobId } = await uploadRes.json()
+      if (!jobId) {
+        throw new Error('No job ID returned from server.')
+      }
+
+      // Query GET progress stream
+      const streamRes = await fetch(`${API_BASE_URL}/api/questions/import-progress/${jobId}`)
+      if (!streamRes.ok) {
+        throw new Error('Failed to connect to progress stream.')
+      }
+
+      const reader = streamRes.body.getReader()
       const decoder = new TextDecoder('utf-8')
       let chunk = ''
       let finalData = null
@@ -3418,7 +3429,7 @@ const ManageSet = () => {
 
         for (const line of lines) {
           let cleanLine = line.trim()
-          if (!cleanLine) continue
+          if (!cleanLine || cleanLine.startsWith(':')) continue
           
           if (cleanLine.startsWith('data: ')) {
             cleanLine = cleanLine.substring(6).trim()

@@ -590,28 +590,38 @@ Here is the raw text for the questions:\n\n`;
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB PDF limit
 
-// Route to handle PDF upload, parse text and import questions
-app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => {
+// Decoupled Job manager for streaming progress over GET requests to bypass reverse-proxy buffering
+const importJobs = new Map();
+
+function updateJobProgress(jobId, percent, message) {
+  const job = importJobs.get(jobId);
+  if (!job) return;
+  job.percent = percent;
+  job.message = message;
+  notifyJobListeners(jobId, { type: 'progress', percent, message });
+}
+
+function notifyJobListeners(jobId, data) {
+  const job = importJobs.get(jobId);
+  if (!job || !job.listeners) return;
+  const messageStr = `data: ${JSON.stringify(data)}\n\n`;
+  job.listeners.forEach(res => {
+    try {
+      res.write(messageStr);
+    } catch (_) {}
+  });
+}
+
+async function processImportJob(jobId, fileBuffer, setId) {
   try {
-    const { setId } = req.body;
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-    if (!setId) return res.status(400).json({ message: 'Missing target setId' });
-
-    // Enable chunked response streaming (using text/event-stream to bypass reverse-proxy buffering)
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
-    res.write(JSON.stringify({ type: 'progress', percent: 5, message: 'Uploading and extracting PDF text...' }) + '\n');
-    console.log(`[PDF Import] Starting upload parsing for Set ${setId}...`);
+    console.log(`[Job ${jobId}] Starting upload parsing for Set ${setId}...`);
 
     // 1. Extract raw text from PDF buffer
-    const parser = new PDFParse({ data: req.file.buffer });
+    const parser = new PDFParse({ data: fileBuffer });
     const parsedPdf = await parser.getText();
     const text = parsedPdf.text;
-    console.log(`[PDF Import] Extracted raw text. Length: ${text.length} characters.`);
-    res.write(JSON.stringify({ type: 'progress', percent: 10, message: 'PDF text parsed, structuring questions...' }) + '\n');
+    console.log(`[Job ${jobId}] Extracted raw text. Length: ${text.length} characters.`);
+    updateJobProgress(jobId, 10, 'PDF text parsed, structuring questions...');
 
     // 2. Identify and parse the question blocks
     const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
@@ -622,7 +632,7 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     while ((match = qHeaderRegex.exec(text)) !== null) {
       matchesList.push({ index: match.index, qNum: parseInt(match[1]), qId: match[2] });
     }
-    console.log(`[PDF Import] Found ${matchesList.length} total question headers.`);
+    console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
 
     // Capture comprehension blocks (passages/tables)
     const compPassages = {};
@@ -634,7 +644,7 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
         compPassages[qId] = text.substring(match.index, nextIdx > -1 ? nextIdx : match.index + 2000);
       }
     }
-    console.log(`[PDF Import] Found comprehension blocks:`, Object.keys(compPassages));
+    console.log(`[Job ${jobId}] Found comprehension blocks:`, Object.keys(compPassages));
 
     // Group blocks by Question Id (taking first occurrence = English version)
     for (let i = 0; i < matchesList.length; i++) {
@@ -650,11 +660,10 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     }
 
     const englishQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
-    console.log(`[PDF Import] Filtered ${englishQuestions.length} unique English questions.`);
+    console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique English questions.`);
 
     if (englishQuestions.length === 0) {
-      res.write(JSON.stringify({ type: 'error', message: 'No questions matching Q1-Q50 found in the uploaded PDF.' }) + '\n');
-      return res.end();
+      throw new Error('No questions matching Q1-Q50 found in the uploaded PDF.');
     }
 
     const compKeys = Object.keys(compPassages);
@@ -667,12 +676,8 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
       const batch = englishQuestions.slice(i, i + 2);
       const percent = Math.round(15 + ((i / englishQuestions.length) * 75)); // Scale loop progress between 15% and 90%
       
-      res.write(JSON.stringify({ 
-        type: 'progress', 
-        percent, 
-        message: `Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...` 
-      }) + '\n');
-      console.log(`[PDF Import] Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
+      updateJobProgress(jobId, percent, `Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
+      console.log(`[Job ${jobId}] Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
       
       const batchJson = await callAIChatToStructureBatch(batch, compPassages);
       batchJson.forEach(q => {
@@ -713,10 +718,10 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    res.write(JSON.stringify({ type: 'progress', percent: 95, message: 'Saving parsed questions to database...' }) + '\n');
+    updateJobProgress(jobId, 95, 'Saving parsed questions to database...');
 
     // 4. Save to MongoDB
-    console.log(`[PDF Import] Inserting ${parsedQuestions.length} questions into DB...`);
+    console.log(`[Job ${jobId}] Inserting ${parsedQuestions.length} questions into DB...`);
     // Delete existing questions in the set first to prevent duplicates
     await Question.deleteMany({ setId });
     
@@ -727,18 +732,118 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     const count = await Question.countDocuments({ setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(setId, { questionsLoaded: count }, { new: true });
 
-    res.write(JSON.stringify({ 
-      type: 'success', 
-      percent: 100, 
-      message: `Successfully imported all ${inserted.length} questions!`, 
-      count: inserted.length 
-    }) + '\n');
-    res.end();
+    // Mark job success
+    const job = importJobs.get(jobId);
+    if (job) {
+      job.status = 'success';
+      job.count = inserted.length;
+      notifyJobListeners(jobId, { 
+        type: 'success', 
+        percent: 100, 
+        message: `Successfully imported all ${inserted.length} questions!`, 
+        count: inserted.length 
+      });
+      // Close all listeners
+      job.listeners.forEach(l => {
+        try { l.end(); } catch (_) {}
+      });
+      job.listeners = [];
+    }
+
+    // Clean up job state from memory after 1 minute
+    setTimeout(() => {
+      importJobs.delete(jobId);
+    }, 60000);
+
   } catch (err) {
-    console.error('[PDF Import Error]', err);
-    res.write(JSON.stringify({ type: 'error', message: err.message }) + '\n');
-    res.end();
+    console.error(`[Job ${jobId} Error]`, err);
+    const job = importJobs.get(jobId);
+    if (job) {
+      job.status = 'error';
+      job.error = err.message;
+      notifyJobListeners(jobId, { type: 'error', message: err.message });
+      job.listeners.forEach(l => {
+        try { l.end(); } catch (_) {}
+      });
+      job.listeners = [];
+    }
+    setTimeout(() => {
+      importJobs.delete(jobId);
+    }, 60000);
   }
+}
+
+// Route to initiate the background PDF import
+app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => {
+  try {
+    const { setId } = req.body;
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!setId) return res.status(400).json({ message: 'Missing target setId' });
+
+    const jobId = Math.random().toString(36).substring(2, 15);
+
+    // Initialize job state
+    importJobs.set(jobId, {
+      setId,
+      status: 'pending',
+      percent: 5,
+      message: 'Uploading and extracting PDF text...',
+      listeners: [],
+      error: null,
+      count: 0
+    });
+
+    // Fire off background processing asynchronously
+    processImportJob(jobId, req.file.buffer, setId).catch(err => {
+      console.error(`[Job Trigger Async Error]`, err);
+    });
+
+    res.status(200).json({ jobId });
+  } catch (err) {
+    console.error('[PDF Import Initiation Error]', err);
+    res.status(500).json({ message: 'Failed to start import job', error: err.message });
+  }
+});
+
+// GET route to stream job progress via SSE to bypass reverse-proxy buffering
+app.get('/api/questions/import-progress/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const job = importJobs.get(jobId);
+  if (!job) {
+    return res.status(404).json({ message: 'Job not found or already completed.' });
+  }
+
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  // Send 2KB of comment padding immediately to force proxies/CDNs to flush the headers
+  res.write(':' + ' '.repeat(2048) + '\n\n');
+
+  // Immediately push the current state
+  res.write(`data: ${JSON.stringify({ type: 'progress', percent: job.percent, message: job.message })}\n\n`);
+
+  if (job.status === 'success') {
+    res.write(`data: ${JSON.stringify({ type: 'success', percent: 100, message: job.message, count: job.count })}\n\n`);
+    return res.end();
+  }
+  if (job.status === 'error') {
+    res.write(`data: ${JSON.stringify({ type: 'error', message: job.error })}\n\n`);
+    return res.end();
+  }
+
+  // Register listener for real-time updates
+  job.listeners.push(res);
+
+  // Clean up if client disconnects
+  req.on('close', () => {
+    const activeJob = importJobs.get(jobId);
+    if (activeJob) {
+      activeJob.listeners = activeJob.listeners.filter(l => l !== res);
+    }
+  });
 });
 
 // Add a single question
