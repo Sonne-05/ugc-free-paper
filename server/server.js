@@ -474,9 +474,9 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
 
 // Function to call AI to parse and solve a batch of 5 questions
 async function callAIChatToStructureBatch(batch, compPassages) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
+  const groqApiKey = (process.env.GROQ_API_KEY || '').trim();
+  const openrouterApiKey = (process.env.OPENROUTER_API_KEY || '').trim();
 
   let prompt = `You are an expert UGC NET Paper I exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
@@ -912,9 +912,9 @@ app.post('/api/questions/explain', async (req, res) => {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-  const groqApiKey = process.env.GROQ_API_KEY;
+  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
+  const openrouterApiKey = (process.env.OPENROUTER_API_KEY || '').trim();
+  const groqApiKey = (process.env.GROQ_API_KEY || '').trim();
 
   if (!geminiApiKey && !openrouterApiKey && !groqApiKey) {
     return res.status(400).json({ 
