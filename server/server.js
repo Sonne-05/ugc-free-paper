@@ -693,93 +693,70 @@ async function processImportJob(jobId, fileBuffer, setId) {
       batches.push(englishQuestions.slice(i, i + 5));
     }
 
-    const concurrencyLimit = parseInt(process.env.IMPORT_CONCURRENCY) || 3;
     const parsedQuestions = [];
-    let completedBatches = 0;
-    let workerIndex = 0;
-
-    const processBatchWorker = async (batch) => {
-      const currentIdx = workerIndex++;
-      const staggerTime = (currentIdx % concurrencyLimit) * 1000;
-      if (staggerTime > 0) {
-        console.log(`[Job ${jobId}] Staggering batch Q${batch[0].qIndex} by ${staggerTime}ms to prevent rate limiting...`);
-        await new Promise(resolve => setTimeout(resolve, staggerTime));
-      }
-
-      try {
-        console.log(`[Job ${jobId}] Starting batch processing for Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
-        const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
-        
-        batchJson.forEach(q => {
-          if (q.qIndex >= 1 && q.qIndex <= 5) {
-            q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
-            q.type = 'di';
-          } else if (q.qIndex >= 46 && q.qIndex <= 50) {
-            q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
-            q.type = 'comprehension';
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      const percent = Math.round(15 + ((i / batches.length) * 75)); // Scale loop progress between 15% and 90%
+      updateJobProgress(jobId, percent, `Importing questions (${i + 1}/${batches.length} batches)...`);
+      console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
+      
+      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
+      batchJson.forEach(q => {
+        if (q.qIndex >= 1 && q.qIndex <= 5) {
+          q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
+          q.type = 'di';
+        } else if (q.qIndex >= 46 && q.qIndex <= 50) {
+          q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
+          q.type = 'comprehension';
+        } else {
+          // Heuristic validation layer to ensure accurate type selection
+          const textLower = (q.text || '').toLowerCase();
+          
+          const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
+          const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
+          
+          const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
+                                      (textLower.includes('reason') || textLower.includes('reason (r)'));
+          const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
+          
+          const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
+          const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
+          
+          if (hasListKeywords || hasListFields) {
+            q.type = 'match-column';
+          } else if (hasAssertionKeywords || hasAssertionFields) {
+            q.type = 'assertion-reason';
+          } else if (hasStatementKeywords || hasStatementFields) {
+            q.type = 'multiple-statement';
           } else {
-            // Heuristic validation layer to ensure accurate type selection
-            const textLower = (q.text || '').toLowerCase();
-            
-            const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
-            const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
-            
-            const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
-                                        (textLower.includes('reason') || textLower.includes('reason (r)'));
-            const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
-            
-            const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
-            const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
-            
-            if (hasListKeywords || hasListFields) {
-              q.type = 'match-column';
-            } else if (hasAssertionKeywords || hasAssertionFields) {
-              q.type = 'assertion-reason';
-            } else if (hasStatementKeywords || hasStatementFields) {
-              q.type = 'multiple-statement';
-            } else {
-              q.type = q.type || 'mcq';
-            }
+            q.type = q.type || 'mcq';
           }
+        }
 
-          // Post-processing cleanup for match-column list header overflow
-          if (q.type === 'match-column') {
-            const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
-            if (isGeneric1 && q.list1 && q.list1.length > 4) {
-              const rawHeader = q.list1.shift();
-              q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-            }
-            const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
-            if (isGeneric2 && q.list2 && q.list2.length > 4) {
-              const rawHeader = q.list2.shift();
-              q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-            }
+        // Post-processing cleanup for match-column list header overflow
+        if (q.type === 'match-column') {
+          const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
+          if (isGeneric1 && q.list1 && q.list1.length > 4) {
+            const rawHeader = q.list1.shift();
+            q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
           }
-        });
+          const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
+          if (isGeneric2 && q.list2 && q.list2.length > 4) {
+            const rawHeader = q.list2.shift();
+            q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+          }
+        }
+      });
 
-        parsedQuestions.push(...batchJson);
-        completedBatches++;
-        const percent = Math.round(15 + ((completedBatches / batches.length) * 75)); // Scale loop progress between 15% and 90%
-        updateJobProgress(jobId, percent, `Importing questions (${completedBatches}/${batches.length} batches)...`);
-        console.log(`[Job ${jobId}] Completed batch ${completedBatches}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}).`);
-      } catch (err) {
-        console.error(`[Job ${jobId}] Batch Q${batch[0].qIndex}-Q${batch[batch.length - 1].qIndex} worker error:`, err.message);
-        throw err;
-      }
-    };
-
-    console.log(`[Job ${jobId}] Running import concurrency pool with limit ${concurrencyLimit}...`);
-    const executing = new Set();
-    for (const batch of batches) {
-      const p = Promise.resolve().then(() => processBatchWorker(batch));
-      executing.add(p);
-      const clean = () => executing.delete(p);
-      p.then(clean, clean);
-      if (executing.size >= concurrencyLimit) {
-        await Promise.race(executing);
+      parsedQuestions.push(...batchJson);
+      console.log(`[Job ${jobId}] Completed batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}).`);
+      
+      // Safe 5-second delay to guarantee free-tier rate limits (keeps rate at 12 RPM)
+      if (i < batches.length - 1) {
+        console.log(`[Job ${jobId}] Waiting 5 seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
-    await Promise.all(executing);
 
     updateJobProgress(jobId, 95, 'Saving parsed questions to database...');
 
