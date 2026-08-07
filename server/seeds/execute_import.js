@@ -149,27 +149,7 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
   throw new Error('Unsupported AI provider');
 }
 
-async function callAIChatToStructureBatch(batch, compPassages) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-
-  let provider = '';
-  let apiKey = '';
-
-  if (geminiApiKey) {
-    provider = 'gemini';
-    apiKey = geminiApiKey;
-  } else if (groqApiKey) {
-    provider = 'groq';
-    apiKey = groqApiKey;
-  } else if (openrouterApiKey) {
-    provider = 'openrouter';
-    apiKey = openrouterApiKey;
-  } else {
-    throw new Error('No AI provider keys configured in .env');
-  }
-
+async function callAIChatToStructureBatch(batch, compPassages, keyRotation) {
   let prompt = `You are an expert UGC NET Paper I exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
 1. Extract the clean question text (filtering out headers, footer URLs, page numbers, 'Correct Marks : 2 Wrong Marks : 0', etc.).
@@ -206,14 +186,14 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
       "text": "Clean question text...",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "statements": ["Statement A", "Statement B", ...],
+      "statements": ["Statement A", "Statement B", ...], // for multiple-statement, otherwise empty array
       "correct": number,
-      "assertion": "Assertion text",
-      "reason": "Reason text",
-       "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Concept')
-       "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Description')
-       "list1Header": "Header 1", // for match-column: the specific column header/subtitle (e.g. 'Concept'), NOT 'List I' or 'List - I'
-       "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List II' or 'List - II'
+      "assertion": "Assertion text", // for assertion-reason, otherwise empty string
+      "reason": "Reason text", // for assertion-reason, otherwise empty string
+      "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Concept')
+      "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Description')
+      "list1Header": "Header 1", // for match-column: the specific column header/subtitle (e.g. 'Concept'), NOT 'List I' or 'List - I'
+      "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List II' or 'List - II'
       "explanation": "Detailed explanation of the concept and why the correct option is right in clean HTML format (<p>, <strong>, <ul>, <ol>, <li>, etc.)"
     }
   ]
@@ -254,20 +234,21 @@ Here is the raw text for the questions:\n\n`;
   };
 
   const providers = [];
-  if (geminiApiKey) providers.push({ name: 'gemini', key: geminiApiKey });
-  if (groqApiKey) providers.push({ name: 'groq', key: groqApiKey });
-  if (openrouterApiKey) providers.push({ name: 'openrouter', key: openrouterApiKey });
+  if (keyRotation.hasKeys('gemini')) providers.push('gemini');
+  if (keyRotation.hasKeys('groq')) providers.push('groq');
+  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
   let lastError = null;
   for (const provider of providers) {
     try {
-      console.log(`[AI Structuring] Trying provider: ${provider.name}...`);
-      const rawResult = await callAIChatForStructure(prompt, provider.key, provider.name);
+      const apiKey = keyRotation.getNextKey(provider);
+      console.log(`[AI Structuring] Trying provider: ${provider}...`);
+      const rawResult = await callAIChatForStructure(prompt, apiKey, provider);
       const cleaned = cleanJsonString(rawResult);
       const parsed = JSON.parse(cleaned);
       return getArrayFromParsed(parsed);
     } catch (err) {
-      console.warn(`[AI Structuring] Provider ${provider.name} failed:`, err.message);
+      console.warn(`[AI Structuring] Provider ${provider} failed:`, err.message);
       lastError = err;
     }
   }
@@ -324,62 +305,117 @@ async function run() {
     const diPassageId = compKeys[0];
     const rcPassageId = compKeys[1];
 
-    const parsedQuestions = [];
-    for (let i = 0; i < englishQuestions.length; i += 2) {
-      const batch = englishQuestions.slice(i, i + 2);
-      console.log(`Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages);
-      batchJson.forEach(q => {
-        if (q.qIndex >= 1 && q.qIndex <= 5) {
-          q.passage = diPassageId ? compPassages[diPassageId] : "";
-          q.type = 'di';
-        } else if (q.qIndex >= 46 && q.qIndex <= 50) {
-          q.passage = rcPassageId ? compPassages[rcPassageId] : "";
-          q.type = 'comprehension';
-        } else {
-          // Heuristic validation layer to ensure accurate type selection
-          const textLower = (q.text || '').toLowerCase();
-          
-          const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
-          const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
-          
-          const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
-                                      (textLower.includes('reason') || textLower.includes('reason (r)'));
-          const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
-          
-          const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
-          const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
-          
-          if (hasListKeywords || hasListFields) {
-            q.type = 'match-column';
-          } else if (hasAssertionKeywords || hasAssertionFields) {
-            q.type = 'assertion-reason';
-          } else if (hasStatementKeywords || hasStatementFields) {
-            q.type = 'multiple-statement';
-          } else {
-            q.type = q.type || 'mcq';
-          }
+    // 3. Process concurrently in batches of 5 using API key rotation and parallel async pool
+    const keyRotation = {
+      geminiIndex: 0,
+      groqIndex: 0,
+      openrouterIndex: 0,
+      geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      hasKeys(provider) {
+        if (provider === 'gemini') return this.geminiKeys.length > 0;
+        if (provider === 'groq') return this.groqKeys.length > 0;
+        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
+        return false;
+      },
+      getNextKey(provider) {
+        if (provider === 'gemini') {
+          return this.geminiKeys[this.geminiIndex++ % this.geminiKeys.length];
         }
+        if (provider === 'groq') {
+          return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
+        }
+        if (provider === 'openrouter') {
+          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
+        }
+        return null;
+      }
+    };
 
-        // Post-processing cleanup for match-column list header overflow
-        if (q.type === 'match-column') {
-          const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
-          if (isGeneric1 && q.list1 && q.list1.length > 4) {
-            const rawHeader = q.list1.shift();
-            q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-          }
-          const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
-          if (isGeneric2 && q.list2 && q.list2.length > 4) {
-            const rawHeader = q.list2.shift();
-            q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-          }
-        }
-      });
-      parsedQuestions.push(...batchJson);
-      
-      // Delay to respect API limits
-      await new Promise(resolve => setTimeout(resolve, 2500));
+    const batches = [];
+    for (let i = 0; i < englishQuestions.length; i += 5) {
+      batches.push(englishQuestions.slice(i, i + 5));
     }
+
+    const parsedQuestions = [];
+    let completedBatches = 0;
+
+    const processBatchWorker = async (batch) => {
+      try {
+        console.log(`Starting batch processing for Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
+        const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
+        
+        batchJson.forEach(q => {
+          if (q.qIndex >= 1 && q.qIndex <= 5) {
+            q.passage = diPassageId ? compPassages[diPassageId] : "";
+            q.type = 'di';
+          } else if (q.qIndex >= 46 && q.qIndex <= 50) {
+            q.passage = rcPassageId ? compPassages[rcPassageId] : "";
+            q.type = 'comprehension';
+          } else {
+            // Heuristic validation layer to ensure accurate type selection
+            const textLower = (q.text || '').toLowerCase();
+            
+            const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
+            const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
+            
+            const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
+                                        (textLower.includes('reason') || textLower.includes('reason (r)'));
+            const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
+            
+            const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
+            const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
+            
+            if (hasListKeywords || hasListFields) {
+              q.type = 'match-column';
+            } else if (hasAssertionKeywords || hasAssertionFields) {
+              q.type = 'assertion-reason';
+            } else if (hasStatementKeywords || hasStatementFields) {
+              q.type = 'multiple-statement';
+            } else {
+              q.type = q.type || 'mcq';
+            }
+          }
+
+          // Post-processing cleanup for match-column list header overflow
+          if (q.type === 'match-column') {
+            const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
+            if (isGeneric1 && q.list1 && q.list1.length > 4) {
+              const rawHeader = q.list1.shift();
+              q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+            }
+            const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
+            if (isGeneric2 && q.list2 && q.list2.length > 4) {
+              const rawHeader = q.list2.shift();
+              q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+            }
+          }
+        });
+
+        parsedQuestions.push(...batchJson);
+        completedBatches++;
+        console.log(`Completed batch ${completedBatches}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}).`);
+      } catch (err) {
+        console.error(`Batch Q${batch[0].qIndex}-Q${batch[batch.length - 1].qIndex} worker error:`, err.message);
+        throw err;
+      }
+    };
+
+    // Run parallel batches with a configurable concurrency limit (default = 3)
+    const concurrencyLimit = parseInt(process.env.IMPORT_CONCURRENCY) || 3;
+    console.log(`Running import concurrency pool with limit ${concurrencyLimit}...`);
+    const executing = new Set();
+    for (const batch of batches) {
+      const p = Promise.resolve().then(() => processBatchWorker(batch));
+      executing.add(p);
+      const clean = () => executing.delete(p);
+      p.then(clean, clean);
+      if (executing.size >= concurrencyLimit) {
+        await Promise.race(executing);
+      }
+    }
+    await Promise.all(executing);
 
     console.log(`Clearing old questions and inserting ${parsedQuestions.length} newly parsed questions...`);
     await Question.deleteMany({ setId: TARGET_SET_ID });

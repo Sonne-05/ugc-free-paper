@@ -473,11 +473,7 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
 }
 
 // Function to call AI to parse and solve a batch of 5 questions
-async function callAIChatToStructureBatch(batch, compPassages) {
-  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
-  const groqApiKey = (process.env.GROQ_API_KEY || '').trim();
-  const openrouterApiKey = (process.env.OPENROUTER_API_KEY || '').trim();
-
+async function callAIChatToStructureBatch(batch, compPassages, keyRotation) {
   let prompt = `You are an expert UGC NET Paper I exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
 1. Extract the clean question text (filtering out headers, footer URLs, page numbers, 'Correct Marks : 2 Wrong Marks : 0', etc.).
@@ -487,7 +483,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
    - 'mcq': Standard single choice question with 4 options.
    - 'assertion-reason': Question containing "Assertion (A)" and "Reason (R)". You MUST extract and populate the "assertion" and "reason" fields.
    - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. Note that List I and List II often have column subtitles/headers (e.g. 'Concept', 'Description', 'Method'). You MUST set "list1Header" and "list2Header" to these specific subtitles, NOT 'List I' or 'List II'. Do NOT include these subtitles in the "list1" or "list2" arrays; those arrays must contain only the 4 actual items.
-   - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or statements labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract and populate the "statements" field.
+   - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or statements labeled A, B, C, D, E) followed option combinations (e.g., "A, B and C only"). You MUST extract and populate the "statements" field.
    - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
    - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
 5. Map them to their syllabus unit based on the question index:
@@ -562,25 +558,26 @@ Here is the raw text for the questions:\n\n`;
   };
 
   const providers = [];
-  if (geminiApiKey) providers.push({ name: 'gemini', key: geminiApiKey });
-  if (groqApiKey) providers.push({ name: 'groq', key: groqApiKey });
-  if (openrouterApiKey) providers.push({ name: 'openrouter', key: openrouterApiKey });
+  if (keyRotation.hasKeys('gemini')) providers.push('gemini');
+  if (keyRotation.hasKeys('groq')) providers.push('groq');
+  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
   let lastError = null;
   for (const provider of providers) {
     try {
-      console.log(`[AI Structuring] Trying provider: ${provider.name}...`);
-      const rawResult = await callAIChatForStructure(prompt, provider.key, provider.name);
+      const apiKey = keyRotation.getNextKey(provider);
+      console.log(`[AI Structuring] Trying provider: ${provider}...`);
+      const rawResult = await callAIChatForStructure(prompt, apiKey, provider);
       const cleaned = cleanJsonString(rawResult);
       try {
         const parsed = JSON.parse(cleaned);
         return getArrayFromParsed(parsed);
       } catch (jsonErr) {
-        console.warn(`[AI Structuring] JSON parsing error on ${provider.name} response:`, jsonErr.message);
+        console.warn(`[AI Structuring] JSON parsing error on ${provider} response:`, jsonErr.message);
         throw jsonErr;
       }
     } catch (err) {
-      console.warn(`[AI Structuring] Provider ${provider.name} failed:`, err.message);
+      console.warn(`[AI Structuring] Provider ${provider} failed:`, err.message);
       lastError = err;
     }
   }
@@ -670,67 +667,119 @@ async function processImportJob(jobId, fileBuffer, setId) {
     const diPassageIdForMapping = compKeys[0];
     const rcPassageIdForMapping = compKeys[1];
 
-    // 3. Process sequentially in batches of 5 to optimize tokens and requests
-    const parsedQuestions = [];
-    for (let i = 0; i < englishQuestions.length; i += 5) {
-      const batch = englishQuestions.slice(i, i + 5);
-      const percent = Math.round(15 + ((i / englishQuestions.length) * 75)); // Scale loop progress between 15% and 90%
-      
-      updateJobProgress(jobId, percent, `Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
-      console.log(`[Job ${jobId}] Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
-      
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages);
-      batchJson.forEach(q => {
-        if (q.qIndex >= 1 && q.qIndex <= 5) {
-          q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
-          q.type = 'di';
-        } else if (q.qIndex >= 46 && q.qIndex <= 50) {
-          q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
-          q.type = 'comprehension';
-        } else {
-          // Heuristic validation layer to ensure accurate type selection
-          const textLower = (q.text || '').toLowerCase();
-          
-          const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
-          const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
-          
-          const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
-                                      (textLower.includes('reason') || textLower.includes('reason (r)'));
-          const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
-          
-          const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
-          const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
-          
-          if (hasListKeywords || hasListFields) {
-            q.type = 'match-column';
-          } else if (hasAssertionKeywords || hasAssertionFields) {
-            q.type = 'assertion-reason';
-          } else if (hasStatementKeywords || hasStatementFields) {
-            q.type = 'multiple-statement';
-          } else {
-            q.type = q.type || 'mcq';
-          }
+    // 3. Process concurrently in batches of 5 using API key rotation and parallel async pool
+    const keyRotation = {
+      geminiIndex: 0,
+      groqIndex: 0,
+      openrouterIndex: 0,
+      geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      hasKeys(provider) {
+        if (provider === 'gemini') return this.geminiKeys.length > 0;
+        if (provider === 'groq') return this.groqKeys.length > 0;
+        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
+        return false;
+      },
+      getNextKey(provider) {
+        if (provider === 'gemini') {
+          return this.geminiKeys[this.geminiIndex++ % this.geminiKeys.length];
         }
+        if (provider === 'groq') {
+          return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
+        }
+        if (provider === 'openrouter') {
+          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
+        }
+        return null;
+      }
+    };
 
-        // Post-processing cleanup for match-column list header overflow
-        if (q.type === 'match-column') {
-          const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
-          if (isGeneric1 && q.list1 && q.list1.length > 4) {
-            const rawHeader = q.list1.shift();
-            q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-          }
-          const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
-          if (isGeneric2 && q.list2 && q.list2.length > 4) {
-            const rawHeader = q.list2.shift();
-            q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
-          }
-        }
-      });
-      parsedQuestions.push(...batchJson);
-      
-      // Add a 2-second delay between batches to respect rate limits (TPM/RPM)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    const batches = [];
+    for (let i = 0; i < englishQuestions.length; i += 5) {
+      batches.push(englishQuestions.slice(i, i + 5));
     }
+
+    const parsedQuestions = [];
+    let completedBatches = 0;
+
+    const processBatchWorker = async (batch) => {
+      try {
+        console.log(`[Job ${jobId}] Starting batch processing for Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
+        const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
+        
+        batchJson.forEach(q => {
+          if (q.qIndex >= 1 && q.qIndex <= 5) {
+            q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
+            q.type = 'di';
+          } else if (q.qIndex >= 46 && q.qIndex <= 50) {
+            q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
+            q.type = 'comprehension';
+          } else {
+            // Heuristic validation layer to ensure accurate type selection
+            const textLower = (q.text || '').toLowerCase();
+            
+            const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
+            const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
+            
+            const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
+                                        (textLower.includes('reason') || textLower.includes('reason (r)'));
+            const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
+            
+            const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
+            const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
+            
+            if (hasListKeywords || hasListFields) {
+              q.type = 'match-column';
+            } else if (hasAssertionKeywords || hasAssertionFields) {
+              q.type = 'assertion-reason';
+            } else if (hasStatementKeywords || hasStatementFields) {
+              q.type = 'multiple-statement';
+            } else {
+              q.type = q.type || 'mcq';
+            }
+          }
+
+          // Post-processing cleanup for match-column list header overflow
+          if (q.type === 'match-column') {
+            const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
+            if (isGeneric1 && q.list1 && q.list1.length > 4) {
+              const rawHeader = q.list1.shift();
+              q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+            }
+            const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
+            if (isGeneric2 && q.list2 && q.list2.length > 4) {
+              const rawHeader = q.list2.shift();
+              q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+            }
+          }
+        });
+
+        parsedQuestions.push(...batchJson);
+        completedBatches++;
+        const percent = Math.round(15 + ((completedBatches / batches.length) * 75)); // Scale loop progress between 15% and 90%
+        updateJobProgress(jobId, percent, `Importing questions (${completedBatches}/${batches.length} batches)...`);
+        console.log(`[Job ${jobId}] Completed batch ${completedBatches}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}).`);
+      } catch (err) {
+        console.error(`[Job ${jobId}] Batch Q${batch[0].qIndex}-Q${batch[batch.length - 1].qIndex} worker error:`, err.message);
+        throw err;
+      }
+    };
+
+    // Run parallel batches with a configurable concurrency limit (default = 3)
+    const concurrencyLimit = parseInt(process.env.IMPORT_CONCURRENCY) || 3;
+    console.log(`[Job ${jobId}] Running import concurrency pool with limit ${concurrencyLimit}...`);
+    const executing = new Set();
+    for (const batch of batches) {
+      const p = Promise.resolve().then(() => processBatchWorker(batch));
+      executing.add(p);
+      const clean = () => executing.delete(p);
+      p.then(clean, clean);
+      if (executing.size >= concurrencyLimit) {
+        await Promise.race(executing);
+      }
+    }
+    await Promise.all(executing);
 
     updateJobProgress(jobId, 95, 'Saving parsed questions to database...');
 
