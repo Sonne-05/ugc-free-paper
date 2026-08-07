@@ -612,9 +612,9 @@ function notifyJobListeners(jobId, data) {
   });
 }
 
-async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
+async function processImportJob(jobId, fileBuffer, setId) {
   try {
-    console.log(`[Job ${jobId}] Starting upload parsing for Set ${setId} (Range Q${startQ}-Q${endQ})...`);
+    console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId}...`);
 
     // 1. Extract raw text from PDF buffer
     const parser = new PDFParse({ data: fileBuffer });
@@ -660,24 +660,21 @@ async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
     }
 
     const englishQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
-    
-    // Filter questions within request range
-    const rangeQuestions = englishQuestions.filter(q => q.qIndex >= startQ && q.qIndex <= endQ);
-    console.log(`[Job ${jobId}] Filtered ${rangeQuestions.length} unique English questions in range Q${startQ}-Q${endQ}.`);
+    console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique English questions.`);
 
-    if (rangeQuestions.length === 0) {
-      throw new Error(`No questions matching range Q${startQ}-Q${endQ} found in the uploaded PDF.`);
+    if (englishQuestions.length === 0) {
+      throw new Error('No questions matching Q1-Q50 found in the uploaded PDF.');
     }
 
     const compKeys = Object.keys(compPassages);
     const diPassageIdForMapping = compKeys[0];
     const rcPassageIdForMapping = compKeys[1];
 
-    // 3. Process sequentially in batches of 2
+    // 3. Process sequentially in batches of 5 to optimize tokens and requests
     const parsedQuestions = [];
-    for (let i = 0; i < rangeQuestions.length; i += 2) {
-      const batch = rangeQuestions.slice(i, i + 2);
-      const percent = Math.round(15 + ((i / rangeQuestions.length) * 75)); // Scale loop progress between 15% and 90%
+    for (let i = 0; i < englishQuestions.length; i += 5) {
+      const batch = englishQuestions.slice(i, i + 5);
+      const percent = Math.round(15 + ((i / englishQuestions.length) * 75)); // Scale loop progress between 15% and 90%
       
       updateJobProgress(jobId, percent, `Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
       console.log(`[Job ${jobId}] Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
@@ -717,16 +714,16 @@ async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
       });
       parsedQuestions.push(...batchJson);
       
-      // Optional: add a slight delay to respect rate limits
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Add a 2-second delay between batches to respect rate limits (TPM/RPM)
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     updateJobProgress(jobId, 95, 'Saving parsed questions to database...');
 
     // 4. Save to MongoDB
     console.log(`[Job ${jobId}] Inserting ${parsedQuestions.length} questions into DB...`);
-    // Delete only existing questions inside target range to allow incremental imports
-    await Question.deleteMany({ setId, qIndex: { $gte: startQ, $lte: endQ } });
+    // Delete existing questions in the set first to prevent duplicates
+    await Question.deleteMany({ setId });
     
     const questionsToInsert = parsedQuestions.map(q => ({ ...q, setId }));
     const inserted = await Question.insertMany(questionsToInsert);
@@ -743,7 +740,7 @@ async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
       notifyJobListeners(jobId, { 
         type: 'success', 
         percent: 100, 
-        message: `Successfully imported all ${inserted.length} questions in range Q${startQ}-Q${endQ}!`, 
+        message: `Successfully imported all ${inserted.length} questions!`, 
         count: inserted.length 
       });
       // Close all listeners
@@ -780,9 +777,6 @@ async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
 app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => {
   try {
     const { setId } = req.body;
-    const startQ = parseInt(req.body.startQ) || 1;
-    const endQ = parseInt(req.body.endQ) || 50;
-
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     if (!setId) return res.status(400).json({ message: 'Missing target setId' });
 
@@ -800,7 +794,7 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     });
 
     // Fire off background processing asynchronously
-    processImportJob(jobId, req.file.buffer, setId, startQ, endQ).catch(err => {
+    processImportJob(jobId, req.file.buffer, setId).catch(err => {
       console.error(`[Job Trigger Async Error]`, err);
     });
 

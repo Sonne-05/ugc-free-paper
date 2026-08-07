@@ -2605,8 +2605,7 @@ const ManageSet = () => {
   const [isUploadingPdf, setIsUploadingPdf] = useState(false)
   const [pdfUploadStatus, setPdfUploadStatus] = useState('')
   const [pdfUploadPercent, setPdfUploadPercent] = useState(0)
-  const [importStartQ, setImportStartQ] = useState(1)
-  const [importEndQ, setImportEndQ] = useState(5)
+
   
   const [editingQuestionId, setEditingQuestionId] = useState(null)
   const [newQType, setNewQType] = useState('mcq')
@@ -3385,8 +3384,7 @@ const ManageSet = () => {
     const formData = new FormData()
     formData.append('pdf', file)
     formData.append('setId', editingSetId)
-    formData.append('startQ', importStartQ)
-    formData.append('endQ', importEndQ)
+
 
     try {
       const uploadRes = await fetch(`${API_BASE_URL}/api/questions/import-pdf`, {
@@ -4097,78 +4095,7 @@ const ManageSet = () => {
                           Upload the original bilingual PDF. We will automatically filter out the Hindi translation, map syllabus units (Q1-5 DI, Q6-10 Teaching, etc.), solve correct answers, and write detailed explanations.
                         </p>
                         
-                        {/* Range Selection */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#4f46e5', margin: 0 }}>
-                            Select Question Range to Import:
-                          </label>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <select
-                              className="ms-input"
-                              style={{ flex: 1, fontSize: '0.85rem', padding: '6px', minWidth: '200px' }}
-                              value={
-                                [1,6,11,16,21,26,31,36,41,46].includes(importStartQ) && (importEndQ === importStartQ + 4)
-                                  ? `${importStartQ}-${importEndQ}`
-                                  : importStartQ === 1 && importEndQ === 50
-                                    ? '1-50'
-                                    : 'custom'
-                              }
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val !== 'custom') {
-                                  const [start, end] = val.split('-').map(Number);
-                                  setImportStartQ(start);
-                                  setImportEndQ(end);
-                                } else {
-                                  // Set to custom range default
-                                  setImportStartQ(1);
-                                  setImportEndQ(5);
-                                }
-                              }}
-                              disabled={isUploadingPdf}
-                            >
-                              <option value="1-5">Q1 - Q5 (Unit 7: Data Interpretation)</option>
-                              <option value="6-10">Q6 - Q10 (Unit 1: Teaching Aptitude)</option>
-                              <option value="11-15">Q11 - Q15 (Unit 2: Research Aptitude)</option>
-                              <option value="16-20">Q16 - Q20 (Unit 4: Communication)</option>
-                              <option value="21-25">Q21 - Q25 (Unit 5: Mathematical Reasoning)</option>
-                              <option value="26-30">Q26 - Q30 (Unit 6: Logical Reasoning)</option>
-                              <option value="31-35">Q31 - Q35 (Unit 8: ICT)</option>
-                              <option value="36-40">Q36 - Q40 (Unit 9: People & Environment)</option>
-                              <option value="41-45">Q41 - Q45 (Unit 10: Higher Education)</option>
-                              <option value="46-50">Q46 - Q50 (Unit 3: Reading Comprehension)</option>
-                              <option value="1-50">All Questions (Q1 - Q50)</option>
-                              <option value="custom">Custom Range...</option>
-                            </select>
-                            
-                            {/* Render custom inputs if "custom" is active */}
-                            {(![1,6,11,16,21,26,31,36,41,46].includes(importStartQ) || (importEndQ !== importStartQ + 4)) && !(importStartQ === 1 && importEndQ === 50) && (
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="50"
-                                  className="ms-input"
-                                  style={{ width: '60px', padding: '6px', fontSize: '0.85rem', textAlign: 'center' }}
-                                  value={importStartQ}
-                                  onChange={(e) => setImportStartQ(Math.max(1, Math.min(50, Number(e.target.value))))}
-                                  disabled={isUploadingPdf}
-                                />
-                                <span style={{ fontSize: '0.82rem', color: '#6b7280' }}>to</span>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="50"
-                                  className="ms-input"
-                                  style={{ width: '60px', padding: '6px', fontSize: '0.85rem', textAlign: 'center' }}
-                                  value={importEndQ}
-                                  onChange={(e) => setImportEndQ(Math.max(1, Math.min(50, Number(e.target.value))))}
-                                  disabled={isUploadingPdf}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <input 
