@@ -77,13 +77,20 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
       })
     });
     if (!response.ok) {
-      if (response.status === 429 && retryCount < 3) {
-        const waitTime = 15000 * (retryCount + 1);
-        console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
+      const errText = await response.text();
+      if (response.status === 429 && retryCount < 5) {
+        let waitTime = 20000 * (retryCount + 1);
+        const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
+        if (retryMatch) {
+          const waitSeconds = parseFloat(retryMatch[1]);
+          waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
+          console.warn(`[AI Structuring] Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+        } else {
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+        }
         await new Promise(resolve => setTimeout(resolve, waitTime));
         return callAIChatForStructure(prompt, apiKey, provider, retryCount + 1);
       }
-      const errText = await response.text();
       throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
     }
     const data = await response.json();
