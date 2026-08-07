@@ -3116,8 +3116,17 @@ const ManageSet = () => {
          q.options = q.statements.map(s => s.replace(/^[\(\[]?[A-D][\)\]\.\:\-]\s*/i, ''))
          q.statements = []
       }
-      if (q.statements.length > 0 && q.type === 'mcq') {
-         q.type = 'multiple-statement'
+      
+      const textLower = (q.text || '').toLowerCase()
+      if (q.type === 'mcq') {
+        if (q.statements.length > 0 || (textLower.includes('statement i') && textLower.includes('statement ii'))) {
+          q.type = 'multiple-statement'
+        } else if (textLower.includes('list i') && textLower.includes('list ii')) {
+          q.type = 'match-column'
+        } else if ((textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
+                   (textLower.includes('reason') || textLower.includes('reason (r)'))) {
+          q.type = 'assertion-reason'
+        }
       }
       parsedQuestions.push(q)
     }

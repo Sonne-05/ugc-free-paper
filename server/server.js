@@ -483,7 +483,13 @@ Analyze the raw text of the following ${batch.length} questions. You must:
 1. Extract the clean question text (filtering out headers, footer URLs, page numbers, 'Correct Marks : 2 Wrong Marks : 0', etc.).
 2. Extract exactly 4 options.
 3. Solve each question to determine the correct option index (1, 2, 3, or 4).
-4. Assign the correct 'type' ('mcq' | 'assertion-reason' | 'match-column' | 'comprehension' | 'multiple-statement' | 'di').
+4. Assign the correct 'type' based on these rules:
+   - 'mcq': Standard single choice question with 4 options.
+   - 'assertion-reason': Question containing "Assertion (A)" and "Reason (R)". You MUST extract and populate the "assertion" and "reason" fields.
+   - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields.
+   - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or statements labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract and populate the "statements" field.
+   - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
+   - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
 5. Map them to their syllabus unit based on the question index:
    - Q1-Q5: Unit 7: Data Interpretation
    - Q6-Q10: Unit 1: Teaching Aptitude
@@ -675,6 +681,29 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
         } else if (q.qIndex >= 46 && q.qIndex <= 50) {
           q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
           q.type = 'comprehension';
+        } else {
+          // Heuristic validation layer to ensure accurate type selection
+          const textLower = (q.text || '').toLowerCase();
+          
+          const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
+          const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
+          
+          const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
+                                      (textLower.includes('reason') || textLower.includes('reason (r)'));
+          const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
+          
+          const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
+          const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
+          
+          if (hasListKeywords || hasListFields) {
+            q.type = 'match-column';
+          } else if (hasAssertionKeywords || hasAssertionFields) {
+            q.type = 'assertion-reason';
+          } else if (hasStatementKeywords || hasStatementFields) {
+            q.type = 'multiple-statement';
+          } else {
+            q.type = q.type || 'mcq';
+          }
         }
       });
       parsedQuestions.push(...batchJson);
