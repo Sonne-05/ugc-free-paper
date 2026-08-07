@@ -2076,8 +2076,22 @@ const QuestionSlot = ({
             <div className="ms-form-field">
               <label>Question Type</label>
               <select className="ms-input" value={qType} onChange={(e) => {
-                const type = e.target.value
-                setQType(type)
+                const type = e.target.value;
+                const oldType = qType;
+                setQType(type);
+                
+                // Smart auto-migration of data to prevent losing text during manual corrections
+                if (type === 'multiple-statement' && oldType === 'assertion-reason') {
+                  const newStats = [];
+                  if (qAssertion.trim()) newStats.push(qAssertion.trim());
+                  if (qReason.trim()) newStats.push(qReason.trim());
+                  while (newStats.length < 4) newStats.push(''); // Default to 4 empty inputs for multiple statements
+                  setQStatements(newStats);
+                } else if (type === 'assertion-reason' && oldType === 'multiple-statement') {
+                  if (qStatements[0]) setQAssertion(qStatements[0]);
+                  if (qStatements[1]) setQReason(qStatements[1]);
+                }
+
                 if (type === 'assertion-reason') {
                   setQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
                 } else if (type === 'match-column' || type === 'multiple-statement') {

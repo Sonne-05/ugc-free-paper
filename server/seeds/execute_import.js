@@ -156,10 +156,10 @@ Analyze the raw text of the following ${batch.length} questions. You must:
 2. Extract exactly 4 options.
 3. Solve each question to determine the correct option index (1, 2, 3, or 4).
 4. Assign the correct 'type' based on these rules:
-   - 'mcq': Standard single choice question with 4 options.
-   - 'assertion-reason': Question containing "Assertion (A)" and "Reason (R)". You MUST extract and populate the "assertion" and "reason" fields.
+    - 'mcq': Standard single choice question with 4 options.
+    - 'assertion-reason': Question containing SPECIFICALLY the words "Assertion (A)" (or "Assertion A") and "Reason (R)" (or "Reason R"). If the question has labels like (A), (B), (C), (D) representing list items (e.g. "(A) Selection threat"), it is NOT an assertion-reason question; it is a multiple-statement question.
     - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. Note that List I and List II often have column subtitles/headers (e.g. 'Concept', 'Description', 'Method'). You MUST set "list1Header" and "list2Header" to these specific subtitles, NOT 'List I' or 'List II'. Do NOT include these subtitles in the "list1" or "list2" arrays; those arrays must contain only the 4 actual items.
-   - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or statements labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract and populate the "statements" field.
+    - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or multiple points labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract these statements into the "statements" array and NOT populate "assertion" or "reason".
    - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
    - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
 5. Map them to their syllabus unit based on the question index:
@@ -351,21 +351,47 @@ async function run() {
           const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
           const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
           
-          const hasAssertionKeywords = (textLower.includes('assertion') || textLower.includes('assertion (a)')) && 
-                                      (textLower.includes('reason') || textLower.includes('reason (r)'));
-          const hasAssertionFields = (q.assertion && q.assertion.trim().length > 0) || (q.reason && q.reason.trim().length > 0);
+          // Strict assertion check: must have BOTH assertion and reason keywords
+          const hasAssertionKeywords = textLower.includes('assertion') && 
+                                       (textLower.includes('reason') || textLower.includes('reasoning'));
           
-          const hasStatementKeywords = textLower.includes('statement i') && textLower.includes('statement ii');
+          const hasStatementKeywords = textLower.includes('statement i') || 
+                                       textLower.includes('statement ii') ||
+                                       (textLower.includes('options given below') && 
+                                        textLower.includes('only') && 
+                                        (textLower.includes('(a)') || textLower.includes('(b)')));
           const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
           
           if (hasListKeywords || hasListFields) {
             q.type = 'match-column';
-          } else if (hasAssertionKeywords || hasAssertionFields) {
+          } else if (hasAssertionKeywords) {
             q.type = 'assertion-reason';
           } else if (hasStatementKeywords || hasStatementFields) {
             q.type = 'multiple-statement';
+            // If the AI incorrectly populated assertion/reason, migrate them to statements array
+            if ((!q.statements || q.statements.length === 0) && (q.assertion || q.reason)) {
+              q.statements = [];
+              if (q.assertion && q.assertion.trim()) q.statements.push(q.assertion.trim());
+              if (q.reason && q.reason.trim()) q.statements.push(q.reason.trim());
+              q.assertion = "";
+              q.reason = "";
+            }
           } else {
-            q.type = q.type || 'mcq';
+            // Fallback check: if AI misclassified standard MCQ or multiple statements as assertion-reason
+            if (q.type === 'assertion-reason' && !hasAssertionKeywords) {
+              if (q.assertion || q.reason) {
+                q.type = 'multiple-statement';
+                q.statements = [];
+                if (q.assertion && q.assertion.trim()) q.statements.push(q.assertion.trim());
+                if (q.reason && q.reason.trim()) q.statements.push(q.reason.trim());
+                q.assertion = "";
+                q.reason = "";
+              } else {
+                q.type = 'mcq';
+              }
+            } else {
+              q.type = q.type || 'mcq';
+            }
           }
         }
 
