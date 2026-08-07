@@ -597,10 +597,11 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     if (!setId) return res.status(400).json({ message: 'Missing target setId' });
 
-    // Enable chunked response streaming
-    res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Transfer-Encoding', 'chunked');
+    // Enable chunked response streaming (using text/event-stream to bypass reverse-proxy buffering)
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     res.write(JSON.stringify({ type: 'progress', percent: 5, message: 'Uploading and extracting PDF text...' }) + '\n');
     console.log(`[PDF Import] Starting upload parsing for Set ${setId}...`);

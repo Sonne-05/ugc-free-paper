@@ -3417,9 +3417,15 @@ const ManageSet = () => {
         chunk = lines.pop() // Keep the trailing incomplete line
 
         for (const line of lines) {
-          if (!line.trim()) continue
+          let cleanLine = line.trim()
+          if (!cleanLine) continue
+          
+          if (cleanLine.startsWith('data: ')) {
+            cleanLine = cleanLine.substring(6).trim()
+          }
+
           try {
-            const data = JSON.parse(line)
+            const data = JSON.parse(cleanLine)
             if (data.type === 'progress') {
               setPdfUploadPercent(data.percent || 0)
               setPdfUploadStatus(data.message || 'Processing...')
