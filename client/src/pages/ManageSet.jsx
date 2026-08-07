@@ -3414,6 +3414,7 @@ const ManageSet = () => {
     formData.append('pdf', file)
     formData.append('setId', editingSetId)
 
+    let queueInterval = null
 
     try {
       const uploadRes = await fetch(`${API_BASE_URL}/api/questions/import-pdf`, {
@@ -3450,6 +3451,22 @@ const ManageSet = () => {
       let chunk = ''
       let finalData = null
 
+      const progressQueue = []
+
+      const startQueueProcessor = () => {
+        if (queueInterval) return
+        queueInterval = setInterval(() => {
+          if (progressQueue.length > 0) {
+            const nextEvent = progressQueue.shift()
+            setPdfUploadPercent(nextEvent.percent || 0)
+            setPdfUploadStatus(nextEvent.message || 'Processing...')
+          } else {
+            clearInterval(queueInterval)
+            queueInterval = null
+          }
+        }, 150) // Processes each question state smoothly every 150ms
+      }
+
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -3476,16 +3493,29 @@ const ManageSet = () => {
           }
 
           if (data.type === 'progress') {
-            setPdfUploadPercent(data.percent || 0)
-            setPdfUploadStatus(data.message || 'Processing...')
+            progressQueue.push(data)
+            startQueueProcessor()
           } else if (data.type === 'success') {
+            if (queueInterval) {
+              clearInterval(queueInterval)
+              queueInterval = null
+            }
             setPdfUploadPercent(100)
             setPdfUploadStatus(data.message || 'Import successful!')
             finalData = data
           } else if (data.type === 'error') {
+            if (queueInterval) {
+              clearInterval(queueInterval)
+              queueInterval = null
+            }
             throw new Error(data.message || 'Error occurred during parsing.')
           }
         }
+      }
+
+      // Wait for any remaining progress queue items to finish animating
+      while (progressQueue.length > 0 || queueInterval !== null) {
+        await new Promise(resolve => setTimeout(resolve, 50))
       }
 
       if (!finalData) {
@@ -3510,6 +3540,10 @@ const ManageSet = () => {
       setPdfUploadStatus(`Error: ${err.message}`)
       alert(`Import failed: ${err.message}`)
     } finally {
+      if (queueInterval) {
+        clearInterval(queueInterval)
+        queueInterval = null
+      }
       setIsUploadingPdf(false)
       e.target.value = '' // Reset input
     }
