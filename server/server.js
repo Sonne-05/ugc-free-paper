@@ -560,9 +560,8 @@ Here is the raw text for the questions:\n\n`;
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
-  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
-  let lastError = null;
+  const errors = [];
   for (const provider of providers) {
     try {
       const apiKey = keyRotation.getNextKey(provider);
@@ -578,11 +577,11 @@ Here is the raw text for the questions:\n\n`;
       }
     } catch (err) {
       console.warn(`[AI Structuring] Provider ${provider} failed:`, err.message);
-      lastError = err;
+      errors.push(`${provider.toUpperCase()}: ${err.message}`);
     }
   }
 
-  throw new Error(`All configured AI providers failed. Last error: ${lastError ? lastError.message : 'No providers'}`);
+  throw new Error(`All configured AI providers failed. Details: ${errors.join(' | ')}`);
 }
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB PDF limit
@@ -671,14 +670,11 @@ async function processImportJob(jobId, fileBuffer, setId) {
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
-      openrouterIndex: 0,
       geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
-      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
         if (provider === 'groq') return this.groqKeys.length > 0;
-        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
         return false;
       },
       getNextKey(provider) {
@@ -687,9 +683,6 @@ async function processImportJob(jobId, fileBuffer, setId) {
         }
         if (provider === 'groq') {
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
-        }
-        if (provider === 'openrouter') {
-          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
         }
         return null;
       }
@@ -962,12 +955,11 @@ app.post('/api/questions/explain', async (req, res) => {
   }
 
   const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
-  const openrouterApiKey = (process.env.OPENROUTER_API_KEY || '').trim();
   const groqApiKey = (process.env.GROQ_API_KEY || '').trim();
 
-  if (!geminiApiKey && !openrouterApiKey && !groqApiKey) {
+  if (!geminiApiKey && !groqApiKey) {
     return res.status(400).json({ 
-      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY, OPENROUTER_API_KEY, or GROQ_API_KEY to your server\'s .env file.' 
+      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY or GROQ_API_KEY to your server\'s .env file.' 
     });
   }
 
@@ -1129,13 +1121,13 @@ app.post('/api/questions/explain', async (req, res) => {
         console.warn(`[AI Explain] Google Gemini API hit limit/failed: ${errMsg}. Attempting fallback...`);
 
         // If no fallback is available, throw this error back to the client
-        if (!openrouterApiKey && !groqApiKey) {
+        if (!groqApiKey) {
           return res.status(502).json({ message: errMsg });
         }
       }
     }
 
-    // 2. Fallback to Groq Direct if configured (Higher priority than OpenRouter since it is free and super fast)
+    // 2. Fallback to Groq Direct if configured (Higher priority since it is free and super fast)
     if (groqApiKey) {
       const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
       console.log(`[AI Explain] Falling back to Groq Direct using model ${groqModel}...`);
@@ -1188,70 +1180,9 @@ app.post('/api/questions/explain', async (req, res) => {
         } catch (_) {}
 
         console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
-        if (!openrouterApiKey) {
-          return res.status(502).json({ message: errMsg });
-        }
-      }
-    }
-
-    // 3. Fallback to OpenRouter if configured
-    if (openrouterApiKey) {
-      const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
-      console.log(`[AI Explain] Falling back to OpenRouter using model ${openrouterModel}...`);
-
-      const openrouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openrouterApiKey}`,
-          'HTTP-Referer': 'https://ugcfreepaper.com',
-          'X-Title': 'UGC Free Paper'
-        },
-        body: JSON.stringify({
-          model: openrouterModel,
-          stream: true,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.2
-        })
-      });
-
-      if (openrouterResponse.ok) {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-
-        const reader = openrouterResponse.body;
-        if (reader) {
-          if (typeof reader[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of reader) {
-              res.write(chunk);
-            }
-          } else {
-            const webReader = reader.getReader();
-            while (true) {
-              const { done, value } = await webReader.read();
-              if (done) break;
-              res.write(value);
-            }
-          }
-        }
-        res.end();
-        return;
-      } else {
-        const errText = await openrouterResponse.text();
-        let errMsg = 'Failed call to OpenRouter API';
-        try {
-          const errJson = JSON.parse(errText);
-          errMsg = errJson.error?.message || errMsg;
-        } catch (_) {}
         return res.status(502).json({ message: errMsg });
       }
     }
-
-    throw new Error('All configured AI endpoints failed to generate an explanation.');
   } catch (err) {
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });

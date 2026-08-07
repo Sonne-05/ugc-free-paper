@@ -236,9 +236,8 @@ Here is the raw text for the questions:\n\n`;
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
-  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
-  let lastError = null;
+  const errors = [];
   for (const provider of providers) {
     try {
       const apiKey = keyRotation.getNextKey(provider);
@@ -249,11 +248,11 @@ Here is the raw text for the questions:\n\n`;
       return getArrayFromParsed(parsed);
     } catch (err) {
       console.warn(`[AI Structuring] Provider ${provider} failed:`, err.message);
-      lastError = err;
+      errors.push(`${provider.toUpperCase()}: ${err.message}`);
     }
   }
 
-  throw new Error(`All configured AI providers failed. Last error: ${lastError ? lastError.message : 'No providers'}`);
+  throw new Error(`All configured AI providers failed. Details: ${errors.join(' | ')}`);
 }
 
 async function run() {
@@ -309,14 +308,11 @@ async function run() {
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
-      openrouterIndex: 0,
       geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
-      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
         if (provider === 'groq') return this.groqKeys.length > 0;
-        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
         return false;
       },
       getNextKey(provider) {
@@ -325,9 +321,6 @@ async function run() {
         }
         if (provider === 'groq') {
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
-        }
-        if (provider === 'openrouter') {
-          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
         }
         return null;
       }
