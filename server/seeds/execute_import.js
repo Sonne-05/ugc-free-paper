@@ -74,7 +74,7 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
     });
     if (!response.ok) {
       if (response.status === 429 && retryCount < 3) {
-        const waitTime = 10000 * (retryCount + 1);
+        const waitTime = 15000 * (retryCount + 1);
         console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         return callAIChatForStructure(prompt, apiKey, provider, retryCount + 1);
@@ -331,10 +331,19 @@ async function run() {
       batches.push(englishQuestions.slice(i, i + 5));
     }
 
+    const concurrencyLimit = parseInt(process.env.IMPORT_CONCURRENCY) || 3;
     const parsedQuestions = [];
     let completedBatches = 0;
+    let workerIndex = 0;
 
     const processBatchWorker = async (batch) => {
+      const currentIdx = workerIndex++;
+      const staggerTime = (currentIdx % concurrencyLimit) * 1000;
+      if (staggerTime > 0) {
+        console.log(`Staggering batch Q${batch[0].qIndex} by ${staggerTime}ms to prevent rate limiting...`);
+        await new Promise(resolve => setTimeout(resolve, staggerTime));
+      }
+
       try {
         console.log(`Starting batch processing for Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
         const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
@@ -395,8 +404,6 @@ async function run() {
       }
     };
 
-    // Run parallel batches with a configurable concurrency limit (default = 3)
-    const concurrencyLimit = parseInt(process.env.IMPORT_CONCURRENCY) || 3;
     console.log(`Running import concurrency pool with limit ${concurrencyLimit}...`);
     const executing = new Set();
     for (const batch of batches) {
