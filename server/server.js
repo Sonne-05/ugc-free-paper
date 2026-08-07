@@ -796,10 +796,12 @@ async function processImportJob(jobId, fileBuffer, setId) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // Safe 5-second delay to guarantee free-tier rate limits (keeps rate at 12 RPM), adjusted by the time spent in question updates
+      // Safe delay to guarantee free-tier rate limits, dynamically scaling down based on key rotation pool size
       if (i < batches.length - 1) {
-        const remainingDelay = Math.max(5000 - (batchJson.length * 300), 1000);
-        console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch...`);
+        const numKeys = Math.max(keyRotation.geminiKeys.length, 1);
+        const baseDelay = Math.ceil(5000 / numKeys);
+        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 500);
+        console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch (rotated over ${numKeys} keys)...`);
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
     }
