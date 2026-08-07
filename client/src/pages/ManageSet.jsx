@@ -3129,6 +3129,21 @@ const ManageSet = () => {
           q.type = 'assertion-reason'
         }
       }
+
+      // Post-processing cleanup for match-column list header overflow
+      if (q.type === 'match-column') {
+        const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
+        if (isGeneric1 && q.list1 && q.list1.length > 4) {
+          const rawHeader = q.list1.shift();
+          q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+        }
+        const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
+        if (isGeneric2 && q.list2 && q.list2.length > 4) {
+          const rawHeader = q.list2.shift();
+          q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+        }
+      }
+      
       parsedQuestions.push(q)
     }
 

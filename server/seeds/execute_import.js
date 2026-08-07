@@ -178,7 +178,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
 4. Assign the correct 'type' based on these rules:
    - 'mcq': Standard single choice question with 4 options.
    - 'assertion-reason': Question containing "Assertion (A)" and "Reason (R)". You MUST extract and populate the "assertion" and "reason" fields.
-   - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields.
+    - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. Note that List I and List II often have column subtitles/headers (e.g. 'Concept', 'Description', 'Method'). You MUST set "list1Header" and "list2Header" to these specific subtitles, NOT 'List I' or 'List II'. Do NOT include these subtitles in the "list1" or "list2" arrays; those arrays must contain only the 4 actual items.
    - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or statements labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract and populate the "statements" field.
    - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
    - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
@@ -210,10 +210,10 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
       "correct": number,
       "assertion": "Assertion text",
       "reason": "Reason text",
-      "list1": ["Item 1", "Item 2", "Item 3", "Item 4"],
-      "list2": ["Item 1", "Item 2", "Item 3", "Item 4"],
-      "list1Header": "Header 1",
-      "list2Header": "Header 2",
+       "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Concept')
+       "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Description')
+       "list1Header": "Header 1", // for match-column: the specific column header/subtitle (e.g. 'Concept'), NOT 'List I' or 'List - I'
+       "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List II' or 'List - II'
       "explanation": "Detailed explanation of the concept and why the correct option is right in clean HTML format (<p>, <strong>, <ul>, <ol>, <li>, etc.)"
     }
   ]
@@ -358,6 +358,20 @@ async function run() {
             q.type = 'multiple-statement';
           } else {
             q.type = q.type || 'mcq';
+          }
+        }
+
+        // Post-processing cleanup for match-column list header overflow
+        if (q.type === 'match-column') {
+          const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
+          if (isGeneric1 && q.list1 && q.list1.length > 4) {
+            const rawHeader = q.list1.shift();
+            q.list1Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
+          }
+          const isGeneric2 = !q.list2Header || /^list\s*[-–]?\s*ii$/i.test(q.list2Header.trim());
+          if (isGeneric2 && q.list2 && q.list2.length > 4) {
+            const rawHeader = q.list2.shift();
+            q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
           }
         }
       });
