@@ -612,9 +612,9 @@ function notifyJobListeners(jobId, data) {
   });
 }
 
-async function processImportJob(jobId, fileBuffer, setId) {
+async function processImportJob(jobId, fileBuffer, setId, startQ, endQ) {
   try {
-    console.log(`[Job ${jobId}] Starting upload parsing for Set ${setId}...`);
+    console.log(`[Job ${jobId}] Starting upload parsing for Set ${setId} (Range Q${startQ}-Q${endQ})...`);
 
     // 1. Extract raw text from PDF buffer
     const parser = new PDFParse({ data: fileBuffer });
@@ -660,10 +660,13 @@ async function processImportJob(jobId, fileBuffer, setId) {
     }
 
     const englishQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
-    console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique English questions.`);
+    
+    // Filter questions within request range
+    const rangeQuestions = englishQuestions.filter(q => q.qIndex >= startQ && q.qIndex <= endQ);
+    console.log(`[Job ${jobId}] Filtered ${rangeQuestions.length} unique English questions in range Q${startQ}-Q${endQ}.`);
 
-    if (englishQuestions.length === 0) {
-      throw new Error('No questions matching Q1-Q50 found in the uploaded PDF.');
+    if (rangeQuestions.length === 0) {
+      throw new Error(`No questions matching range Q${startQ}-Q${endQ} found in the uploaded PDF.`);
     }
 
     const compKeys = Object.keys(compPassages);
@@ -672,9 +675,9 @@ async function processImportJob(jobId, fileBuffer, setId) {
 
     // 3. Process sequentially in batches of 2
     const parsedQuestions = [];
-    for (let i = 0; i < englishQuestions.length; i += 2) {
-      const batch = englishQuestions.slice(i, i + 2);
-      const percent = Math.round(15 + ((i / englishQuestions.length) * 75)); // Scale loop progress between 15% and 90%
+    for (let i = 0; i < rangeQuestions.length; i += 2) {
+      const batch = rangeQuestions.slice(i, i + 2);
+      const percent = Math.round(15 + ((i / rangeQuestions.length) * 75)); // Scale loop progress between 15% and 90%
       
       updateJobProgress(jobId, percent, `Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
       console.log(`[Job ${jobId}] Processing batch Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}...`);
@@ -722,8 +725,8 @@ async function processImportJob(jobId, fileBuffer, setId) {
 
     // 4. Save to MongoDB
     console.log(`[Job ${jobId}] Inserting ${parsedQuestions.length} questions into DB...`);
-    // Delete existing questions in the set first to prevent duplicates
-    await Question.deleteMany({ setId });
+    // Delete only existing questions inside target range to allow incremental imports
+    await Question.deleteMany({ setId, qIndex: { $gte: startQ, $lte: endQ } });
     
     const questionsToInsert = parsedQuestions.map(q => ({ ...q, setId }));
     const inserted = await Question.insertMany(questionsToInsert);
@@ -740,7 +743,7 @@ async function processImportJob(jobId, fileBuffer, setId) {
       notifyJobListeners(jobId, { 
         type: 'success', 
         percent: 100, 
-        message: `Successfully imported all ${inserted.length} questions!`, 
+        message: `Successfully imported all ${inserted.length} questions in range Q${startQ}-Q${endQ}!`, 
         count: inserted.length 
       });
       // Close all listeners
@@ -777,6 +780,9 @@ async function processImportJob(jobId, fileBuffer, setId) {
 app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => {
   try {
     const { setId } = req.body;
+    const startQ = parseInt(req.body.startQ) || 1;
+    const endQ = parseInt(req.body.endQ) || 50;
+
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
     if (!setId) return res.status(400).json({ message: 'Missing target setId' });
 
@@ -794,7 +800,7 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     });
 
     // Fire off background processing asynchronously
-    processImportJob(jobId, req.file.buffer, setId).catch(err => {
+    processImportJob(jobId, req.file.buffer, setId, startQ, endQ).catch(err => {
       console.error(`[Job Trigger Async Error]`, err);
     });
 
