@@ -701,10 +701,13 @@ async function processImportJob(jobId, fileBuffer, setId) {
     }
 
     const parsedQuestions = [];
+    let completedQuestionsCount = 0;
+    const totalQuestions = englishQuestions.length;
+
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      const percent = Math.round(15 + ((i / batches.length) * 75)); // Scale loop progress between 15% and 90%
-      updateJobProgress(jobId, percent, `Importing questions (${i + 1}/${batches.length} batches)...`);
+      const initialPercent = Math.round(15 + ((completedQuestionsCount / totalQuestions) * 75));
+      updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
       const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
@@ -783,11 +786,21 @@ async function processImportJob(jobId, fileBuffer, setId) {
 
       parsedQuestions.push(...batchJson);
       console.log(`[Job ${jobId}] Completed batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex}).`);
+
+      // Update progress for each question in this batch smoothly to show realtime update
+      for (let j = 0; j < batchJson.length; j++) {
+        completedQuestionsCount++;
+        const percent = Math.round(15 + ((completedQuestionsCount / totalQuestions) * 75));
+        updateJobProgress(jobId, percent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
+        // Small delay to make the UI update feel smooth and realtime
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
       
-      // Safe 5-second delay to guarantee free-tier rate limits (keeps rate at 12 RPM)
+      // Safe 5-second delay to guarantee free-tier rate limits (keeps rate at 12 RPM), adjusted by the time spent in question updates
       if (i < batches.length - 1) {
-        console.log(`[Job ${jobId}] Waiting 5 seconds before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        const remainingDelay = Math.max(5000 - (batchJson.length * 300), 1000);
+        console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
     }
 

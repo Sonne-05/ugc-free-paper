@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/../.env' });
 const mongoose = require('mongoose');
 const fs = require('fs');
 const { PDFParse } = require('pdf-parse');
