@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const { PDFParse } = require('pdf-parse');
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://ugc_free_paper:Koraput%40%4023@ugcfreepaper.zsgzw1l.mongodb.net/ugcfreepaper?appName=ugcfreepaper";
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error("Error: MONGODB_URI is not defined in environment variables or .env file.");
+  process.exit(1);
+}
 const TARGET_SET_ID = "6a74c2eb0eb5d5a10d4c0748";
 const pdfPath = "E:\\USB Data\\PYQS\\2024\\29-Aug-2024-Morning-Shift-UGC-NET-Paper-1.pdf";
 
