@@ -3435,21 +3435,24 @@ const ManageSet = () => {
             cleanLine = cleanLine.substring(6).trim()
           }
 
+          let data = null
           try {
-            const data = JSON.parse(cleanLine)
-            if (data.type === 'progress') {
-              setPdfUploadPercent(data.percent || 0)
-              setPdfUploadStatus(data.message || 'Processing...')
-            } else if (data.type === 'success') {
-              setPdfUploadPercent(100)
-              setPdfUploadStatus(data.message || 'Import successful!')
-              finalData = data
-            } else if (data.type === 'error') {
-              throw new Error(data.message || 'Error occurred during parsing.')
-            }
+            data = JSON.parse(cleanLine)
           } catch (jsonErr) {
             // Ignore minor parse errors of half-written lines
             console.warn('JSON line parse warning:', jsonErr.message)
+            continue
+          }
+
+          if (data.type === 'progress') {
+            setPdfUploadPercent(data.percent || 0)
+            setPdfUploadStatus(data.message || 'Processing...')
+          } else if (data.type === 'success') {
+            setPdfUploadPercent(100)
+            setPdfUploadStatus(data.message || 'Import successful!')
+            finalData = data
+          } else if (data.type === 'error') {
+            throw new Error(data.message || 'Error occurred during parsing.')
           }
         }
       }
