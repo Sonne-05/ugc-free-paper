@@ -383,8 +383,9 @@ const cleanJsonString = (str) => {
 };
 
 // Unified helper to call AI for structuring questions
-async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, overrideModel = null) {
+async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
+    const apiKey = keyRotation.getNextKey('gemini');
     const geminiModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
@@ -398,23 +399,30 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
     if (!response.ok) {
       const errText = await response.text();
       if (response.status === 429 && retryCount < 5) {
-        let waitTime = 20000 * (retryCount + 1);
-        const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
-        if (retryMatch) {
-          const waitSeconds = parseFloat(retryMatch[1]);
-          waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-          console.warn(`[AI Structuring] Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+        const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
+        if (retryCount < keysCount - 1) {
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/5)...`);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+          let waitTime = 20000 * (retryCount + 1);
+          const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
+          if (retryMatch) {
+            const waitSeconds = parseFloat(retryMatch[1]);
+            waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+          } else {
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+          }
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         }
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        return callAIChatForStructure(prompt, apiKey, provider, retryCount + 1);
       }
       throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
     }
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
   } else if (provider === 'groq') {
+    const apiKey = keyRotation.getNextKey('groq');
     const groqModel = overrideModel || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -434,13 +442,19 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
       if (response.status === 429) {
         if (errText.includes('tokens per day') && groqModel !== 'llama-3.1-8b-instant') {
           console.warn(`[AI Structuring] Groq TPD Limit hit. Retrying immediately with fallback model llama-3.1-8b-instant...`);
-          return callAIChatForStructure(prompt, apiKey, provider, retryCount, 'llama-3.1-8b-instant');
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount, 'llama-3.1-8b-instant');
         }
         if (retryCount < 3) {
-          const waitTime = 10000 * (retryCount + 1);
-          console.warn(`[AI Structuring] Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callAIChatForStructure(prompt, apiKey, provider, retryCount + 1, overrideModel);
+          const keysCount = keyRotation.groqKeys ? keyRotation.groqKeys.length : 1;
+          if (retryCount < keysCount - 1) {
+            console.warn(`[AI Structuring] Groq 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/3)...`);
+            return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+          } else {
+            const waitTime = 10000 * (retryCount + 1);
+            console.warn(`[AI Structuring] All Groq keys rate-limited. Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+          }
         }
       }
       throw new Error(`Groq API failed with status ${response.status}: ${errText}`);
@@ -448,6 +462,7 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '[]';
   } else if (provider === 'openrouter') {
+    const apiKey = keyRotation.getNextKey('openrouter');
     const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -465,10 +480,16 @@ async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, 
     });
     if (!response.ok) {
       if (response.status === 429 && retryCount < 3) {
-        const waitTime = 10000 * (retryCount + 1);
-        console.warn(`[AI Structuring] OpenRouter 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        return callAIChatForStructure(prompt, apiKey, provider, retryCount + 1);
+        const keysCount = keyRotation.openrouterKeys ? keyRotation.openrouterKeys.length : 1;
+        if (retryCount < keysCount - 1) {
+          console.warn(`[AI Structuring] OpenRouter 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/3)...`);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1);
+        } else {
+          const waitTime = 10000 * (retryCount + 1);
+          console.warn(`[AI Structuring] All OpenRouter keys rate-limited. OpenRouter 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1);
+        }
       }
       const errText = await response.text();
       throw new Error(`OpenRouter API failed with status ${response.status}: ${errText}`);
@@ -567,13 +588,13 @@ Here is the raw text for the questions:\n\n`;
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
+  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
   const errors = [];
   for (const provider of providers) {
     try {
-      const apiKey = keyRotation.getNextKey(provider);
       console.log(`[AI Structuring] Trying provider: ${provider}...`);
-      const rawResult = await callAIChatForStructure(prompt, apiKey, provider);
+      const rawResult = await callAIChatForStructure(prompt, keyRotation, provider);
       const cleaned = cleanJsonString(rawResult);
       try {
         const parsed = JSON.parse(cleaned);
@@ -677,11 +698,14 @@ async function processImportJob(jobId, fileBuffer, setId) {
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
+      openrouterIndex: 0,
       geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
         if (provider === 'groq') return this.groqKeys.length > 0;
+        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
         return false;
       },
       getNextKey(provider) {
@@ -690,6 +714,9 @@ async function processImportJob(jobId, fileBuffer, setId) {
         }
         if (provider === 'groq') {
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
+        }
+        if (provider === 'openrouter') {
+          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
         }
         return null;
       }
