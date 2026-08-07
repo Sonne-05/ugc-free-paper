@@ -250,7 +250,17 @@ const MockTest = () => {
       .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
 
     if (rows.length < 2) return null
-    return rows
+
+    // Pad all rows to match the length of the longest row
+    const maxLen = Math.max(...rows.map(r => r.length))
+    const normalizedRows = rows.map(r => {
+      while (r.length < maxLen) {
+        r.push('')
+      }
+      return r
+    })
+
+    return normalizedRows
   }
 
   const renderTableData = (tableData, key = 0) => {
@@ -270,11 +280,14 @@ const MockTest = () => {
           <tbody>
             {tableData.slice(1).map((row, rIdx) => (
               <tr key={rIdx} style={{ backgroundColor: 'var(--bg-card)' }}>
-                {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
-                    {renderTextHtml(cell)}
-                  </td>
-                ))}
+                {tableData[0].map((_, cIdx) => {
+                  const cell = row[cIdx] || '';
+                  return (
+                    <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
+                      {renderTextHtml(cell)}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

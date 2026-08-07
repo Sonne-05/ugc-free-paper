@@ -39,7 +39,17 @@ const parseTableText = (text) => {
     .filter(row => row.length > 1 && !row.every(cell => cell.startsWith('---') || cell.startsWith('===') || cell.trim() === ''))
 
   if (rows.length < 2) return null
-  return rows
+
+  // Pad all rows to match the length of the longest row
+  const maxLen = Math.max(...rows.map(r => r.length))
+  const normalizedRows = rows.map(r => {
+    while (r.length < maxLen) {
+      r.push('')
+    }
+    return r
+  })
+
+  return normalizedRows
 }
 
 const cleanPassageText = (text) => {
@@ -78,11 +88,14 @@ const renderTableData = (tableData, key = 0) => {
         <tbody>
           {tableData.slice(1).map((row, rIdx) => (
             <tr key={rIdx} style={{ backgroundColor: 'var(--bg-card)' }}>
-              {row.map((cell, cIdx) => (
-                <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
-                  {renderTextHtml(cell)}
-                </td>
-              ))}
+              {tableData[0].map((_, cIdx) => {
+                const cell = row[cIdx] || '';
+                return (
+                  <td key={cIdx} style={{ border: '1px solid var(--border)', padding: '6px 10px', textAlign: 'center' }}>
+                    {renderTextHtml(cell)}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -2589,6 +2602,9 @@ const ManageSet = () => {
   const [selectedSetId, setSelectedSetId] = useState('')
   const [importMode, setImportMode] = useState('single')
   const [rawImportText, setRawImportText] = useState('')
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false)
+  const [pdfUploadStatus, setPdfUploadStatus] = useState('')
+  const [pdfUploadPercent, setPdfUploadPercent] = useState(0)
   
   const [editingQuestionId, setEditingQuestionId] = useState(null)
   const [newQType, setNewQType] = useState('mcq')
@@ -3347,6 +3363,98 @@ const ManageSet = () => {
     }
   }
 
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setIsUploadingPdf(true)
+    setPdfUploadPercent(0)
+    setPdfUploadStatus('Uploading and parsing PDF...')
+
+    const formData = new FormData()
+    formData.append('pdf', file)
+    formData.append('setId', editingSetId)
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/questions/import-pdf`, {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!res.ok) {
+        let errText = 'Failed to parse questions.'
+        try {
+          const data = await res.json()
+          errText = data.message || errText
+        } catch (_) {
+          try {
+            errText = await res.text() || errText
+          } catch (__) {}
+        }
+        throw new Error(errText)
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let chunk = ''
+      let finalData = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        chunk += decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        chunk = lines.pop() // Keep the trailing incomplete line
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const data = JSON.parse(line)
+            if (data.type === 'progress') {
+              setPdfUploadPercent(data.percent || 0)
+              setPdfUploadStatus(data.message || 'Processing...')
+            } else if (data.type === 'success') {
+              setPdfUploadPercent(100)
+              setPdfUploadStatus(data.message || 'Import successful!')
+              finalData = data
+            } else if (data.type === 'error') {
+              throw new Error(data.message || 'Error occurred during parsing.')
+            }
+          } catch (jsonErr) {
+            // Ignore minor parse errors of half-written lines
+            console.warn('JSON line parse warning:', jsonErr.message)
+          }
+        }
+      }
+
+      if (!finalData) {
+        throw new Error('Completed stream without receiving success confirmation.')
+      }
+
+      alert(`Successfully parsed and loaded ${finalData.count} English questions into your set!`)
+      
+      // Update loaded count in state
+      setPyqSets(prev => prev.map(s => {
+        if ((s.id || s._id) === editingSetId) {
+          return { ...s, questionsLoaded: finalData.count }
+        }
+        return s
+      }))
+
+      if (typeof loadQuestionsForSet === 'function') {
+        loadQuestionsForSet(editingSetId)
+      }
+    } catch (err) {
+      console.error(err)
+      setPdfUploadStatus(`Error: ${err.message}`)
+      alert(`Import failed: ${err.message}`)
+    } finally {
+      setIsUploadingPdf(false)
+      e.target.value = '' // Reset input
+    }
+  }
+
   const renderQuestionForm = (isInline = false) => (
     <form className="ms-add-form-wrapper" onSubmit={handleCreateQuestion}>
 {!isInline && <h3>Add Question to PYQ Set</h3>}
@@ -3946,6 +4054,53 @@ const ManageSet = () => {
                           {newSetPaperType}
                         </span>
                       </h3>
+                      
+                      {/* PDF IMPORTER CARD */}
+                      <div className="ms-card" style={{ marginTop: '15px', marginBottom: '20px', border: '1px dashed #4f46e5', backgroundColor: '#f5f3ff', padding: '16px', borderRadius: '8px' }}>
+                        <h4 style={{ color: '#4f46e5', margin: '0 0 8px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          ⚡ Automated PDF Question Importer (English Only)
+                        </h4>
+                        <p style={{ fontSize: '0.82rem', color: '#4b5563', margin: '0 0 12px 0', lineHeight: '1.4' }}>
+                          Upload the original bilingual PDF. We will automatically filter out the Hindi translation, map syllabus units (Q1-5 DI, Q6-10 Teaching, etc.), solve correct answers, and write detailed explanations.
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <input 
+                            type="file" 
+                            accept=".pdf" 
+                            onChange={handlePdfUpload}
+                            disabled={isUploadingPdf}
+                            style={{ 
+                              fontSize: '0.85rem', 
+                              border: '1px solid #cbd5e1', 
+                              padding: '8px', 
+                              borderRadius: '6px', 
+                              backgroundColor: '#fff',
+                              cursor: isUploadingPdf ? 'not-allowed' : 'pointer'
+                            }}
+                          />
+                          {isUploadingPdf && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: '#4f46e5', fontWeight: '600' }}>
+                                <span>⏳ {pdfUploadStatus}</span>
+                                <span>{pdfUploadPercent}%</span>
+                              </div>
+                              <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div 
+                                  style={{ 
+                                    width: `${pdfUploadPercent}%`, 
+                                    height: '100%', 
+                                    background: 'linear-gradient(90deg, #4f46e5 0%, #6366f1 100%)',
+                                    borderRadius: '4px',
+                                    transition: 'width 0.3s ease-in-out',
+                                    boxShadow: '0 0 8px rgba(79, 70, 229, 0.4)'
+                                  }} 
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       
                       <div className="ms-questions-slots-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
                         {newSetPaperType === 'Paper I' ? (
