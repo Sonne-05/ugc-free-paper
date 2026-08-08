@@ -1045,6 +1045,7 @@ const DataInterpretationGroup = ({
                       <option value="2">Option 2</option>
                       <option value="3">Option 3</option>
                       <option value="4">Option 4</option>
+                      <option value="0">Dropped</option>
                     </select>
                   </div>
                   <div className="ms-form-field">
@@ -1441,6 +1442,7 @@ const ReadingComprehensionGroup = ({
                       <option value="2">Option 2</option>
                       <option value="3">Option 3</option>
                       <option value="4">Option 4</option>
+                      <option value="0">Dropped</option>
                     </select>
                   </div>
 
@@ -2417,6 +2419,7 @@ const QuestionSlot = ({
                         <option value="2">Option 2</option>
                         <option value="3">Option 3</option>
                         <option value="4">Option 4</option>
+                        <option value="0">Dropped</option>
                       </select>
                     </div>
 
@@ -2542,6 +2545,7 @@ const QuestionSlot = ({
                     <option value="2">Option 2</option>
                     <option value="3">Option 3</option>
                     <option value="4">Option 4</option>
+                    <option value="0">Dropped</option>
                   </select>
                 </div>
                 
@@ -3923,6 +3927,7 @@ const ManageSet = () => {
               <option value="2">Option 2</option>
               <option value="3">Option 3</option>
               <option value="4">Option 4</option>
+              <option value="0">Dropped</option>
             </select>
           </div>
           <div className="ms-form-field">
@@ -3992,6 +3997,7 @@ const ManageSet = () => {
         <option value="2">Option 2</option>
         <option value="3">Option 3</option>
         <option value="4">Option 4</option>
+        <option value="0">Dropped</option>
       </select>
     </div>
 

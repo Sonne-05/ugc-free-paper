@@ -708,19 +708,21 @@ Submitted by User: ${userName}
             <strong>Your Response:</strong>{' '}
             {currentQ.userAnswer ? (
               <span style={{ 
-                color: currentQ.userAnswer === currentQ.correct ? '#16a34a' : '#dc2626',
+                color: (currentQ.correct === 0 || currentQ.userAnswer === currentQ.correct) ? '#16a34a' : '#dc2626',
                 fontWeight: 600
               }}>
-                Option {currentQ.userAnswer} ({currentQ.userAnswer === currentQ.correct ? 'Correct' : 'Incorrect'})
+                Option {currentQ.userAnswer} ({currentQ.correct === 0 ? 'Correct (Dropped)' : currentQ.userAnswer === currentQ.correct ? 'Correct' : 'Incorrect'})
               </span>
             ) : (
-              <span style={{ color: '#64748b', fontWeight: 600 }}>Unattempted</span>
+              <span style={{ color: currentQ.correct === 0 ? '#16a34a' : '#64748b', fontWeight: 600 }}>
+                {currentQ.correct === 0 ? 'Unattempted (Marks Awarded)' : 'Unattempted'}
+              </span>
             )}
           </div>
           <div>
             <strong>Correct Answer:</strong>{' '}
             <span style={{ color: '#16a34a', fontWeight: 600 }}>
-              Option {currentQ.correct}
+              {currentQ.correct === 0 ? 'Dropped (Marks Awarded)' : `Option ${currentQ.correct}`}
             </span>
           </div>
         </div>
@@ -730,8 +732,8 @@ Submitted by User: ${userName}
             <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(currentQ, activeQuestionIndex)}</strong>.
           </p>
           <p>
-            <strong>Explanation:</strong> {renderTextHtml(currentQ.explanation || `Option ${currentQ.correct} is correct. Let's analyze:
-            The question tests our understanding of the core concept. By evaluating the given facts, Option ${currentQ.correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`)}
+            <strong>Explanation:</strong> {renderTextHtml(currentQ.explanation || (currentQ.correct === 0 ? 'This question was officially dropped. Full marks are awarded to all candidates.' : `Option ${currentQ.correct} is correct. Let's analyze:
+            The question tests our understanding of the core concept. By evaluating the given facts, Option ${currentQ.correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`))}
           </p>
         </div>
       </div>
@@ -978,18 +980,21 @@ Submitted by User: ${userName}
     questionsState.forEach((q) => {
       if (q.status === 'ANSWERED') {
         answeredCount++
-        if (q.userAnswer === q.correct) correctCount++
-        else incorrectCount++
       } else if (q.status === 'MARKED_ANSWERED') {
         markedAnsweredCount++
-        if (q.userAnswer === q.correct) correctCount++
-        else incorrectCount++
       } else if (q.status === 'MARKED') {
         markedCount++
       } else if (q.status === 'UNANSWERED') {
         unansweredCount++
       } else if (q.status === 'UNVISITED') {
         unvisitedCount++
+      }
+
+      if (q.correct === 0) {
+        correctCount++ // Dropped questions award full marks to all
+      } else if (q.status === 'ANSWERED' || q.status === 'MARKED_ANSWERED') {
+        if (q.userAnswer === q.correct) correctCount++
+        else incorrectCount++
       }
     })
 
@@ -1031,7 +1036,9 @@ Submitted by User: ${userName}
         }
         
         breakdown[unitKey].total += 1
-        if (q.status === 'ANSWERED' || q.status === 'MARKED_ANSWERED') {
+        if (q.correct === 0) {
+          breakdown[unitKey].correct += 1
+        } else if (q.status === 'ANSWERED' || q.status === 'MARKED_ANSWERED') {
           if (q.userAnswer === q.correct) {
             breakdown[unitKey].correct += 1
           }
@@ -1135,7 +1142,26 @@ Submitted by User: ${userName}
       if (!q) return null;
       return (
         <div className="question-block" id={`q-block-${q.id}`} key={q.dbId || q.id}>
-          <div className="q-number-cell">{globalIndex + 1}.</div>
+          <div className="q-number-cell">
+            {globalIndex + 1}.
+            {q.correct === 0 && (
+              <span className="dropped-badge" style={{
+                backgroundColor: '#fee2e2',
+                color: '#ef4444',
+                fontSize: '0.65rem',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                marginLeft: '6px',
+                fontWeight: 'bold',
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                marginTop: '-3px',
+                border: '1px solid #fca5a5'
+              }}>
+                DROPPED
+              </span>
+            )}
+          </div>
           <div className="q-content-cell">
             {/* Handle different question formats */}
             {q.type === 'assertion-reason' ? (
@@ -1225,7 +1251,7 @@ Submitted by User: ${userName}
                 const isSelected = q.userAnswer === oIdx + 1;
                 const isCorrect = q.correct === oIdx + 1;
                 const showAsCorrect = bookletShowKeys && isCorrect;
-                const showAsIncorrect = bookletShowKeys && isSelected && !isCorrect;
+                const showAsIncorrect = bookletShowKeys && isSelected && !isCorrect && q.correct !== 0;
 
                 let optClass = 'q-opt';
                 if (isSelected) optClass += ' selected';
