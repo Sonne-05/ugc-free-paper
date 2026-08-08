@@ -3,6 +3,55 @@ import { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../services/api'
 import './PaperPYQ.css'
 
+const monthMap = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11
+}
+
+const getSortValue = (paper) => {
+  const subtitle = (paper.cycle || '').toLowerCase()
+  let month = 0
+  let day = 1
+  let shift = 1
+
+  // Format 1: 21-aug-2024 or 02-september-2024
+  const match1 = subtitle.match(/(\d{1,2})-(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
+  if (match1) {
+    day = parseInt(match1[1], 10)
+    month = monthMap[match1[2]]
+  } else {
+    // Format 2: 02 jan or 25 june or 31 december
+    const match2 = subtitle.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
+    if (match2) {
+      day = parseInt(match2[1], 10)
+      month = monthMap[match2[2]]
+    } else {
+      // Format 3: just month name like "june morning shift"
+      const match3 = subtitle.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
+      if (match3) {
+        month = monthMap[match3[1]]
+      }
+    }
+  }
+
+  // Shift check
+  if (subtitle.includes('evening') || subtitle.includes('shift 2') || subtitle.includes('shift ii') || subtitle.includes('shift2')) {
+    shift = 2
+  }
+
+  return month * 1000 + day * 10 + shift
+}
+
 const Paper2PYQ = () => {
   const navigate = useNavigate()
   const { search } = useLocation()
@@ -62,7 +111,7 @@ const Paper2PYQ = () => {
               {Object.keys(groupedPapers)
                 .sort((a, b) => b - a) // Show latest years first
                 .map((year) => {
-                  const yearPapers = groupedPapers[year]
+                  const yearPapers = [...groupedPapers[year]].sort((a, b) => getSortValue(a) - getSortValue(b))
                   return yearPapers.map((paper, index) => (
                     <tr key={paper.id} className="pyq-table__tr">
                       {/* Only render Year column for the first paper of that year, using rowspan */}
