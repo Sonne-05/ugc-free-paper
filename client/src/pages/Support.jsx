@@ -1,11 +1,83 @@
+import { useEffect } from 'react'
+import { API_BASE_URL } from '../services/api'
 import './Support.css'
 
 const Support = () => {
-  const handleDonation = (amount) => {
+  useEffect(() => {
+    // Load Razorpay checkout script dynamically
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      // Clean up script when component unmounts
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  const handleDonation = async (amount) => {
+    let finalAmount = amount;
     if (amount === 'Custom') {
-      alert(`Thank you for choosing to support us! Simulated UPI payment request is launching.`)
-    } else {
-      alert(`Thank you for choosing to support us! Simulated UPI payment gateway for ₹${amount} is launching.`)
+      const userAmount = prompt("Enter donation amount (₹):");
+      if (!userAmount) return;
+      const numAmount = Number(userAmount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        alert("Please enter a valid positive number.");
+        return;
+      }
+      finalAmount = numAmount;
+    }
+
+    try {
+      // 1. Create order on the backend
+      const response = await fetch(`${API_BASE_URL}/api/payment/order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ amount: finalAmount })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        alert(data.message || "Failed to initiate payment. Make sure Razorpay keys are configured.");
+        return;
+      }
+
+      // 2. Open Razorpay Checkout Modal
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: 'INR',
+        name: 'UGC Free Paper',
+        description: 'Support Free Quality Education',
+        order_id: data.order_id,
+        handler: function (rzpResponse) {
+          alert(`Payment Successful! Payment ID: ${rzpResponse.razorpay_payment_id}`);
+        },
+        prefill: {
+          name: '',
+          email: '',
+          contact: ''
+        },
+        theme: {
+          color: '#3BBED0' // Matches your brand's sky light blue!
+        }
+      };
+
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        alert("Razorpay SDK failed to load. Please refresh the page.");
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      alert("Connection error. Could not initiate payment.");
     }
   }
 

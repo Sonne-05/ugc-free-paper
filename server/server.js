@@ -2428,6 +2428,45 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
+// Razorpay Order Creation Route
+app.post('/api/payment/order', async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: 'Invalid amount' });
+    }
+
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ 
+        message: 'Razorpay keys are not configured in backend environment.' 
+      });
+    }
+
+    const Razorpay = require('razorpay');
+    const razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+
+    const options = {
+      amount: Math.round(amount * 100), // convert rupees to paisa
+      currency: 'INR',
+      receipt: `receipt_order_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json({
+      success: true,
+      order_id: order.id,
+      amount: order.amount,
+      key_id: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (err) {
+    console.error('Razorpay order creation error:', err);
+    res.status(500).json({ message: 'Failed to create Razorpay order', error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Local backend server running on port ${PORT}`);
 });
