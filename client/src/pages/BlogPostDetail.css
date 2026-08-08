@@ -88,6 +88,19 @@
   line-height: 1.8;
 }
 
+/* Stats Bar overrides for embedded blog HTML content */
+.detail-body .stats-bar {
+  color: white !important;
+}
+
+.detail-body .stats-bar .label {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.detail-body .stats-bar .number {
+  color: #ff6b35 !important;
+}
+
 .detail-body p {
   margin-bottom: 20px;
 }
