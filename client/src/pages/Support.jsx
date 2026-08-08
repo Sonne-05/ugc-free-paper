@@ -55,6 +55,7 @@ const Support = () => {
         currency: 'INR',
         name: 'UGC Free Paper',
         description: 'Support Free Quality Education',
+        image: window.location.origin + '/logo.svg',
         order_id: data.order_id,
         handler: function (rzpResponse) {
           alert(`Payment Successful! Payment ID: ${rzpResponse.razorpay_payment_id}`);
