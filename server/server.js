@@ -663,6 +663,11 @@ function parseAnswerKey(text) {
     // Check if there are any words with length >= 3 to avoid headers/footers
     let hasLongWord = false;
     for (const t of tokens) {
+      const lower = t.toLowerCase();
+      // Allow 'dropped', 'drop', 'null' as valid answer key tokens
+      if (['dropped', 'drop', 'null'].includes(lower)) {
+        continue;
+      }
       if (/[a-zA-Z]{3,}/.test(t)) {
         hasLongWord = true;
         break;
@@ -675,7 +680,11 @@ function parseAnswerKey(text) {
       return t.replace(/^[Qq]/, '').replace(/[.:]$/, '').trim();
     }).filter(Boolean);
     
-    const optionMap = { 'a': 1, 'b': 2, 'c': 3, 'd': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+    const optionMap = { 
+      'a': 1, 'b': 2, 'c': 3, 'd': 4, 
+      '1': 1, '2': 2, '3': 3, '4': 4,
+      'dropped': 0, 'drop': 0, 'null': 0, '0': 0, 'd': 0
+    };
     
     for (let i = 0; i < cleanTokens.length - 1; i += 2) {
       const qStr = cleanTokens[i];
