@@ -2367,7 +2367,8 @@ app.get('/sitemap.xml', async (req, res) => {
       '/contact',
       '/support',
       '/privacy',
-      '/terms'
+      '/terms',
+      '/refund-policy'
     ];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';

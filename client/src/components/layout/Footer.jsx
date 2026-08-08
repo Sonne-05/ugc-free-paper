@@ -69,6 +69,7 @@ const Footer = () => {
             <Link to="/contact" className="footer__link">Contact Support</Link>
             <Link to="/terms" className="footer__link">Terms of Service</Link>
             <Link to="/privacy" className="footer__link">Privacy Policy</Link>
+            <Link to="/refund-policy" className="footer__link">Refund Policy</Link>
           </div>
 
           <div className="footer__links-column">

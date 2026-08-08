@@ -11,6 +11,7 @@ import BlogPostDetail from './pages/BlogPostDetail'
 import Contact from './pages/Contact'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Terms from './pages/Terms'
+import RefundPolicy from './pages/RefundPolicy'
 import Paper1Notes from './pages/Paper1Notes'
 import UnitNotes from './pages/UnitNotes'
 import Paper1PYQ from './pages/Paper1PYQ'
@@ -173,6 +174,7 @@ function App() {
           <Route path="/support" element={<Support />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/mocktest" element={<MockTest />} />
         </Routes>
       </main>
