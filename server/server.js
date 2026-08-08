@@ -526,7 +526,10 @@ Analyze the raw text of the following ${batch.length} questions. You must:
    - Q36-Q40: Unit 9: People, Development and Environment
    - Q41-Q45: Unit 10: Higher Education System
    - Q46-Q50: Unit 3: Comprehension
-6. Generate a brief, high-quality, and concise explanation in HTML (maximum 3 sentences or a short step-by-step list, keep it under 150 words per question).
+6. Generate a comprehensive, high-quality, and detailed explanation in clean HTML (about 200-300 words). It MUST include:
+    - A step-by-step logical breakdown or calculation.
+    - A clear explanation of why the correct option is right.
+    - A detailed comparison and analysis of why the other three options are incorrect.
 7. CRITICAL: Do NOT use double quotes (") anywhere inside your string properties (like "text", "options", "explanation"). If you need quotes, use single quotes ('). Using double quotes inside string fields will break the JSON parser.
 8. CRITICAL: Do NOT output literal newlines inside JSON string values. Use escaped "\n" if you need a newline. All HTML attributes inside explanations MUST use single quotes only (e.g. <p class='highlight'>).
 
@@ -1236,11 +1239,11 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a very short, crisp, and step-by-step logical explanation for the question (maximum 3 concise steps/points using <ul> or <ol>). Directly explain the core reasoning and justify why the correct option is right.';
+    let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: 1. A clear step-by-step walkthrough of the concept or calculation. 2. A specific section justifying why the correct option is right. 3. A breakdown of why the other options are incorrect.';
     if (year) {
       systemPrompt += ` Start the explanation by introducing it as a question from the ${year} UGC NET previous year question set (e.g., "This question is from the ${year} UGC NET previous year question set..." or similar brief contextual intro).`;
     }
-    systemPrompt += ' Avoid wordy introductions, greetings, repetitive paragraphs, or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+    systemPrompt += ' Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
