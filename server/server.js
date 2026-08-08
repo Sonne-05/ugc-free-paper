@@ -404,17 +404,25 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
           console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/5)...`);
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          let waitTime = 20000 * (retryCount + 1);
-          const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
-          if (retryMatch) {
-            const waitSeconds = parseFloat(retryMatch[1]);
-            waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+          // If we have fallback providers, failover immediately without blocking
+          const hasFallbacks = (keyRotation.groqKeys && keyRotation.groqKeys.length > 0) || 
+                               (keyRotation.openrouterKeys && keyRotation.openrouterKeys.length > 0);
+          if (hasFallbacks) {
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Failing over to next provider immediately...`);
+            throw new Error('All Gemini keys in rotation pool are rate-limited.');
           } else {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            let waitTime = 5000 * (retryCount + 1); // Reduced wait time
+            const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
+            if (retryMatch) {
+              const waitSeconds = parseFloat(retryMatch[1]);
+              waitTime = Math.ceil(waitSeconds) * 1000 + 1000;
+              console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            } else {
+              console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            }
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
           }
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         }
       }
       throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
@@ -450,10 +458,17 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
             console.warn(`[AI Structuring] Groq 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/3)...`);
             return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
           } else {
-            const waitTime = 10000 * (retryCount + 1);
-            console.warn(`[AI Structuring] All Groq keys rate-limited. Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+            // If we have OpenRouter fallback, failover immediately without blocking
+            const hasFallbacks = keyRotation.openrouterKeys && keyRotation.openrouterKeys.length > 0;
+            if (hasFallbacks) {
+              console.warn(`[AI Structuring] All Groq keys rate-limited. Failing over to OpenRouter immediately...`);
+              throw new Error('All Groq keys in rotation pool are rate-limited.');
+            } else {
+              const waitTime = 5000 * (retryCount + 1);
+              console.warn(`[AI Structuring] All Groq keys rate-limited. Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+            }
           }
         }
       }
