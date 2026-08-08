@@ -581,11 +581,11 @@ const DataInterpretationGroup = ({
   ])
 
   const [questions, setQuestions] = useState([
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' }
   ])
 
   const [isSaving, setIsSaving] = useState(false)
@@ -605,30 +605,12 @@ const DataInterpretationGroup = ({
     let parsedText = ''
     let parsedOpts = ['', '', '', '']
     let parsedCorrect = 1
+    let parsedStatements = ['', '', '', '', '']
     
     let optIndex = 0
     let promptLines = []
     
     for (let line of lines) {
-      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
-      if (optMatch && optIndex < 4) {
-        const optLetter = optMatch[1].toUpperCase()
-        const optVal = optMatch[2].trim()
-        
-        let indexToPut = optIndex
-        if (['A', '1'].includes(optLetter)) indexToPut = 0
-        else if (['B', '2'].includes(optLetter)) indexToPut = 1
-        else if (['C', '3'].includes(optLetter)) indexToPut = 2
-        else if (['D', '4'].includes(optLetter)) indexToPut = 3
-        else {
-          indexToPut = optIndex
-        }
-        
-        parsedOpts[indexToPut] = optVal
-        optIndex++
-        continue
-      }
-      
       const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
       if (ansMatch) {
         const ansVal = ansMatch[1].toUpperCase()
@@ -637,6 +619,47 @@ const DataInterpretationGroup = ({
         else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
         else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
         continue
+      }
+
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      let isOption = false
+      let optLetter = ''
+      let optVal = ''
+      
+      if (optMatch) {
+        optLetter = optMatch[1].toUpperCase()
+        optVal = optMatch[2].trim()
+        
+        if (['1', '2', '3', '4'].includes(optLetter)) {
+          isOption = true
+        } else if (['A', 'B', 'C', 'D'].includes(optLetter)) {
+          const hasOptionIndicator = /(?:only|and|,|\bor\b)/i.test(optVal)
+          if (hasOptionIndicator) {
+            isOption = true
+          }
+        }
+      }
+
+      if (isOption && optIndex < 4) {
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+
+      const stmtMatch = line.match(/^[\(\[]?([A-E])[\)\]\.\-\s]\s*(.*)/i)
+      if (stmtMatch) {
+        const stmtLetter = stmtMatch[1].toUpperCase()
+        const stmtIdx = stmtLetter.charCodeAt(0) - 65
+        if (stmtIdx >= 0 && stmtIdx < 5) {
+          parsedStatements[stmtIdx] = cleanStatementTextByIndex(stmtMatch[2].trim(), stmtIdx)
+          continue
+        }
       }
       
       promptLines.push(line)
@@ -648,11 +671,14 @@ const DataInterpretationGroup = ({
 
     setQuestions(prev => {
       const next = [...prev]
+      const hasStatements = parsedStatements.some(s => s !== '')
       next[qIdx] = {
         ...next[qIdx],
         text: parsedText || next[qIdx].text,
         options: parsedOpts.some(o => o !== '') ? parsedOpts : next[qIdx].options,
-        correct: parsedCorrect
+        correct: parsedCorrect,
+        statements: hasStatements ? parsedStatements : (next[qIdx].statements || ['', '', '', '', '']),
+        subPrompt: hasStatements ? 'Choose the correct answer from the options given below:' : (next[qIdx].subPrompt || '')
       }
       return next
     })
@@ -695,14 +721,18 @@ const DataInterpretationGroup = ({
           text: q.text || '',
           options: q.options && q.options.length >= 4 ? q.options.slice(0, 4) : ['', '', '', ''],
           correct: q.correct || 1,
-          explanation: q.explanation || ''
+          explanation: q.explanation || '',
+          statements: q.statements ? q.statements.map((s, sIdx) => cleanStatementTextByIndex(s, sIdx)) : ['', '', '', '', ''],
+          subPrompt: q.subPrompt || ''
         }
       } else {
         return {
           text: '',
           options: ['', '', '', ''],
           correct: 1,
-          explanation: ''
+          explanation: '',
+          statements: ['', '', '', '', ''],
+          subPrompt: ''
         }
       }
     })
@@ -778,7 +808,9 @@ const DataInterpretationGroup = ({
           text: q.text,
           options: q.options,
           correct: q.correct,
-          explanation: q.explanation
+          explanation: q.explanation,
+          statements: (q.statements || []).filter(s => s && s.trim()),
+          subPrompt: q.subPrompt || ''
         }
         const existing = editingSetQuestions.find(eq => eq.qIndex === idx + 1)
         if (existing && (existing.id || existing._id)) {
@@ -1025,6 +1057,48 @@ const DataInterpretationGroup = ({
                   />
                 </div>
 
+                {/* Optional Statements Block for DI individual questions */}
+                <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '10px', borderRadius: '6px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Statements (Optional - A, B, C, D, E)</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {(dq.statements || ['', '', '', '', '']).map((stmtVal, sIdx) => (
+                      <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.78rem' }}>{String.fromCharCode(65 + sIdx)}.</span>
+                        <input
+                          type="text"
+                          style={{ flex: 1, padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                          placeholder={`Statement ${String.fromCharCode(65 + sIdx)}`}
+                          value={stmtVal}
+                          onChange={(e) => {
+                            const newVal = e.target.value
+                            const next = [...questions]
+                            const nextStatements = [...(next[qIdx].statements || ['', '', '', '', ''])]
+                            nextStatements[sIdx] = newVal
+                            next[qIdx] = { ...next[qIdx], statements: nextStatements }
+                            setQuestions(next)
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <div className="ms-form-field" style={{ marginTop: '8px' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Choose the correct answer from the options given below:"
+                        value={dq.subPrompt || ''}
+                        onChange={(e) => {
+                          const newVal = e.target.value
+                          const next = [...questions]
+                          next[qIdx] = { ...next[qIdx], subPrompt: newVal }
+                          setQuestions(next)
+                        }}
+                        className="ms-input"
+                        style={{ padding: '6px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="options-grid" style={{ marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {dq.options.map((opt, oIdx) => (
                     <div className="ms-form-field" key={oIdx}>
@@ -1122,11 +1196,11 @@ const ReadingComprehensionGroup = ({
   const [localPassage, setLocalPassage] = useState('')
 
   const [questions, setQuestions] = useState([
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' },
-    { text: '', options: ['', '', '', ''], correct: 1, explanation: '' }
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
+    { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' }
   ])
 
   const [isSaving, setIsSaving] = useState(false)
@@ -1146,30 +1220,12 @@ const ReadingComprehensionGroup = ({
     let parsedText = ''
     let parsedOpts = ['', '', '', '']
     let parsedCorrect = 1
+    let parsedStatements = ['', '', '', '', '']
     
     let optIndex = 0
     let promptLines = []
     
     for (let line of lines) {
-      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
-      if (optMatch && optIndex < 4) {
-        const optLetter = optMatch[1].toUpperCase()
-        const optVal = optMatch[2].trim()
-        
-        let indexToPut = optIndex
-        if (['A', '1'].includes(optLetter)) indexToPut = 0
-        else if (['B', '2'].includes(optLetter)) indexToPut = 1
-        else if (['C', '3'].includes(optLetter)) indexToPut = 2
-        else if (['D', '4'].includes(optLetter)) indexToPut = 3
-        else {
-          indexToPut = optIndex
-        }
-        
-        parsedOpts[indexToPut] = optVal
-        optIndex++
-        continue
-      }
-      
       const ansMatch = line.match(/(?:correct\s+)?ans(?:wer)?\s*[\:\-\s]\s*[\(\[]?([A-D1-4])[\)\]]?/i)
       if (ansMatch) {
         const ansVal = ansMatch[1].toUpperCase()
@@ -1178,6 +1234,47 @@ const ReadingComprehensionGroup = ({
         else if (['C', '3'].includes(ansVal)) parsedCorrect = 3
         else if (['D', '4'].includes(ansVal)) parsedCorrect = 4
         continue
+      }
+
+      const optMatch = line.match(/^[\(\[]?([A-D1-4])[\)\]\.\:\-\s]\s*(.*)/i)
+      let isOption = false
+      let optLetter = ''
+      let optVal = ''
+      
+      if (optMatch) {
+        optLetter = optMatch[1].toUpperCase()
+        optVal = optMatch[2].trim()
+        
+        if (['1', '2', '3', '4'].includes(optLetter)) {
+          isOption = true
+        } else if (['A', 'B', 'C', 'D'].includes(optLetter)) {
+          const hasOptionIndicator = /(?:only|and|,|\bor\b)/i.test(optVal)
+          if (hasOptionIndicator) {
+            isOption = true
+          }
+        }
+      }
+
+      if (isOption && optIndex < 4) {
+        let indexToPut = optIndex
+        if (['A', '1'].includes(optLetter)) indexToPut = 0
+        else if (['B', '2'].includes(optLetter)) indexToPut = 1
+        else if (['C', '3'].includes(optLetter)) indexToPut = 2
+        else if (['D', '4'].includes(optLetter)) indexToPut = 3
+        
+        parsedOpts[indexToPut] = optVal
+        optIndex++
+        continue
+      }
+
+      const stmtMatch = line.match(/^[\(\[]?([A-E])[\)\]\.\-\s]\s*(.*)/i)
+      if (stmtMatch) {
+        const stmtLetter = stmtMatch[1].toUpperCase()
+        const stmtIdx = stmtLetter.charCodeAt(0) - 65
+        if (stmtIdx >= 0 && stmtIdx < 5) {
+          parsedStatements[stmtIdx] = cleanStatementTextByIndex(stmtMatch[2].trim(), stmtIdx)
+          continue
+        }
       }
       
       promptLines.push(line)
@@ -1189,11 +1286,14 @@ const ReadingComprehensionGroup = ({
 
     setQuestions(prev => {
       const next = [...prev]
+      const hasStatements = parsedStatements.some(s => s !== '')
       next[qIdx] = {
         ...next[qIdx],
         text: parsedText || next[qIdx].text,
         options: parsedOpts.some(o => o !== '') ? parsedOpts : next[qIdx].options,
-        correct: parsedCorrect
+        correct: parsedCorrect,
+        statements: hasStatements ? parsedStatements : (next[qIdx].statements || ['', '', '', '', '']),
+        subPrompt: hasStatements ? 'Choose the correct answer from the options given below:' : (next[qIdx].subPrompt || '')
       }
       return next
     })
@@ -1222,14 +1322,18 @@ const ReadingComprehensionGroup = ({
           text: q.text || '',
           options: q.options && q.options.length >= 4 ? q.options.slice(0, 4) : ['', '', '', ''],
           correct: q.correct || 1,
-          explanation: q.explanation || ''
+          explanation: q.explanation || '',
+          statements: q.statements ? q.statements.map((s, sIdx) => cleanStatementTextByIndex(s, sIdx)) : ['', '', '', '', ''],
+          subPrompt: q.subPrompt || ''
         }
       } else {
         return {
           text: '',
           options: ['', '', '', ''],
           correct: 1,
-          explanation: ''
+          explanation: '',
+          statements: ['', '', '', '', ''],
+          subPrompt: ''
         }
       }
     })
@@ -1266,7 +1370,9 @@ const ReadingComprehensionGroup = ({
           text: q.text,
           options: q.options,
           correct: q.correct,
-          explanation: q.explanation
+          explanation: q.explanation,
+          statements: (q.statements || []).filter(s => s && s.trim()),
+          subPrompt: q.subPrompt || ''
         }
         const existing = editingSetQuestions.find(eq => eq.qIndex === 46 + idx)
         if (existing && (existing.id || existing._id)) {
@@ -1416,6 +1522,52 @@ const ReadingComprehensionGroup = ({
                       })
                     }}
                   />
+                </div>
+
+                {/* Optional Statements Block for Comprehension individual questions */}
+                <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '10px', borderRadius: '6px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Statements (Optional - A, B, C, D, E)</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {(q.statements || ['', '', '', '', '']).map((stmtVal, sIdx) => (
+                      <div key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.78rem' }}>{String.fromCharCode(65 + sIdx)}.</span>
+                        <input
+                          type="text"
+                          style={{ flex: 1, padding: '6px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                          placeholder={`Statement ${String.fromCharCode(65 + sIdx)}`}
+                          value={stmtVal}
+                          onChange={(e) => {
+                            const newVal = e.target.value
+                            setQuestions(prev => {
+                              const next = [...prev]
+                              const nextStatements = [...(next[qIdx].statements || ['', '', '', '', ''])]
+                              nextStatements[sIdx] = newVal
+                              next[qIdx] = { ...next[qIdx], statements: nextStatements }
+                              return next
+                            })
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <div className="ms-form-field" style={{ marginTop: '8px' }}>
+                      <label style={{ fontSize: '0.74rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Choose the correct answer from the options given below:"
+                        value={q.subPrompt || ''}
+                        onChange={(e) => {
+                          const newVal = e.target.value
+                          setQuestions(prev => {
+                            const next = [...prev]
+                            next[qIdx] = { ...next[qIdx], subPrompt: newVal }
+                            return next
+                          })
+                        }}
+                        className="ms-input"
+                        style={{ padding: '6px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="ms-options-grid">
