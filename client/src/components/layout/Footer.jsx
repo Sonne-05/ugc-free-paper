@@ -1,8 +1,25 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../services/api'
 import './Footer.css'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
+  const location = useLocation()
+  const [studyNotesEnabled, setStudyNotesEnabled] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    setIsAdmin(localStorage.getItem('userRole') === 'admin')
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.studyNotesEnabled !== undefined) {
+          setStudyNotesEnabled(data.studyNotesEnabled)
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings in Footer:', err))
+  }, [location])
 
   return (
     <footer className="footer">
@@ -40,7 +57,9 @@ const Footer = () => {
           <div className="footer__links-column">
             <h4 className="footer__links-title">Platform</h4>
             <Link to="/paper1" className="footer__link">Mock Tests</Link>
-            <Link to="/paper1-notes" className="footer__link">Study Material</Link>
+            {(studyNotesEnabled || isAdmin) && (
+              <Link to="/paper1-notes" className="footer__link">Study Material</Link>
+            )}
             <Link to="/paper2" className="footer__link">Subjects</Link>
           </div>
 

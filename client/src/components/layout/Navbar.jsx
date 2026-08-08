@@ -151,22 +151,24 @@ const Navbar = () => {
             </div>
 
             {/* Study Material Dropdown */}
-            <div className="navbar__nav-dropdown">
-              <button className="navbar__nav-item navbar__dropdown-trigger">
-                <span>Study Notes</span>
-                <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              <div className="navbar__dropdown-menu">
-                <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
-                  <div className="navbar__dropdown-content">
-                    <span className="navbar__dropdown-title">Paper I Notes</span>
-                    <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
-                  </div>
-                </Link>
+            {(studyNotesEnabled || isAdmin) && (
+              <div className="navbar__nav-dropdown">
+                <button className="navbar__nav-item navbar__dropdown-trigger">
+                  <span>Study Notes</span>
+                  <svg className="navbar__chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                <div className="navbar__dropdown-menu">
+                  <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
+                    <div className="navbar__dropdown-content">
+                      <span className="navbar__dropdown-title">Paper I Notes</span>
+                      <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
+                    </div>
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Direct Links instead of Dropdown */}
             <Link to="/about" className={`navbar__dropdown-trigger ${isActive('/about') ? 'navbar__dropdown-trigger--active' : ''}`} style={{ textDecoration: 'none' }}>
@@ -326,24 +328,26 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Notes Header */}
-          <div className="navbar__mobile-group">
-            <button 
-              className="navbar__mobile-group-trigger"
-              onClick={() => setMobileNotesOpen(!mobileNotesOpen)}
-            >
-              <span>Study Notes</span>
-              <svg className={`navbar__chevron ${mobileNotesOpen ? 'navbar__chevron--rotated' : ''}`} viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {mobileNotesOpen && (
-              <div className="navbar__mobile-group-menu">
-                <Link to="/paper1-notes" className={`navbar__mobile-group-item ${isActive('/paper1-notes') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                  Paper I Study Notes
-                </Link>
-              </div>
-            )}
-          </div>
+          {(studyNotesEnabled || isAdmin) && (
+            <div className="navbar__mobile-group">
+              <button 
+                className="navbar__mobile-group-trigger"
+                onClick={() => setMobileNotesOpen(!mobileNotesOpen)}
+              >
+                <span>Study Notes</span>
+                <svg className={`navbar__chevron ${mobileNotesOpen ? 'navbar__chevron--rotated' : ''}`} viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {mobileNotesOpen && (
+                <div className="navbar__mobile-group-menu">
+                  <Link to="/paper1-notes" className={`navbar__mobile-group-item ${isActive('/paper1-notes') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
+                    Paper I Study Notes
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Direct Mobile Links instead of Group */}
           <Link to="/about" className={`navbar__mobile-link ${isActive('/about') ? 'navbar__mobile-link--active' : ''}`} onClick={() => setMenuOpen(false)}>
