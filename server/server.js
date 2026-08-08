@@ -2436,16 +2436,19 @@ app.post('/api/payment/order', async (req, res) => {
       return res.status(400).json({ message: 'Invalid amount' });
     }
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || process.env.KEY_SECRET;
+
+    if (!keyId || !keySecret) {
       return res.status(500).json({ 
-        message: 'Razorpay keys are not configured in backend environment.' 
+        message: 'Razorpay keys (KEY_ID / KEY_SECRET) are not configured in backend environment.' 
       });
     }
 
     const Razorpay = require('razorpay');
     const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+      key_id: keyId,
+      key_secret: keySecret,
     });
 
     const options = {
@@ -2459,7 +2462,7 @@ app.post('/api/payment/order', async (req, res) => {
       success: true,
       order_id: order.id,
       amount: order.amount,
-      key_id: process.env.RAZORPAY_KEY_ID
+      key_id: keyId
     });
   } catch (err) {
     console.error('Razorpay order creation error:', err);
