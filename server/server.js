@@ -386,7 +386,8 @@ const cleanJsonString = (str) => {
 async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
     const apiKey = keyRotation.getNextKey('gemini');
-    const geminiModel = overrideModel || process.env.GEMINI_MODEL || 'gemini-flash-latest';
+    const rawModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+    const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
@@ -400,34 +401,21 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
       const errText = await response.text();
       if (response.status === 429 && retryCount < 5) {
         const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
-        const currentModel = geminiModel;
-        let nextModel = overrideModel;
-        
-        // Auto-switch models on 429 to leverage different free quotas
-        if (!overrideModel) {
-          if (currentModel.includes('2.5')) {
-            nextModel = 'gemini-1.5-flash';
-          } else if (currentModel.includes('1.5') || currentModel === 'gemini-flash-latest') {
-            nextModel = 'gemini-2.5-flash';
-          }
-        }
-
         if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting 2s and trying next key (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, nextModel);
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/5)...`);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          let waitTime = 10000 * (retryCount + 1);
+          let waitTime = 20000 * (retryCount + 1);
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
           if (retryMatch) {
             const waitSeconds = parseFloat(retryMatch[1]);
             waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
           } else {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
           }
           await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, nextModel);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         }
       }
       throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
@@ -471,41 +459,6 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
         }
       }
       throw new Error(`Groq API failed with status ${response.status}: ${errText}`);
-    }
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '[]';
-  } else if (provider === 'openrouter') {
-    const apiKey = keyRotation.getNextKey('openrouter');
-    const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://ugcfreepaper.com',
-        'X-Title': 'UGC Free Paper'
-      },
-      body: JSON.stringify({
-        model: openrouterModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
-      })
-    });
-    if (!response.ok) {
-      if (response.status === 429 && retryCount < 3) {
-        const keysCount = keyRotation.openrouterKeys ? keyRotation.openrouterKeys.length : 1;
-        if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] OpenRouter 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/3)...`);
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1);
-        } else {
-          const waitTime = 10000 * (retryCount + 1);
-          console.warn(`[AI Structuring] All OpenRouter keys rate-limited. OpenRouter 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1);
-        }
-      }
-      const errText = await response.text();
-      throw new Error(`OpenRouter API failed with status ${response.status}: ${errText}`);
     }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '[]';
@@ -609,7 +562,6 @@ Here is the raw text for the questions:\n\n`;
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
-  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
   const errors = [];
   for (const provider of providers) {
@@ -794,14 +746,11 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
-      openrouterIndex: 0,
       geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
-      openrouterKeys: (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
         if (provider === 'groq') return this.groqKeys.length > 0;
-        if (provider === 'openrouter') return this.openrouterKeys.length > 0;
         return false;
       },
       getNextKey(provider) {
@@ -810,9 +759,6 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         }
         if (provider === 'groq') {
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
-        }
-        if (provider === 'openrouter') {
-          return this.openrouterKeys[this.openrouterIndex++ % this.openrouterKeys.length];
         }
         return null;
       }
@@ -927,9 +873,8 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       // Safe delay to guarantee free-tier rate limits, dynamically scaling down based on key rotation pool size
       if (i < batches.length - 1) {
         const numKeys = Math.max(keyRotation.geminiKeys.length, 1);
-        // Use a safer base delay of 12 seconds per project quota, scaling by number of keys but clamping to min 3.5 seconds
-        const baseDelay = Math.max(Math.ceil(12000 / numKeys), 3500);
-        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 1000);
+        const baseDelay = Math.ceil(5000 / numKeys);
+        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 500);
         console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch (rotated over ${numKeys} keys)...`);
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
