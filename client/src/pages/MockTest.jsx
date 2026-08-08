@@ -466,7 +466,6 @@ const MockTest = () => {
 
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
   const userName = isLoggedIn ? (localStorage.getItem('userName') || 'Aspirant') : 'Aspirant'
-  const userInitial = userName.charAt(0).toUpperCase()
 
   // Pre-fill question report id based on active question index
   useEffect(() => {
@@ -1664,13 +1663,7 @@ Submitted by User: ${userName}
           </div>
           
           <aside className="mt-sidebar">
-            <div className="mt-sidebar__user">
-              <div className="mt-sidebar__avatar">{userInitial}</div>
-              <div>
-                <div className="mt-sidebar__username">{userName}</div>
-                <div style={{fontSize: '0.8rem', color: '#64748b'}}>Student</div>
-              </div>
-            </div>
+            {/* Blank space for ads */}
           </aside>
         </div>
       )}
@@ -1726,13 +1719,7 @@ Submitted by User: ${userName}
           </div>
 
           <aside className="mt-sidebar">
-            <div className="mt-sidebar__user">
-              <div className="mt-sidebar__avatar">{userInitial}</div>
-              <div>
-                <div className="mt-sidebar__username">{userName}</div>
-                <div style={{fontSize: '0.8rem', color: '#64748b'}}>Student</div>
-              </div>
-            </div>
+            {/* Blank space for ads */}
           </aside>
         </div>
       )}
@@ -1830,13 +1817,7 @@ Submitted by User: ${userName}
           </div>
 
           <aside className="mt-sidebar">
-            <div className="mt-sidebar__user">
-              <div className="mt-sidebar__avatar">{userInitial}</div>
-              <div>
-                <div className="mt-sidebar__username">{userName}</div>
-                <div style={{fontSize: '0.8rem', color: '#64748b'}}>Student</div>
-              </div>
-            </div>
+            {/* Blank space for ads */}
           </aside>
         </div>
       )}
@@ -2297,13 +2278,7 @@ Submitted by User: ${userName}
 
           {/* Sidebar */}
           <aside className={`mt-sidebar ${mobileSidebarOpen ? 'mt-sidebar--open' : ''}`}>
-            <div className="mt-sidebar__user">
-              <div className="mt-sidebar__avatar">{userInitial}</div>
-              <div>
-                <div className="mt-sidebar__username">{userName}</div>
-                <div style={{fontSize: '0.8rem', color: '#64748b'}}>Student</div>
-              </div>
-            </div>
+            {/* Blank space at the top of the sidebar for ads */}
 
             {/* Palette Stats Counts */}
             <div className="palette-stats">
