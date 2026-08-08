@@ -400,21 +400,34 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
       const errText = await response.text();
       if (response.status === 429 && retryCount < 5) {
         const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
+        const currentModel = geminiModel;
+        let nextModel = overrideModel;
+        
+        // Auto-switch models on 429 to leverage different free quotas
+        if (!overrideModel) {
+          if (currentModel.includes('2.5')) {
+            nextModel = 'gemini-1.5-flash';
+          } else if (currentModel.includes('1.5') || currentModel === 'gemini-flash-latest') {
+            nextModel = 'gemini-2.5-flash';
+          }
+        }
+
         if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/5)...`);
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting 2s and trying next key (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, nextModel);
         } else {
-          let waitTime = 20000 * (retryCount + 1);
+          let waitTime = 10000 * (retryCount + 1);
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
           if (retryMatch) {
             const waitSeconds = parseFloat(retryMatch[1]);
             waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
           } else {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5, model: ${nextModel || currentModel})...`);
           }
           await new Promise(resolve => setTimeout(resolve, waitTime));
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, nextModel);
         }
       }
       throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
@@ -595,6 +608,8 @@ Here is the raw text for the questions:\n\n`;
 
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
+  if (keyRotation.hasKeys('groq')) providers.push('groq');
+  if (keyRotation.hasKeys('openrouter')) providers.push('openrouter');
 
   const errors = [];
   for (const provider of providers) {
@@ -912,8 +927,9 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       // Safe delay to guarantee free-tier rate limits, dynamically scaling down based on key rotation pool size
       if (i < batches.length - 1) {
         const numKeys = Math.max(keyRotation.geminiKeys.length, 1);
-        const baseDelay = Math.ceil(5000 / numKeys);
-        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 500);
+        // Use a safer base delay of 12 seconds per project quota, scaling by number of keys but clamping to min 3.5 seconds
+        const baseDelay = Math.max(Math.ceil(12000 / numKeys), 3500);
+        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 1000);
         console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch (rotated over ${numKeys} keys)...`);
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
