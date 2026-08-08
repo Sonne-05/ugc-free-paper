@@ -44,8 +44,14 @@ const getSortValue = (paper) => {
     }
   }
 
-  // Shift check
-  if (subtitle.includes('evening') || subtitle.includes('shift 2') || subtitle.includes('shift ii') || subtitle.includes('shift2')) {
+  // Shift check (supports Shift 2, Shift II, Evening, etc. with or without spaces/dashes)
+  if (
+    subtitle.includes('evening') || 
+    subtitle.includes('shift 2') || 
+    subtitle.includes('shift2') || 
+    subtitle.includes('shift ii') ||
+    subtitle.match(/shift[\s-]*(2|ii)\b/)
+  ) {
     shift = 2
   }
 
