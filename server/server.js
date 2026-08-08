@@ -504,8 +504,8 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
 async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap) {
   let prompt = `You are an expert UGC NET Paper I exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
-1. Extract the clean question text (filtering out headers, footer URLs, page numbers, 'Correct Marks : 2 Wrong Marks : 0', etc.).
-2. Extract exactly 4 options.
+1. Extract the question text EXACTLY as it appears in the raw text. Do NOT rephrase, alter, summarize, add, or delete any sentences or words. Keep spelling, grammar, punctuation, and phrasing identical to the original PDF text. Only filter out system noise (e.g. page numbers, header/footer URLs, marks info like 'Correct Marks : 2 Wrong Marks : 0', or 'Question Id : ...').
+2. Extract exactly 4 options, word-for-word, without any alterations.
 3. Solve each question to determine the correct option index (1, 2, 3, or 4).
 4. Assign the correct 'type' based on these rules:
     - 'mcq': Standard single choice question with 4 options.
@@ -523,6 +523,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - CRITICAL: Do NOT include a breakdown or analysis of why the incorrect options are wrong. Focus purely on explaining the concept and the correct answer.
 7. CRITICAL: Do NOT use double quotes (") anywhere inside your string properties (like "text", "options", "explanation"). If you need quotes, use single quotes ('). Using double quotes inside string fields will break the JSON parser.
 8. CRITICAL: Do NOT output literal newlines inside JSON string values. Use escaped "\n" if you need a newline. All HTML attributes inside explanations MUST use single quotes only (e.g. <p class='highlight'>).
+9. CRITICAL: Under no circumstances should you edit, alter, improve, simplify, or rephrase the question text, statements, lists, or options. They must be exact, word-for-word copies from the raw text provided. Do not add any extra sentences, remarks, or summary comments to them.
 
 Output ONLY a JSON object with a "questions" key containing an array of objects, containing the following properties:
 {
