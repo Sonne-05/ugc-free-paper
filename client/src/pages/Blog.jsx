@@ -30,6 +30,17 @@ const Blog = () => {
       })
   }, [])
 
+  useEffect(() => {
+    if (!loading && window.location.hash === '#subscribe') {
+      setTimeout(() => {
+        const element = document.querySelector('.newsletter-box');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  }, [loading])
+
   const handleSubscribe = async (e) => {
     e.preventDefault()
     if (email) {

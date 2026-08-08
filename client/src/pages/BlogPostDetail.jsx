@@ -104,7 +104,7 @@ const BlogPostDetail = () => {
               <div className="sidebar-promo-box">
                 <h3>Want NET Study Guides?</h3>
                 <p>Subscribe to our free newsletter to get high-yield PDFs, study planners, and study materials directly in your inbox.</p>
-                <Link to="/blog" className="promo-btn">Go to Subscribe</Link>
+                <Link to="/blog#subscribe" className="promo-btn">Go to Subscribe</Link>
               </div>
 
             </div>
