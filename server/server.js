@@ -514,6 +514,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or multiple points labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract these statements into the "statements" array and NOT populate "assertion" or "reason".
    - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
    - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
+   - NOTE ON DI/COMPREHENSION: Although Q1-Q5 are 'di' and Q46-Q50 are 'comprehension', they can STILL structurally contain multiple statements, match columns, or assertion-reasons. For these, keep their 'type' as 'di' or 'comprehension' as forced, but STILL extract their structural elements into 'statements', 'list1'/'list2' (with 'list1Header'/'list2Header'), or 'assertion'/'reason' fields respectively.
 5. Map them to their syllabus unit based on the question index:
    - Q1-Q5: Unit 7: Data Interpretation
    - Q6-Q10: Unit 1: Teaching Aptitude
@@ -538,14 +539,14 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
       "text": "Clean question text...",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "statements": ["Statement A", "Statement B", ...], // for multiple-statement, otherwise empty array
+      "statements": ["Statement A", "Statement B", ...], // populate for multiple-statement type AND also for 'di'/'comprehension' questions that have multiple statements
       "correct": number,
-      "assertion": "Assertion text", // for assertion-reason, otherwise empty string
-      "reason": "Reason text", // for assertion-reason, otherwise empty string
-      "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Concept')
-      "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Description')
-      "list1Header": "Header 1", // for match-column: the specific column header/subtitle (e.g. 'Concept'), NOT 'List I' or 'List - I'
-      "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List - II' or 'List - II'
+      "assertion": "Assertion text", // populate for assertion-reason type AND also for 'di'/'comprehension' questions that have assertion-reason
+      "reason": "Reason text", // populate for assertion-reason type AND also for 'di'/'comprehension' questions that have assertion-reason
+      "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // populate for match-column type AND also for 'di'/'comprehension' questions that match columns
+      "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // populate for match-column type AND also for 'di'/'comprehension' questions that match columns
+      "list1Header": "Header 1", // specific column subtitle (e.g. 'Concept')
+      "list2Header": "Header 2", // specific column subtitle (e.g. 'Description')
       "explanation": "Detailed explanation of the concept and why the correct option is right in clean HTML format (<p>, <strong>, <ul>, <ol>, <li>, etc.)"
     }
   ]

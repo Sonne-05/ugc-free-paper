@@ -1863,7 +1863,26 @@ Submitted by User: ${userName}
                     </div>
                     
                     <div className="question-body">
-                      {renderTextHtml(questionsState[activeQuestionIndex].question)}
+                      <div style={{ whiteSpace: 'pre-line', marginBottom: '15px' }}>
+                        {renderTextHtml(questionsState[activeQuestionIndex].question)}
+                      </div>
+
+                      {questionsState[activeQuestionIndex].statements && questionsState[activeQuestionIndex].statements.length > 0 && (
+                        <div style={{ marginLeft: '10px', marginBottom: '20px' }}>
+                          {questionsState[activeQuestionIndex].statements.map((item, idx) => (
+                            <div key={idx} style={{ marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                              <span style={{ fontWeight: 600 }}>{String.fromCharCode(65 + idx)}.</span>
+                              <span>{renderTextHtml(stripPrefix(item, 'letter'))}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {questionsState[activeQuestionIndex].statements && questionsState[activeQuestionIndex].statements.length > 0 && (
+                        <p style={{ fontWeight: '600', marginBottom: '15px' }}>
+                          {renderTextHtml(questionsState[activeQuestionIndex].subPrompt || 'Choose the correct answer from the options given below:')}
+                        </p>
+                      )}
                     </div>
 
                     <div className="options-list">
@@ -1916,9 +1935,26 @@ Submitted by User: ${userName}
                         </div>
                       </div>
                     )}
-                    <div style={{ whiteSpace: 'pre-line', marginTop: '15px', fontWeight: '500' }}>
+                    <div style={{ whiteSpace: 'pre-line', marginTop: '15px', fontWeight: '500', marginBottom: '15px' }}>
                       {renderTextHtml(questionsState[activeQuestionIndex].question)}
                     </div>
+
+                    {questionsState[activeQuestionIndex].statements && questionsState[activeQuestionIndex].statements.length > 0 && (
+                      <div style={{ marginLeft: '10px', marginBottom: '20px' }}>
+                        {questionsState[activeQuestionIndex].statements.map((item, idx) => (
+                          <div key={idx} style={{ marginBottom: '8px', display: 'flex', gap: '8px' }}>
+                            <span style={{ fontWeight: 600 }}>{String.fromCharCode(65 + idx)}.</span>
+                            <span>{renderTextHtml(stripPrefix(item, 'letter'))}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {questionsState[activeQuestionIndex].statements && questionsState[activeQuestionIndex].statements.length > 0 && (
+                      <p style={{ fontWeight: '600', marginBottom: '15px' }}>
+                        {renderTextHtml(questionsState[activeQuestionIndex].subPrompt || 'Choose the correct answer from the options given below:')}
+                      </p>
+                    )}
                   </div>
 
                   <div className="options-list">

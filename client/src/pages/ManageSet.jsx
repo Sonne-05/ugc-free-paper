@@ -2307,7 +2307,7 @@ const QuestionSlot = ({
             </div>
           )}
 
-          {qType === 'multiple-statement' && (
+          {(qType === 'multiple-statement' || qType === 'comprehension' || qType === 'di' || qStatements.some(s => s && s.trim())) && (
             <div style={{ marginBottom: '12px', border: '1px solid var(--border)', padding: '12px', borderRadius: '6px', background: '#f8fafc' }}>
               <strong style={{ fontSize: '0.8rem', display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Statements (A, B, C, D, E)</strong>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2315,7 +2315,7 @@ const QuestionSlot = ({
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: 600 }}>{String.fromCharCode(65 + idx)}.</span>
                     <textarea
-                      required
+                      required={qType === 'multiple-statement'}
                       rows="1"
                       style={{ flex: 1, padding: '8px', fontSize: '0.85rem' }}
                       placeholder={`Statement ${String.fromCharCode(65 + idx)}`}
@@ -2338,7 +2338,7 @@ const QuestionSlot = ({
                   <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Answer Instruction / Sub-prompt</label>
                   <input 
                     type="text" 
-                    required 
+                    required={qType === 'multiple-statement'}
                     placeholder="e.g. Choose the correct answer from the options given below:"
                     value={qSubPrompt}
                     onChange={(e) => setQSubPrompt(e.target.value)}
