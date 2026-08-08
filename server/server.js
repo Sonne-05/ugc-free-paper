@@ -386,7 +386,7 @@ const cleanJsonString = (str) => {
 async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
     const apiKey = keyRotation.getNextKey('gemini');
-    const rawModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+    const rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
@@ -1195,7 +1195,7 @@ app.post('/api/questions/explain', async (req, res) => {
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
-      const geminiModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+      const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
       
       const geminiResponse = await fetch(geminiUrl, {
