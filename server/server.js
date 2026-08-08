@@ -520,6 +520,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - A step-by-step logical breakdown or calculation.
     - A clear explanation of why the correct option is right.
     - A detailed comparison and analysis of why the other three options are incorrect.
+    - CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly.
 7. CRITICAL: Do NOT use double quotes (") anywhere inside your string properties (like "text", "options", "explanation"). If you need quotes, use single quotes ('). Using double quotes inside string fields will break the JSON parser.
 8. CRITICAL: Do NOT output literal newlines inside JSON string values. Use escaped "\n" if you need a newline. All HTML attributes inside explanations MUST use single quotes only (e.g. <p class='highlight'>).
 
@@ -1230,10 +1231,7 @@ app.post('/api/questions/explain', async (req, res) => {
     }
 
     let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: 1. A clear step-by-step walkthrough of the concept or calculation. 2. A specific section justifying why the correct option is right. 3. A breakdown of why the other options are incorrect.';
-    if (year) {
-      systemPrompt += ` Start the explanation by introducing it as a question from the ${year} UGC NET previous year question set (e.g., "This question is from the ${year} UGC NET previous year question set..." or similar brief contextual intro).`;
-    }
-    systemPrompt += ' Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+    systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
