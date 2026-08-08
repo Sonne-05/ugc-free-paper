@@ -2,6 +2,7 @@
   padding: 120px 24px 80px;
   background: var(--bg);
   min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .info-page__container {
@@ -15,17 +16,17 @@
 }
 
 .info-page__title {
-  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-size: 2.2rem;
   font-weight: 800;
-  color: var(--text);
-  margin-bottom: 8px;
+  color: #1e3a5f;
+  margin-bottom: 10px;
   letter-spacing: -0.02em;
   text-align: center;
 }
 
 .info-page__subtitle {
-  font-size: 1rem;
-  color: var(--text-muted);
+  font-size: 1.1rem;
+  color: #666;
   margin-bottom: 32px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 24px;
@@ -33,27 +34,36 @@
 }
 
 .info-page__content {
-  color: var(--text-secondary);
-  line-height: 1.6;
-  font-size: 0.95rem;
+  color: #333;
+  line-height: 1.7;
+  font-size: 1rem;
 }
 
 .info-page__content h2 {
-  font-size: 1.25rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: var(--text);
-  margin: 32px 0 12px;
+  color: #1e3a5f;
+  margin: 30px 0 15px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #ff6b35;
   letter-spacing: -0.01em;
 }
 
+.info-page__content h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2d5a87;
+  margin: 25px 0 12px;
+}
+
 .info-page__content p {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
+  text-align: justify;
 }
 
 .info-page__content ul {
   list-style: disc;
-  margin-bottom: 24px;
-  padding-left: 20px;
+  margin: 15px 0 15px 30px;
 }
 
 .info-page__content li {
