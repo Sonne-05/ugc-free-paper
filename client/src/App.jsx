@@ -26,7 +26,7 @@ import './App.css'
 
 function App() {
   const location = useLocation()
-  const isFullPage = location.pathname === '/mocktest' || location.pathname.startsWith('/admin/edit-note')
+  const isFullPage = location.pathname === '/signin' || location.pathname === '/signup' || location.pathname === '/mocktest' || location.pathname.startsWith('/admin/edit-note')
 
   useEffect(() => {
     // Dynamic Canonical URL setup
