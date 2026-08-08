@@ -1164,11 +1164,15 @@ app.post('/api/questions/explain', async (req, res) => {
       passage,
       assertion,
       reason,
-      subPrompt
+      subPrompt,
+      year
     } = questionContext;
 
     // Build the user prompt
     let userPrompt = `Generate a detailed explanation for this UGC NET question.\n\n`;
+    if (year) {
+      userPrompt += `Year/Exam Set: ${year} PYQ\n`;
+    }
     userPrompt += `Question Type: ${type || 'mcq'}\n`;
     
     if (passage) {
@@ -1232,7 +1236,11 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a very short, crisp, and step-by-step logical explanation for the question (maximum 3 concise steps/points using <ul> or <ol>). Directly explain the core reasoning and justify why the correct option is right. Avoid wordy introductions, greetings, repetitive paragraphs, or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+    let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a very short, crisp, and step-by-step logical explanation for the question (maximum 3 concise steps/points using <ul> or <ol>). Directly explain the core reasoning and justify why the correct option is right.';
+    if (year) {
+      systemPrompt += ` Start the explanation by introducing it as a question from the ${year} UGC NET previous year question set (e.g., "This question is from the ${year} UGC NET previous year question set..." or similar brief contextual intro).`;
+    }
+    systemPrompt += ' Avoid wordy introductions, greetings, repetitive paragraphs, or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {

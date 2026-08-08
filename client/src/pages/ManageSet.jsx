@@ -569,7 +569,8 @@ const DataInterpretationGroup = ({
   setId,
   API_BASE_URL,
   onSave,
-  onDeleteGroup
+  onDeleteGroup,
+  year
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [diMode, setDiMode] = useState('visual')
@@ -1154,8 +1155,9 @@ const DataInterpretationGroup = ({
                         text: dq.text,
                         options: dq.options,
                         correct: dq.correct,
-                        type: 'comprehension',
-                        passage: localPassage
+                        type: 'di',
+                        passage: localPassage,
+                        year: year
                       }}
                     />
                   </div>
@@ -1190,7 +1192,8 @@ const ReadingComprehensionGroup = ({
   setId,
   API_BASE_URL,
   onSave,
-  onDeleteGroup
+  onDeleteGroup,
+  year
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [localPassage, setLocalPassage] = useState('')
@@ -1633,7 +1636,8 @@ const ReadingComprehensionGroup = ({
                         options: q.options,
                         correct: q.correct,
                         type: 'comprehension',
-                        passage: localPassage
+                        passage: localPassage,
+                        year: year
                       }}
                     />
                   </div>
@@ -1669,7 +1673,8 @@ const QuestionSlot = ({
   setId, 
   onSave, 
   onDelete, 
-  API_BASE_URL 
+  API_BASE_URL,
+  year
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [qType, setQType] = useState('mcq')
@@ -2684,7 +2689,8 @@ const QuestionSlot = ({
                           options: sq.options,
                           correct: sq.correct,
                           type: qType,
-                          passage: qPassage
+                          passage: qPassage,
+                          year: year
                         }}
                       />
                     </div>
@@ -2821,7 +2827,8 @@ const QuestionSlot = ({
                     passage: qPassage,
                     assertion: qAssertion,
                     reason: qReason,
-                    subPrompt: qSubPrompt
+                    subPrompt: qSubPrompt,
+                    year: year
                   }}
                 />
               </div>
@@ -4505,6 +4512,7 @@ const ManageSet = () => {
                               editingSetQuestions={editingSetQuestions}
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
+                              year={newSetYear}
                               onSave={(savedQs, updatedSet) => {
                                 setEditingSetQuestions(prev => {
                                   const next = [...prev]
@@ -4539,6 +4547,7 @@ const ManageSet = () => {
                                   question={question}
                                   setId={editingSetId}
                                   API_BASE_URL={API_BASE_URL}
+                                  year={newSetYear}
                                   onSave={(savedQ, updatedSet) => {
                                     setEditingSetQuestions(prev => {
                                       const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
@@ -4562,68 +4571,70 @@ const ManageSet = () => {
                               )
                             })}
 
-                            <ReadingComprehensionGroup
-                              editingSetQuestions={editingSetQuestions}
-                              setId={editingSetId}
-                              API_BASE_URL={API_BASE_URL}
-                              onSave={(savedQs, updatedSet) => {
-                                setEditingSetQuestions(prev => {
-                                  const next = [...prev]
-                                  savedQs.forEach(savedQ => {
-                                    const idx = next.findIndex(q => (q.id || q._id) === (savedQ.id || savedQ._id) || q.qIndex === savedQ.qIndex)
-                                    if (idx >= 0) {
-                                      next[idx] = savedQ
-                                    } else {
-                                      next.push(savedQ)
-                                    }
-                                  })
-                                  return next
-                                })
-                                if (updatedSet) {
-                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
-                                }
-                              }}
-                              onDeleteGroup={(deletedIds, updatedSet) => {
-                                setEditingSetQuestions(prev => prev.filter(q => !deletedIds.includes(q.id || q._id)))
-                                if (updatedSet) {
-                                  setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
-                                }
-                              }}
-                            />
-                          </>
-                        ) : (
-                          Array.from({ length: newSetCount || 100 }).map((_, idx) => {
-                            const qIndex = idx + 1
-                            const question = editingSetQuestions.find(q => q.qIndex === qIndex)
-                            return (
-                              <QuestionSlot
-                                key={qIndex}
-                                index={qIndex}
-                                question={question}
-                                setId={editingSetId}
-                                API_BASE_URL={API_BASE_URL}
-                                onSave={(savedQ, updatedSet) => {
-                                  setEditingSetQuestions(prev => {
-                                    const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
-                                    if (exists) {
-                                      return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
-                                    } else {
-                                      return [...prev, savedQ]
-                                    }
-                                  })
-                                  if (updatedSet) {
-                                    setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
-                                  }
-                                }}
-                                onDelete={(deletedId, updatedSet) => {
-                                  setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
-                                  if (updatedSet) {
-                                    setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
-                                  }
-                                }}
-                              />
-                            )
-                          })
+                             <ReadingComprehensionGroup
+                               editingSetQuestions={editingSetQuestions}
+                               setId={editingSetId}
+                               API_BASE_URL={API_BASE_URL}
+                               year={newSetYear}
+                               onSave={(savedQs, updatedSet) => {
+                                 setEditingSetQuestions(prev => {
+                                   const next = [...prev]
+                                   savedQs.forEach(savedQ => {
+                                     const idx = next.findIndex(q => (q.id || q._id) === (savedQ.id || savedQ._id) || q.qIndex === savedQ.qIndex)
+                                     if (idx >= 0) {
+                                       next[idx] = savedQ
+                                     } else {
+                                       next.push(savedQ)
+                                     }
+                                   })
+                                   return next
+                                 })
+                                 if (updatedSet) {
+                                   setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                 }
+                               }}
+                               onDeleteGroup={(deletedIds, updatedSet) => {
+                                 setEditingSetQuestions(prev => prev.filter(q => !deletedIds.includes(q.id || q._id)))
+                                 if (updatedSet) {
+                                   setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                 }
+                               }}
+                             />
+                           </>
+                         ) : (
+                           Array.from({ length: newSetCount || 100 }).map((_, idx) => {
+                             const qIndex = idx + 1
+                             const question = editingSetQuestions.find(q => q.qIndex === qIndex)
+                             return (
+                               <QuestionSlot
+                                 key={qIndex}
+                                 index={qIndex}
+                                 question={question}
+                                 setId={editingSetId}
+                                 API_BASE_URL={API_BASE_URL}
+                                 year={newSetYear}
+                                 onSave={(savedQ, updatedSet) => {
+                                   setEditingSetQuestions(prev => {
+                                     const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
+                                     if (exists) {
+                                       return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
+                                     } else {
+                                        return [...prev, savedQ]
+                                     }
+                                   })
+                                   if (updatedSet) {
+                                     setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                   }
+                                 }}
+                                 onDelete={(deletedId, updatedSet) => {
+                                   setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
+                                   if (updatedSet) {
+                                     setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                   }
+                                 }}
+                               />
+                             )
+                           })
                         )}
                       </div>
                     </div>
