@@ -142,6 +142,12 @@ function App() {
     }
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname, location.search]);
+
   return (
     <div className="app">
       {!isFullPage && <Navbar />}
