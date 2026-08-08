@@ -3531,19 +3531,19 @@ const ManageSet = () => {
         throw new Error('Completed stream without receiving success confirmation.')
       }
 
-      alert(`Successfully parsed and loaded ${finalData.count} English questions into your set!`)
-      
       // Update loaded count in state
       setPyqSets(prev => prev.map(s => {
-        if ((s.id || s._id) === editingSetId) {
+        if ((s.id || s._id) === (editingSetId || setId)) {
           return { ...s, questionsLoaded: finalData.count }
         }
         return s
       }))
 
       if (typeof loadQuestionsForSet === 'function') {
-        loadQuestionsForSet(editingSetId)
+        await loadQuestionsForSet(editingSetId || setId)
       }
+
+      alert(`Successfully parsed and loaded ${finalData.count} English questions into your set!`)
     } catch (err) {
       console.error(err)
       setPdfUploadStatus(`Error: ${err.message}`)
