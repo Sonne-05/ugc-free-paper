@@ -59,6 +59,24 @@ const cleanPassageText = (text) => {
   return cleaned.trim()
 }
 
+const cleanStatementTextByIndex = (text, idx) => {
+  if (!text) return ''
+  const indexToLabels = [
+    { letters: ['A', 'a'], num: '1', roman: 'I' },
+    { letters: ['B', 'b'], num: '2', roman: 'II' },
+    { letters: ['C', 'c'], num: '3', roman: 'III' },
+    { letters: ['D', 'd'], num: '4', roman: 'IV' },
+    { letters: ['E', 'e'], num: '5', roman: 'V' }
+  ]
+  const config = indexToLabels[idx]
+  if (!config) return text.trim()
+  const lettersPattern = config.letters.join('')
+  const numPattern = config.num
+  const romanPattern = config.roman
+  const pattern = new RegExp(`^[\\(\\[]?(?:[${lettersPattern}]|${numPattern}|${romanPattern})[\\)\\]\\.\\-\\s]+\\s*`)
+  return text.trim().replace(pattern, '').trim()
+}
+
 const renderTextHtml = (str) => {
   if (!str) return '';
   const formatted = str
@@ -1659,7 +1677,7 @@ const QuestionSlot = ({
       setQList1Header(question.list1Header || '')
       setQList2Header(question.list2Header || '')
       setQPassage(question.passage || '')
-      setQStatements(question.statements || ['', '', '', '', ''])
+      setQStatements(question.statements ? question.statements.map((s, idx) => cleanStatementTextByIndex(s, idx)) : ['', '', '', '', ''])
       setQSubPrompt(question.subPrompt || 'Choose the correct answer from the options given below:')
       setQUnit(question.unit || 'Unit 1: Teaching Aptitude')
     } else {
@@ -1778,7 +1796,7 @@ const QuestionSlot = ({
           const char = stmtMatch[1].toUpperCase()
           const idx = char.charCodeAt(0) - 65
           if (idx >= 0 && idx < 5) {
-            parsedStatements[idx] = stmtMatch[2].trim()
+            parsedStatements[idx] = cleanStatementTextByIndex(stmtMatch[2].trim(), idx)
             continue
           }
         }
@@ -1845,7 +1863,7 @@ const QuestionSlot = ({
         }
         
         for (let i = 0; i < Math.min(statementsFound.length, 5); i++) {
-          parsedStatements[i] = statementsFound[i]
+          parsedStatements[i] = cleanStatementTextByIndex(statementsFound[i], i)
         }
       }
     }

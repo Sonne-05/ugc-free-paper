@@ -923,7 +923,28 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     // Delete existing questions in the set first to prevent duplicates
     await Question.deleteMany({ setId });
     
-    const questionsToInsert = parsedQuestions.map(q => ({ ...q, setId }));
+    const questionsToInsert = parsedQuestions.map(q => {
+      if (q.statements && Array.isArray(q.statements)) {
+        q.statements = q.statements.map((s, idx) => {
+          if (!s) return '';
+          const indexToLabels = [
+            { letters: ['A', 'a'], num: '1', roman: 'I' },
+            { letters: ['B', 'b'], num: '2', roman: 'II' },
+            { letters: ['C', 'c'], num: '3', roman: 'III' },
+            { letters: ['D', 'd'], num: '4', roman: 'IV' },
+            { letters: ['E', 'e'], num: '5', roman: 'V' }
+          ];
+          const config = indexToLabels[idx];
+          if (!config) return s.trim();
+          const lettersPattern = config.letters.join('');
+          const numPattern = config.num;
+          const romanPattern = config.roman;
+          const pattern = new RegExp(`^[\\(\\[]?(?:[${lettersPattern}]|${numPattern}|${romanPattern})[\\)\\]\\.\\-\\s]+\\s*`);
+          return s.trim().replace(pattern, '').trim();
+        });
+      }
+      return { ...q, setId };
+    });
     const inserted = await Question.insertMany(questionsToInsert);
 
     // Update PyqSet loaded count
