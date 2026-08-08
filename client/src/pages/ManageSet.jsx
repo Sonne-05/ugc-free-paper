@@ -2619,6 +2619,9 @@ const ManageSet = () => {
   const [isUploadingPdf, setIsUploadingPdf] = useState(false)
   const [pdfUploadStatus, setPdfUploadStatus] = useState('')
   const [pdfUploadPercent, setPdfUploadPercent] = useState(0)
+  const [pdfQuestionsFile, setPdfQuestionsFile] = useState(null)
+  const [pdfAnswerKeyFile, setPdfAnswerKeyFile] = useState(null)
+  const [uploadKey, setUploadKey] = useState(0)
 
   
   const [editingQuestionId, setEditingQuestionId] = useState(null)
@@ -3402,16 +3405,18 @@ const ManageSet = () => {
     }
   }
 
-  const handlePdfUpload = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+  const handlePdfImportSubmit = async () => {
+    if (!pdfQuestionsFile) return
 
     setIsUploadingPdf(true)
     setPdfUploadPercent(0)
-    setPdfUploadStatus('Uploading and parsing PDF...')
+    setPdfUploadStatus('Uploading and parsing PDFs...')
 
     const formData = new FormData()
-    formData.append('pdf', file)
+    formData.append('pdf', pdfQuestionsFile)
+    if (pdfAnswerKeyFile) {
+      formData.append('answerKey', pdfAnswerKeyFile)
+    }
     formData.append('setId', editingSetId)
 
     let queueInterval = null
@@ -3545,7 +3550,9 @@ const ManageSet = () => {
         queueInterval = null
       }
       setIsUploadingPdf(false)
-      e.target.value = '' // Reset input
+      setPdfQuestionsFile(null)
+      setPdfAnswerKeyFile(null)
+      setUploadKey(prev => prev + 1)
     }
   }
 
@@ -4160,21 +4167,64 @@ const ManageSet = () => {
                         
 
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <input 
-                            type="file" 
-                            accept=".pdf" 
-                            onChange={handlePdfUpload}
-                            disabled={isUploadingPdf}
-                            style={{ 
-                              fontSize: '0.85rem', 
-                              border: '1px solid #cbd5e1', 
-                              padding: '8px', 
-                              borderRadius: '6px', 
-                              backgroundColor: '#fff',
-                              cursor: isUploadingPdf ? 'not-allowed' : 'pointer'
+                        <div key={uploadKey} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#4b5563' }}>Questions PDF (Required)</label>
+                            <input 
+                              type="file" 
+                              accept=".pdf" 
+                              onChange={(e) => setPdfQuestionsFile(e.target.files[0])}
+                              disabled={isUploadingPdf}
+                              style={{ 
+                                fontSize: '0.85rem', 
+                                border: '1px solid #cbd5e1', 
+                                padding: '8px', 
+                                borderRadius: '6px', 
+                                backgroundColor: '#fff',
+                                cursor: isUploadingPdf ? 'not-allowed' : 'pointer'
+                              }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#4b5563' }}>Answer Key PDF (Optional)</label>
+                            <input 
+                              type="file" 
+                              accept=".pdf" 
+                              onChange={(e) => setPdfAnswerKeyFile(e.target.files[0])}
+                              disabled={isUploadingPdf}
+                              style={{ 
+                                fontSize: '0.85rem', 
+                                border: '1px solid #cbd5e1', 
+                                padding: '8px', 
+                                borderRadius: '6px', 
+                                backgroundColor: '#fff',
+                                cursor: isUploadingPdf ? 'not-allowed' : 'pointer'
+                              }}
+                            />
+                          </div>
+
+                          <button 
+                            type="button" 
+                            onClick={handlePdfImportSubmit}
+                            disabled={isUploadingPdf || !pdfQuestionsFile}
+                            style={{
+                              alignSelf: 'flex-start',
+                              backgroundColor: pdfQuestionsFile && !isUploadingPdf ? '#4f46e5' : '#cbd5e1',
+                              color: '#fff',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontSize: '0.85rem',
+                              fontWeight: '600',
+                              cursor: pdfQuestionsFile && !isUploadingPdf ? 'pointer' : 'not-allowed',
+                              transition: 'all 0.2s',
+                              boxShadow: pdfQuestionsFile && !isUploadingPdf ? '0 2px 4px rgba(79, 70, 229, 0.2)' : 'none'
                             }}
-                          />
+                          >
+                            {isUploadingPdf ? 'Importing...' : 'Start Import'}
+                          </button>
+
                           {isUploadingPdf && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: '#4f46e5', fontWeight: '600' }}>

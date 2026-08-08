@@ -501,7 +501,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
 }
 
 // Function to call AI to parse and solve a batch of 5 questions
-async function callAIChatToStructureBatch(batch, compPassages, keyRotation) {
+async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap) {
   let prompt = `You are an expert UGC NET Paper I exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
 1. Extract the clean question text (filtering out headers, footer URLs, page numbers, 'Correct Marks : 2 Wrong Marks : 0', etc.).
@@ -545,7 +545,7 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
       "list1": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Concept')
       "list2": ["Item 1", "Item 2", "Item 3", "Item 4"], // for match-column, must contain ONLY the 4 actual items (do NOT include headers like 'Description')
       "list1Header": "Header 1", // for match-column: the specific column header/subtitle (e.g. 'Concept'), NOT 'List I' or 'List - I'
-      "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List II' or 'List - II'
+      "list2Header": "Header 2", // for match-column: the specific column header/subtitle (e.g. 'Description'), NOT 'List - II' or 'List - II'
       "explanation": "Detailed explanation of the concept and why the correct option is right in clean HTML format (<p>, <strong>, <ul>, <ol>, <li>, etc.)"
     }
   ]
@@ -554,6 +554,18 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
 Do not include any markup other than the JSON block.
 
 Here is the raw text for the questions:\n\n`;
+
+  if (answerKeyMap) {
+    let answersHint = '\nCRITICAL: The official correct option indices for this batch are:';
+    batch.forEach(q => {
+      const correctAns = answerKeyMap[q.qIndex];
+      if (correctAns !== undefined) {
+        answersHint += `\n- Q${q.qIndex}: Option ${correctAns}`;
+      }
+    });
+    answersHint += '\nYou MUST output these exact correct option indices in the "correct" property for each question.';
+    prompt += answersHint + '\n\n';
+  }
 
   let addedDiPassage = false;
   let addedRcPassage = false;
@@ -636,9 +648,75 @@ function notifyJobListeners(jobId, data) {
   });
 }
 
-async function processImportJob(jobId, fileBuffer, setId) {
+// Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
+function parseAnswerKey(text) {
+  const mapping = {};
+  const lines = text.split('\n');
+  
+  for (const line of lines) {
+    const cleanLine = line.trim();
+    if (!cleanLine) continue;
+    
+    // Split by whitespace, comma, tab, semicolon, vertical bar
+    const tokens = cleanLine.split(/[\s,;|]+/);
+    
+    // Check if there are any words with length >= 3 to avoid headers/footers
+    let hasLongWord = false;
+    for (const t of tokens) {
+      if (/[a-zA-Z]{3,}/.test(t)) {
+        hasLongWord = true;
+        break;
+      }
+    }
+    if (hasLongWord) continue;
+    
+    // Clean tokens: remove Q/q from start, dots/colons from end
+    const cleanTokens = tokens.map(t => {
+      return t.replace(/^[Qq]/, '').replace(/[.:]$/, '').trim();
+    }).filter(Boolean);
+    
+    const optionMap = { 'a': 1, 'b': 2, 'c': 3, 'd': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+    
+    for (let i = 0; i < cleanTokens.length - 1; i += 2) {
+      const qStr = cleanTokens[i];
+      const aStr = cleanTokens[i+1];
+      
+      const q = parseInt(qStr, 10);
+      const aLower = aStr.toLowerCase();
+      const a = optionMap[aLower];
+      
+      if (!isNaN(q) && q >= 1 && q <= 100 && a !== undefined) {
+        mapping[q] = a;
+      }
+    }
+  }
+  
+  return mapping;
+}
+
+async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
   try {
     console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId}...`);
+
+    let answerKeyMap = null;
+    if (answerKeyBuffer) {
+      updateJobProgress(jobId, 6, 'Parsing Answer Key PDF...');
+      try {
+        console.log(`[Job ${jobId}] Extracting raw text from Answer Key PDF...`);
+        const keyParser = new PDFParse({ data: answerKeyBuffer });
+        const parsedKeyPdf = await keyParser.getText();
+        const keyText = parsedKeyPdf.text;
+        answerKeyMap = parseAnswerKey(keyText);
+        const mappedCount = Object.keys(answerKeyMap).length;
+        console.log(`[Job ${jobId}] Successfully mapped ${mappedCount} answers from key.`);
+        if (mappedCount === 0) {
+          throw new Error('No valid question/answer mappings could be parsed from the Answer Key PDF.');
+        }
+      } catch (keyErr) {
+        console.error(`[Job ${jobId}] Failed to parse answer key PDF:`, keyErr);
+        throw new Error(`Failed to parse Answer Key PDF: ${keyErr.message}`);
+      }
+    }
 
     // 1. Extract raw text from PDF buffer
     const parser = new PDFParse({ data: fileBuffer });
@@ -737,7 +815,7 @@ async function processImportJob(jobId, fileBuffer, setId) {
       updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation);
+      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap);
       batchJson.forEach(q => {
         if (q.qIndex >= 1 && q.qIndex <= 5) {
           q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
@@ -808,6 +886,11 @@ async function processImportJob(jobId, fileBuffer, setId) {
             const rawHeader = q.list2.shift();
             q.list2Header = rawHeader.trim().replace(/^[\(\[\]\)]+|[\(\[\]\)]+$/g, '');
           }
+        }
+
+        // Override correct answer with official key if provided
+        if (answerKeyMap && answerKeyMap[q.qIndex] !== undefined) {
+          q.correct = answerKeyMap[q.qIndex];
         }
       });
 
@@ -889,10 +972,17 @@ async function processImportJob(jobId, fileBuffer, setId) {
 }
 
 // Route to initiate the background PDF import
-app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => {
+app.post('/api/questions/import-pdf', upload.fields([
+  { name: 'pdf', maxCount: 1 },
+  { name: 'answerKey', maxCount: 1 }
+]), async (req, res) => {
   try {
     const { setId } = req.body;
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    
+    const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
+    const answerKeyFile = req.files && req.files['answerKey'] ? req.files['answerKey'][0] : null;
+
+    if (!pdfFile) return res.status(400).json({ message: 'No questions PDF file uploaded' });
     if (!setId) return res.status(400).json({ message: 'Missing target setId' });
 
     const jobId = Math.random().toString(36).substring(2, 15);
@@ -909,7 +999,7 @@ app.post('/api/questions/import-pdf', upload.single('pdf'), async (req, res) => 
     });
 
     // Fire off background processing asynchronously
-    processImportJob(jobId, req.file.buffer, setId).catch(err => {
+    processImportJob(jobId, pdfFile.buffer, setId, answerKeyFile ? answerKeyFile.buffer : null).catch(err => {
       console.error(`[Job Trigger Async Error]`, err);
     });
 
