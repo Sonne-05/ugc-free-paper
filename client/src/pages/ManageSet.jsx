@@ -1691,7 +1691,7 @@ const QuestionSlot = ({
   const [qPassage, setQPassage] = useState('')
   const [qStatements, setQStatements] = useState(['', '', '', '', ''])
   const [qSubPrompt, setQSubPrompt] = useState('Choose the correct answer from the options given below:')
-  const [qUnit, setQUnit] = useState('Unit 1: Teaching Aptitude')
+  const [qUnit, setQUnit] = useState('')
   const [slotDiQuestions, setSlotDiQuestions] = useState([
     { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
     { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
@@ -1862,7 +1862,7 @@ const QuestionSlot = ({
       setQPassage(question.passage || '')
       setQStatements(question.statements ? question.statements.map((s, idx) => cleanStatementTextByIndex(s, idx)) : ['', '', '', '', ''])
       setQSubPrompt(question.subPrompt || 'Choose the correct answer from the options given below:')
-      setQUnit(question.unit || 'Unit 1: Teaching Aptitude')
+      setQUnit(question.unit || '')
     } else {
       // Clear fields for empty slots
       setQType('mcq')
@@ -1879,7 +1879,7 @@ const QuestionSlot = ({
       setQPassage('')
       setQStatements(['', '', '', '', ''])
       setQSubPrompt('Choose the correct answer from the options given below:')
-      setQUnit('Unit 1: Teaching Aptitude')
+      setQUnit('')
     }
   }, [question, isOpen])
 
@@ -2245,11 +2245,15 @@ const QuestionSlot = ({
           <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
             {isSaved ? `Saved (${qType.replace('-', ' ')})` : 'Empty'}
           </span>
-          {isSaved && qUnit && (
+          {isSaved && qUnit && qUnit.trim() !== '' ? (
             <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
               {qUnit.split(':')[0]}
             </span>
-          )}
+          ) : isSaved ? (
+            <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+              Unassigned
+            </span>
+          ) : null}
           <span className="ms-q-slot-preview" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
             {qText ? (qText.length > 60 ? qText.substring(0, 60) + '...' : qText) : 'Click to add question content'}
           </span>
@@ -2316,6 +2320,7 @@ const QuestionSlot = ({
             <div className="ms-form-field">
               <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>Syllabus Unit (Paper I)</label>
               <select className="ms-input" value={qUnit} onChange={(e) => setQUnit(e.target.value)}>
+                <option value="">Select Unit...</option>
                 {PAPER1_UNITS.map(u => (
                   <option key={u} value={u}>{u}</option>
                 ))}
@@ -2881,7 +2886,7 @@ const ManageSet = () => {
   
   const [editingQuestionId, setEditingQuestionId] = useState(null)
   const [newQType, setNewQType] = useState('mcq')
-  const [newQUnit, setNewQUnit] = useState('Unit 1: Teaching Aptitude')
+  const [newQUnit, setNewQUnit] = useState('')
   const [newQText, setNewQText] = useState('')
   const [newQOpts, setNewQOpts] = useState(['', '', '', ''])
   const [newQCorrect, setNewQCorrect] = useState(1)
@@ -2980,6 +2985,7 @@ const ManageSet = () => {
     setNewQPassage(q.passage || '')
     setNewQStatements(q.statements || ['', '', '', '', ''])
     setNewQSubPrompt(q.subPrompt || 'Choose the correct answer from the options given below:')
+    setNewQUnit(q.unit || '')
     
     if (q.type === 'di' && q.passage) {
       const parsedTable = parseTableText(q.passage)
@@ -3016,6 +3022,7 @@ const ManageSet = () => {
     setNewQPassage('')
     setNewQStatements(['', '', '', '', ''])
     setNewQSubPrompt('Choose the correct answer from the options given below:')
+    setNewQUnit('')
     setDiMode('visual')
     setDiTable([
       ['Year', 'Product A', 'Product B'],
@@ -3863,6 +3870,7 @@ const ManageSet = () => {
     value={newQUnit}
     onChange={(e) => setNewQUnit(e.target.value)}
   >
+    <option value="">Select Unit...</option>
     {PAPER1_UNITS.map(u => (
       <option key={u} value={u}>{u}</option>
     ))}

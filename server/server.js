@@ -515,17 +515,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
    - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
    - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
    - NOTE ON DI/COMPREHENSION: Although Q1-Q5 are 'di' and Q46-Q50 are 'comprehension', they can STILL structurally contain multiple statements, match columns, or assertion-reasons. For these, keep their 'type' as 'di' or 'comprehension' as forced, but STILL extract their structural elements into 'statements', 'list1'/'list2' (with 'list1Header'/'list2Header'), or 'assertion'/'reason' fields respectively.
-5. Map them to their syllabus unit based on the question index:
-   - Q1-Q5: Unit 7: Data Interpretation
-   - Q6-Q10: Unit 1: Teaching Aptitude
-   - Q11-Q15: Unit 2: Research Aptitude
-   - Q16-Q20: Unit 4: Communication
-   - Q21-Q25: Unit 5: Mathematical Reasoning and Aptitude
-   - Q26-Q30: Unit 6: Logical Reasoning
-   - Q31-Q35: Unit 8: Information and Communication Technology (ICT)
-   - Q36-Q40: Unit 9: People, Development and Environment
-   - Q41-Q45: Unit 10: Higher Education System
-   - Q46-Q50: Unit 3: Comprehension
+5. Do NOT map them to any syllabus unit. Set the 'unit' property to an empty string "".
 6. Generate a comprehensive, high-quality, and detailed explanation in clean HTML (about 200-300 words). It MUST include:
     - A step-by-step logical breakdown or calculation.
     - A clear explanation of why the correct option is right.
@@ -538,7 +528,7 @@ Output ONLY a JSON object with a "questions" key containing an array of objects,
   "questions": [
     {
       "qIndex": number,
-      "unit": "Unit Name",
+      "unit": "", // Keep this as an empty string ""
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
       "text": "Clean question text...",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
@@ -956,7 +946,7 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
           return s.trim().replace(pattern, '').trim();
         });
       }
-      return { ...q, setId };
+      return { ...q, unit: "", setId };
     });
     const inserted = await Question.insertMany(questionsToInsert);
 
