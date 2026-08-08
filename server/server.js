@@ -1117,6 +1117,10 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
+// Global indices for API key rotation in individual explanation requests
+let geminiExplainIndex = 0;
+let groqExplainIndex = 0;
+
 // Generate detailed explanation using Google Gemini AI with OpenRouter / Groq fallback
 app.post('/api/questions/explain', async (req, res) => {
   const { questionContext } = req.body;
@@ -1124,8 +1128,11 @@ app.post('/api/questions/explain', async (req, res) => {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim();
-  const groqApiKey = (process.env.GROQ_API_KEY || '').trim();
+  const geminiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+  const groqKeys = (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+
+  const geminiApiKey = geminiKeys.length > 0 ? geminiKeys[geminiExplainIndex++ % geminiKeys.length] : '';
+  const groqApiKey = groqKeys.length > 0 ? groqKeys[groqExplainIndex++ % groqKeys.length] : '';
 
   if (!geminiApiKey && !groqApiKey) {
     return res.status(400).json({ 
@@ -1215,7 +1222,7 @@ app.post('/api/questions/explain', async (req, res) => {
       }
     }
 
-    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a concise, clear, and direct explanation for the question. Explain only the key information and logical reasoning required to solve the question and justify why the correct option is right. Avoid wordy introductions, repetitive paragraphs, or unnecessary background definitions. Keep it short, focused, and structured using clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the code in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+    const systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a very short, crisp, and step-by-step logical explanation for the question (maximum 3 concise steps/points using <ul> or <ol>). Directly explain the core reasoning and justify why the correct option is right. Avoid wordy introductions, greetings, repetitive paragraphs, or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
@@ -1299,25 +1306,44 @@ app.post('/api/questions/explain', async (req, res) => {
 
     // 2. Fallback to Groq Direct if configured (Higher priority since it is free and super fast)
     if (groqApiKey) {
-      const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-      console.log(`[AI Explain] Falling back to Groq Direct using model ${groqModel}...`);
+      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      console.log(`[AI Explain] Falling back to Groq Direct using model ${defaultGroqModel}...`);
 
-      const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqApiKey}`
-        },
-        body: JSON.stringify({
-          model: groqModel,
-          stream: true,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.2
-        })
-      });
+      const callGroqExplain = async (modelName) => {
+        return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqApiKey}`
+          },
+          body: JSON.stringify({
+            model: modelName,
+            stream: true,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2
+          })
+        });
+      };
+
+      let groqResponse = await callGroqExplain(defaultGroqModel);
+
+      if (!groqResponse.ok) {
+        const errText = await groqResponse.text();
+        const isTpdLimit = errText.toLowerCase().includes('tokens per day') || errText.toLowerCase().includes('tpd');
+        if (isTpdLimit && defaultGroqModel !== 'llama-3.1-8b-instant') {
+          console.warn(`[AI Explain] Groq TPD Limit hit on ${defaultGroqModel}. Retrying immediately with fallback model llama-3.1-8b-instant...`);
+          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
+        } else {
+          // Re-embed errText so the fallback handler can parse it
+          groqResponse = {
+            ok: false,
+            text: async () => errText
+          };
+        }
+      }
 
       if (groqResponse.ok) {
         res.setHeader('Content-Type', 'text/event-stream');
