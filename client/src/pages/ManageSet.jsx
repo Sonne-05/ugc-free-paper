@@ -575,6 +575,19 @@ const DataInterpretationGroup = ({
   onToggle
 }) => {
   const [diMode, setDiMode] = useState('visual')
+  const cardRef = useRef(null)
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      const timer = setTimeout(() => {
+        if (cardRef.current) {
+          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
+          const yOffset = -80;
+          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen])
   const [localPassage, setLocalPassage] = useState('')
   const [diTable, setDiTable] = useState([
     ['Year', 'Product A', 'Product B'],
@@ -882,7 +895,7 @@ const DataInterpretationGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex === 1 && q.type === 'di')
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
+    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
       <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0fdf4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#166534' }}>Q1 - Q5</span>
@@ -1199,6 +1212,19 @@ const ReadingComprehensionGroup = ({
   onToggle
 }) => {
   const [localPassage, setLocalPassage] = useState('')
+  const cardRef = useRef(null)
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      const timer = setTimeout(() => {
+        if (cardRef.current) {
+          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
+          const yOffset = -80;
+          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen])
 
   const [questions, setQuestions] = useState([
     { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
@@ -1447,7 +1473,7 @@ const ReadingComprehensionGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex >= 46 && q.qIndex <= 50 && q.type === 'comprehension')
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
+    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
       <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0f9ff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#0369a1' }}>Q46 - Q50</span>
@@ -1681,6 +1707,19 @@ const QuestionSlot = ({
   onToggle
 }) => {
   const [qType, setQType] = useState('mcq')
+  const cardRef = useRef(null)
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      const timer = setTimeout(() => {
+        if (cardRef.current) {
+          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
+          const yOffset = -80;
+          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen])
   const [qText, setQText] = useState('')
   const [qOpts, setQOpts] = useState(['', '', '', ''])
   const [qCorrect, setQCorrect] = useState(1)
@@ -2241,7 +2280,7 @@ const QuestionSlot = ({
   const isSaved = !!question
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
+    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
       <div className="ms-q-slot-header" onClick={onToggle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number">Q{index}</span>
