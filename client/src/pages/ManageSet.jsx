@@ -1674,7 +1674,8 @@ const QuestionSlot = ({
   onSave, 
   onDelete, 
   API_BASE_URL,
-  year
+  year,
+  pyqSets = []
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [qType, setQType] = useState('mcq')
@@ -1704,6 +1705,46 @@ const QuestionSlot = ({
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const qTextareaRef = useRef(null)
+
+  const getSyllabusUnits = () => {
+    const activeSet = pyqSets.find(s => (s.id || s._id) === setId);
+    if (!activeSet || activeSet.paperType === 'Paper I') {
+      return PAPER1_UNITS;
+    }
+    if (activeSet.subject === 'Sociology') {
+      return [
+        'Unit 1: Sociological Theory',
+        'Unit 2: Research Methodology and Methods',
+        'Unit 3: Basic Concepts and Institutions',
+        'Unit 4: Rural and Urban Transformations',
+        'Unit 5: State, Politics and Development',
+        'Unit 6: Economy and Society',
+        'Unit 7: Environment and Society',
+        'Unit 8: Family, Marriage and Kinship',
+        'Unit 9: Science, Technology and Society',
+        'Unit 10: Culture and Symbolic Transformations'
+      ];
+    }
+    return [
+      'Unit 1',
+      'Unit 2',
+      'Unit 3',
+      'Unit 4',
+      'Unit 5',
+      'Unit 6',
+      'Unit 7',
+      'Unit 8',
+      'Unit 9',
+      'Unit 10'
+    ];
+  };
+
+  const getSyllabusLabel = () => {
+    const activeSet = pyqSets.find(s => (s.id || s._id) === setId);
+    if (!activeSet) return 'Syllabus Unit';
+    if (activeSet.paperType === 'Paper I') return 'Syllabus Unit (Paper I)';
+    return `Syllabus Unit (Paper II - ${activeSet.subject || 'Generic'})`;
+  };
 
   const insertQText = (textToInsert) => {
     const textarea = qTextareaRef.current
@@ -4598,6 +4639,7 @@ const ManageSet = () => {
                                   index={qIndex}
                                   question={question}
                                   setId={editingSetId}
+                                  pyqSets={pyqSets}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
                                   onSave={(savedQ, updatedSet) => {
@@ -4663,6 +4705,7 @@ const ManageSet = () => {
                                  index={qIndex}
                                  question={question}
                                  setId={editingSetId}
+                                  pyqSets={pyqSets}
                                  API_BASE_URL={API_BASE_URL}
                                  year={newSetYear}
                                  onSave={(savedQ, updatedSet) => {
