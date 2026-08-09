@@ -203,7 +203,7 @@ const Profile = () => {
   ])
 
   // Student Dashboard states
-  const [studentTab, setStudentTab] = useState('overview') // 'overview', 'syllabus', 'practice', 'analytics'
+  const [studentTab, setStudentTab] = useState('overview') // 'overview', 'syllabus', 'analytics'
   const [studentStats, setStudentStats] = useState({
     prepScore: 0,
     streak: 0,
@@ -1600,13 +1600,6 @@ const Profile = () => {
                 </button>
               )}
               <button 
-                className={`student-tab-btn ${studentTab === 'practice' ? 'student-tab-btn--active' : ''}`}
-                onClick={() => setStudentTab('practice')}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span>Practice PYQs</span>
-              </button>
-              <button 
                 className={`student-tab-btn ${studentTab === 'analytics' ? 'student-tab-btn--active' : ''}`}
                 onClick={() => setStudentTab('analytics')}
               >
@@ -1743,71 +1736,7 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* 3. PRACTICE PYQ SETS */}
-              {studentTab === 'practice' && (
-                <div className="student-pane">
-                  <h2 className="pane-title">Practice year-wise PYQ Sets</h2>
-                  <p className="pane-desc">Test your preparation with official previous year questions in a simulated console environment.</p>
-
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Exam Set Title</th>
-                        <th>Status</th>
-                        <th>Progress / Score</th>
-                        <th style={{ textAlign: 'right' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {studentPYQs.map(set => (
-                        <tr key={set.id}>
-                          <td>
-                            <strong style={{ display: 'block' }}>{set.title}</strong>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              {set.timeLeft ? `Time Remaining: ${set.timeLeft}` : set.timeSpent ? `Time Spent: ${set.timeSpent}` : 'Standard 3-hour exam limit'}
-                            </span>
-                          </td>
-                          <td>
-                            <span 
-                              className="role-badge" 
-                              style={{ 
-                                background: set.status === 'Completed' ? '#dcfce7' : set.status === 'In Progress' ? '#fef9c3' : '#f3f4f6',
-                                color: set.status === 'Completed' ? '#15803d' : set.status === 'In Progress' ? '#854d0e' : '#4b5563'
-                              }}
-                            >
-                              {set.status}
-                            </span>
-                          </td>
-                          <td style={{ fontWeight: 600, color: 'var(--text)' }}>
-                            {set.status === 'Completed' ? `Score: ${set.score}` : set.status === 'In Progress' ? set.progress : 'Not Started'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            {set.status === 'Completed' ? (
-                              <button className="table-btn table-btn--role" onClick={() => alert('Opening test analysis and correct option reviews...')}>Review Answers</button>
-                            ) : (
-                              <Link 
-                                to="/mocktest" 
-                                state={{
-                                  paperId: set.id,
-                                  title: set.title,
-                                  subtitle: 'Official Simulated Mock Test',
-                                  questionsCount: 50
-                                }}
-                                className="table-btn table-btn--upload" 
-                                style={{ display: 'inline-block', textDecoration: 'none', margin: 0 }}
-                              >
-                                {set.status === 'In Progress' ? 'Resume Test' : 'Start Test'}
-                              </Link>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* 4. PERFORMANCE ANALYTICS */}
+              {/* 3. PERFORMANCE ANALYTICS */}
               {studentTab === 'analytics' && (
                 <div className="student-pane">
                   <h2 className="pane-title">Performance Analytics</h2>
