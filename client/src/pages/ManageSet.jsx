@@ -3848,6 +3848,7 @@ const ManageSet = () => {
               clearInterval(queueInterval)
               queueInterval = null
             }
+            progressQueue.length = 0 // Clear queue to prevent infinite loop deadlock
             setPdfUploadPercent(100)
             setPdfUploadStatus(data.message || 'Import successful!')
             finalData = data
@@ -3856,6 +3857,7 @@ const ManageSet = () => {
               clearInterval(queueInterval)
               queueInterval = null
             }
+            progressQueue.length = 0 // Clear queue to prevent infinite loop deadlock
             throw new Error(data.message || 'Error occurred during parsing.')
           }
         }
