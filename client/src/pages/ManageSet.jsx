@@ -4427,7 +4427,11 @@ const ManageSet = () => {
                           ⚡ Automated PDF Question Importer (English Only)
                         </h4>
                         <p style={{ fontSize: '0.82rem', color: '#4b5563', margin: '0 0 12px 0', lineHeight: '1.4' }}>
-                          Upload the original bilingual PDF. We will automatically filter out the Hindi translation, map syllabus units (Q1-5 DI, Q6-10 Teaching, etc.), solve correct answers, and write detailed explanations.
+                          {newSetPaperType === 'Paper II' ? (
+                            "Upload the original bilingual PDF. We will automatically filter out the Hindi translation, solve correct answers, and write detailed explanations."
+                          ) : (
+                            "Upload the original bilingual PDF. We will automatically filter out the Hindi translation, map syllabus units (Q1-5 DI, Q6-10 Teaching, etc.), solve correct answers, and write detailed explanations."
+                          )}
                         </p>
                         
 

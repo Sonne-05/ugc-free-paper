@@ -467,8 +467,8 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
 }
 
 // Function to call AI to parse and solve a batch of 5 questions
-async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap) {
-  let prompt = `You are an expert UGC NET Paper I exam parser.
+async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII) {
+  let prompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
 1. Extract the question text EXACTLY as it appears in the raw text. Do NOT rephrase, alter, summarize, add, or delete any sentences or words. Keep spelling, grammar, punctuation, and phrasing identical to the original PDF text. Only filter out system noise (e.g. page numbers, header/footer URLs, marks info like 'Correct Marks : 2 Wrong Marks : 0', or 'Question Id : ...').
 2. Extract exactly 4 options, word-for-word, without any alterations.
@@ -478,9 +478,9 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - 'assertion-reason': Question containing SPECIFICALLY the words "Assertion (A)" (or "Assertion A") and "Reason (R)" (or "Reason R"). If the question has labels like (A), (B), (C), (D) representing list items (e.g. "(A) Selection threat"), it is NOT an assertion-reason question; it is a multiple-statement question.
     - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. Note that List I and List II often have column subtitles/headers (e.g. 'Concept', 'Description', 'Method'). You MUST set "list1Header" and "list2Header" to these specific subtitles, NOT 'List I' or 'List II'. Do NOT include these subtitles in the "list1" or "list2" arrays; those arrays must contain only the 4 actual items.
     - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or multiple points labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract these statements into the "statements" array and NOT populate "assertion" or "reason".
-   - 'di': Forced for Q1-Q5 (Data Interpretation based on a table).
-   - 'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).
-   - NOTE ON DI/COMPREHENSION: Although Q1-Q5 are 'di' and Q46-Q50 are 'comprehension', they can STILL structurally contain multiple statements, match columns, or assertion-reasons. For these, keep their 'type' as 'di' or 'comprehension' as forced, but STILL extract their structural elements into 'statements', 'list1'/'list2' (with 'list1Header'/'list2Header'), or 'assertion'/'reason' fields respectively.
+    - ${isPaperII ? `'comprehension': Forced for Q91-Q100 (Reading Comprehension based on a passage).` : `'di': Forced for Q1-Q5 (Data Interpretation based on a table).`}
+    - ${isPaperII ? `NOTE: Paper II does not contain 'di' questions.` : `'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).`}
+    - NOTE ON DI/COMPREHENSION: Although ${isPaperII ? 'Q91-Q100' : 'Q1-Q5 and Q46-Q50'} are forced as comprehension/di, they can STILL structurally contain multiple statements, match columns, or assertion-reasons. For these, keep their 'type' as ${isPaperII ? "'comprehension'" : "'di' or 'comprehension'"} as forced, but STILL extract their structural elements into 'statements', 'list1'/'list2' (with 'list1Header'/'list2Header'), or 'assertion'/'reason' fields respectively.
 5. Do NOT map them to any syllabus unit. Set the 'unit' property to an empty string "".
 6. Generate a comprehensive, high-quality, and detailed explanation in clean HTML (about 150-200 words). It MUST include:
     - A step-by-step logical breakdown or calculation.
@@ -520,7 +520,11 @@ Here is the raw text for the questions:\n\n`;
   if (answerKeyMap) {
     let answersHint = '\nCRITICAL: The official correct option indices for this batch are:';
     batch.forEach(q => {
-      const correctAns = answerKeyMap[q.qIndex];
+      const lookupIndex = q.pdfQNum !== undefined ? q.pdfQNum : q.qIndex;
+      let correctAns = answerKeyMap[lookupIndex];
+      if (correctAns === undefined && q.pdfQNum !== undefined) {
+        correctAns = answerKeyMap[q.qIndex];
+      }
       if (correctAns !== undefined) {
         answersHint += `\n- Q${q.qIndex}: Option ${correctAns}`;
       }
@@ -530,21 +534,33 @@ Here is the raw text for the questions:\n\n`;
   }
 
   let addedDiPassage = false;
-  let addedRcPassage = false;
+  let addedRcPassage1 = false;
+  let addedRcPassage2 = false;
   const compKeys = Object.keys(compPassages || {});
-  const diId = compKeys[0];
-  const rcId = compKeys[1];
+  const passage1Id = compKeys[0];
+  const passage2Id = compKeys[1];
 
   batch.forEach(q => {
     prompt += `--- QUESTION NUMBER ${q.qIndex} (Raw ID: ${q.qId}) ---\n`;
     prompt += q.text + "\n\n";
-    if (q.qIndex >= 1 && q.qIndex <= 5 && !addedDiPassage && diId && compPassages[diId]) {
-      prompt += `[DI Passage Context:\n${compPassages[diId]}]\n\n`;
-      addedDiPassage = true;
-    }
-    if (q.qIndex >= 46 && q.qIndex <= 50 && !addedRcPassage && rcId && compPassages[rcId]) {
-      prompt += `[RC Passage Context:\n${compPassages[rcId]}]\n\n`;
-      addedRcPassage = true;
+    if (!isPaperII) {
+      if (q.qIndex >= 1 && q.qIndex <= 5 && !addedDiPassage && passage1Id && compPassages[passage1Id]) {
+        prompt += `[DI Passage Context:\n${compPassages[passage1Id]}]\n\n`;
+        addedDiPassage = true;
+      }
+      if (q.qIndex >= 46 && q.qIndex <= 50 && !addedRcPassage1 && passage2Id && compPassages[passage2Id]) {
+        prompt += `[RC Passage Context:\n${compPassages[passage2Id]}]\n\n`;
+        addedRcPassage1 = true;
+      }
+    } else {
+      if (q.qIndex >= 91 && q.qIndex <= 95 && !addedRcPassage1 && passage1Id && compPassages[passage1Id]) {
+        prompt += `[RC Passage Context:\n${compPassages[passage1Id]}]\n\n`;
+        addedRcPassage1 = true;
+      }
+      if (q.qIndex >= 96 && q.qIndex <= 100 && !addedRcPassage2 && passage2Id && compPassages[passage2Id]) {
+        prompt += `[RC Passage Context:\n${compPassages[passage2Id]}]\n\n`;
+        addedRcPassage2 = true;
+      }
     }
   });
 
@@ -655,7 +671,7 @@ function parseAnswerKey(text) {
       const aLower = aStr.toLowerCase();
       const a = optionMap[aLower];
       
-      if (!isNaN(q) && q >= 1 && q <= 100 && a !== undefined) {
+      if (!isNaN(q) && q >= 1 && q <= 200 && a !== undefined) {
         mapping[q] = a;
       }
     }
@@ -695,14 +711,48 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     console.log(`[Job ${jobId}] Extracted raw text. Length: ${text.length} characters.`);
     updateJobProgress(jobId, 10, 'PDF text parsed, structuring questions...');
 
+    // 1. Get target PyqSet details to check if it's Paper II
+    const targetSet = await PyqSet.findById(setId);
+    if (!targetSet) {
+      throw new Error(`Target set not found: ${setId}`);
+    }
+    const isPaperII = targetSet.paperType === 'Paper II';
+
     // 2. Identify and parse the question blocks
     const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
     let match;
     const questionsMap = new Map();
     const matchesList = [];
 
+    // First try official NTA format A: Question Number : X Question Id : Y
     while ((match = qHeaderRegex.exec(text)) !== null) {
       matchesList.push({ index: match.index, qNum: parseInt(match[1]), qId: match[2] });
+    }
+
+    // If Format A found 0 matches, try Format B (Testbook/Response sheet format): Q.X followed by Question ID
+    if (matchesList.length === 0) {
+      console.log(`[Job ${jobId}] No Format A headers found. Trying Format B (Q.X)...`);
+      const qMatches = [];
+      const qPattern = /^Q\s*\.\s*(\d+)\b/gm;
+      while ((match = qPattern.exec(text)) !== null) {
+        qMatches.push({ index: match.index, qNum: parseInt(match[1]) });
+      }
+
+      // For each match, find its Question ID from the text block between this match and the next match
+      for (let i = 0; i < qMatches.length; i++) {
+        const currentMatch = qMatches[i];
+        const nextIndex = (i + 1 < qMatches.length) ? qMatches[i + 1].index : text.length;
+        const block = text.substring(currentMatch.index, nextIndex);
+        
+        const idMatch = /Question\s*ID\s*:\s*(\d+)/i.exec(block);
+        if (idMatch) {
+          matchesList.push({ 
+            index: currentMatch.index, 
+            qNum: currentMatch.qNum, 
+            qId: idMatch[1] 
+          });
+        }
+      }
     }
     console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
 
@@ -718,16 +768,42 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     }
     console.log(`[Job ${jobId}] Found comprehension blocks:`, Object.keys(compPassages));
 
+    // Determine the question numbers to look for in the PDF
+    let startQNum = 1;
+    let endQNum = 50;
+    let qNumOffset = 0; // dbIndex = current.qNum - qNumOffset
+    let usePdfRangeForAnswers = false;
+
+    if (isPaperII) {
+      // Check if PDF has question numbers in range 51-150
+      const hasPaperIIRange = matchesList.some(m => m.qNum >= 51 && m.qNum <= 150);
+      if (hasPaperIIRange) {
+        startQNum = 51;
+        endQNum = 150;
+        qNumOffset = 50;
+        usePdfRangeForAnswers = true;
+      } else {
+        startQNum = 1;
+        endQNum = 100;
+        qNumOffset = 0;
+      }
+    }
+
     // Group blocks by Question Id (taking first occurrence = English version)
     for (let i = 0; i < matchesList.length; i++) {
       const current = matchesList[i];
-      if (current.qNum > 50) continue; // Filter out Paper II questions
+      if (current.qNum < startQNum || current.qNum > endQNum) continue;
       
       const nextIndex = (i + 1 < matchesList.length) ? matchesList[i + 1].index : text.length;
       const questionBlockText = text.substring(current.index, nextIndex);
       
       if (!questionsMap.has(current.qId)) {
-        questionsMap.set(current.qId, { qIndex: current.qNum, qId: current.qId, text: questionBlockText });
+        questionsMap.set(current.qId, { 
+          qIndex: current.qNum - qNumOffset, 
+          pdfQNum: current.qNum,
+          qId: current.qId, 
+          text: questionBlockText 
+        });
       }
     }
 
@@ -735,12 +811,12 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique English questions.`);
 
     if (englishQuestions.length === 0) {
-      throw new Error('No questions matching Q1-Q50 found in the uploaded PDF.');
+      throw new Error(`No questions matching Q${startQNum}-Q${endQNum} found in the uploaded PDF.`);
     }
 
     const compKeys = Object.keys(compPassages);
-    const diPassageIdForMapping = compKeys[0];
-    const rcPassageIdForMapping = compKeys[1];
+    const passageId1 = compKeys[0];
+    const passageId2 = compKeys[1];
 
     // 3. Process concurrently in batches of 5 using API key rotation and parallel async pool
     const keyRotation = {
@@ -779,15 +855,35 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap);
+      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII);
       batchJson.forEach(q => {
-        if (q.qIndex >= 1 && q.qIndex <= 5) {
-          q.passage = diPassageIdForMapping ? compPassages[diPassageIdForMapping] : "";
-          q.type = 'di';
-        } else if (q.qIndex >= 46 && q.qIndex <= 50) {
-          q.passage = rcPassageIdForMapping ? compPassages[rcPassageIdForMapping] : "";
-          q.type = 'comprehension';
+        const matchedInputQ = batch.find(bq => bq.qIndex === q.qIndex);
+        const pdfQNum = matchedInputQ ? matchedInputQ.pdfQNum : (isPaperII ? q.qIndex + 50 : q.qIndex);
+
+        let isComprehensionOrDi = false;
+        if (!isPaperII) {
+          if (q.qIndex >= 1 && q.qIndex <= 5) {
+            q.passage = passageId1 ? compPassages[passageId1] : "";
+            q.type = 'di';
+            isComprehensionOrDi = true;
+          } else if (q.qIndex >= 46 && q.qIndex <= 50) {
+            q.passage = passageId2 ? compPassages[passageId2] : "";
+            q.type = 'comprehension';
+            isComprehensionOrDi = true;
+          }
         } else {
+          if (q.qIndex >= 91 && q.qIndex <= 95) {
+            q.passage = passageId1 ? compPassages[passageId1] : "";
+            q.type = 'comprehension';
+            isComprehensionOrDi = true;
+          } else if (q.qIndex >= 96 && q.qIndex <= 100) {
+            q.passage = passageId2 ? compPassages[passageId2] : "";
+            q.type = 'comprehension';
+            isComprehensionOrDi = true;
+          }
+        }
+
+        if (!isComprehensionOrDi) {
           // Heuristic validation layer to ensure accurate type selection
           const textLower = (q.text || '').toLowerCase();
           
@@ -853,8 +949,16 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         }
 
         // Override correct answer with official key if provided
-        if (answerKeyMap && answerKeyMap[q.qIndex] !== undefined) {
-          q.correct = answerKeyMap[q.qIndex];
+        if (answerKeyMap) {
+          let correctAns = undefined;
+          if (pdfQNum !== undefined && answerKeyMap[pdfQNum] !== undefined) {
+            correctAns = answerKeyMap[pdfQNum];
+          } else if (answerKeyMap[q.qIndex] !== undefined) {
+            correctAns = answerKeyMap[q.qIndex];
+          }
+          if (correctAns !== undefined) {
+            q.correct = correctAns;
+          }
         }
       });
 
