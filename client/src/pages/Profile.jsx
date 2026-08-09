@@ -158,9 +158,18 @@ const Profile = () => {
   const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
   const [selectedFilterYear, setSelectedFilterYear] = useState('All')
   const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
+  const [selectedFilterSubject, setSelectedFilterSubject] = useState('All')
   const uniqueSetYears = useMemo(() => {
     const years = pyqSets.map(s => s.year).filter(Boolean).map(y => String(y))
     return [...new Set(years)].sort((a, b) => b - a)
+  }, [pyqSets])
+
+  const uniqueSetSubjects = useMemo(() => {
+    const subjects = pyqSets
+      .filter(s => s.paperType === 'Paper II')
+      .map(s => s.subject)
+      .filter(Boolean)
+    return [...new Set(subjects)].sort()
   }, [pyqSets])
 
   useEffect(() => {
@@ -2275,7 +2284,10 @@ const Profile = () => {
                         <select 
                           className="pane-select" 
                           value={selectedFilterPaperType} 
-                          onChange={(e) => setSelectedFilterPaperType(e.target.value)}
+                          onChange={(e) => {
+                            setSelectedFilterPaperType(e.target.value);
+                            setSelectedFilterSubject('All'); // Reset subject filter when paper type changes
+                          }}
                           style={{ width: '150px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
                         >
                           <option value="All">All Papers</option>
@@ -2283,6 +2295,22 @@ const Profile = () => {
                           <option value="Paper II">Paper II (Core)</option>
                         </select>
                       </div>
+                      {(selectedFilterPaperType === 'All' || selectedFilterPaperType === 'Paper II') && uniqueSetSubjects.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Subject:</label>
+                          <select 
+                            className="pane-select" 
+                            value={selectedFilterSubject} 
+                            onChange={(e) => setSelectedFilterSubject(e.target.value)}
+                            style={{ width: '160px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
+                          >
+                            <option value="All">All Subjects</option>
+                            {uniqueSetSubjects.map(subject => (
+                              <option key={subject} value={subject}>{subject}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Year:</label>
                         <select 
@@ -2390,9 +2418,9 @@ const Profile = () => {
                     <div>
                       <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
-                        Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
+                        Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)).length})
                       </h4>
-                      {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
+                      {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)).length === 0 ? (
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
                           No active Paper II sets.
                         </p>
@@ -2409,7 +2437,11 @@ const Profile = () => {
                           </thead>
                           <tbody>
                             {(() => {
-                              const paper2Sets = pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
+                              const paper2Sets = pyqSets.filter(s => 
+                                s.paperType === 'Paper II' && 
+                                (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && 
+                                (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)
+                              )
                               const grouped = getGroupedSetsByYear(paper2Sets)
                               return Object.keys(grouped)
                                 .sort((a, b) => b - a)
