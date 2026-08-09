@@ -1014,38 +1014,20 @@
 
 /* Premium Ad slots styling */
 .ad-box {
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  color: var(--text-muted);
-  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
   overflow: hidden;
 }
 
-.ad-box:hover {
-  border-color: rgba(79, 70, 229, 0.4);
-  background: rgba(79, 70, 229, 0.01);
-}
-
 .ad-box--skyscraper {
-  height: 600px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24px 16px;
-  text-align: center;
+  min-height: 600px;
+  width: 100%;
 }
 
 .ad-box--horizontal {
   min-height: 90px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 16px 24px;
-  margin-bottom: 32px;
-  gap: 16px;
-  border-radius: var(--radius);
+  width: 100%;
+  margin-bottom: 24px;
 }
 
 
