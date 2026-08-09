@@ -159,6 +159,13 @@
     overflow: hidden;
     height: 100vh;
   }
+
+  /* Disable main window/body scroll when admin panel is active to prevent double scrollbars */
+  html:has(.profile-page--admin),
+  body:has(.profile-page--admin) {
+    overflow: hidden !important;
+    height: 100vh !important;
+  }
 }
 
 .profile-page__container--admin {

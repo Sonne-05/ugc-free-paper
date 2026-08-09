@@ -178,7 +178,7 @@ function App() {
           <Route path="/mocktest" element={<MockTest />} />
         </Routes>
       </main>
-      {!isFullPage && <Footer />}
+      {!isFullPage && !location.pathname.startsWith('/admin') && <Footer />}
     </div>
   )
 }
