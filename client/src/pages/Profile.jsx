@@ -1650,15 +1650,12 @@ const Profile = () => {
 
                   {/* Horizontal Leaderboard Ad slot */}
                   <div className="ad-box ad-box--horizontal">
-                    <span className="ad-badge" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)', paddingRight: '4px' }}>Advertisement</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', textAlign: 'left', flex: 1 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '32px', height: '32px', color: 'var(--text-muted)', flexShrink: 0 }}><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line><line x1="12" y1="17" x2="12" y2="20"></line></svg>
-                      <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Sponsored Banner Unit (728 x 90)</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Earn revenue from student mock test page traffic.</div>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Leaderboard Slot</span>
+                    <ins className="adsbygoogle"
+                         style={{ display: 'block' }}
+                         data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                         data-ad-slot="XXXXXXXXXX"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
                   </div>
 
                   {/* Recent Activities list */}
@@ -1832,15 +1829,12 @@ const Profile = () => {
           {/* Ad Sidebar */}
           <aside className="student-ad-sidebar" style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '76px' }}>
             <div className="ad-box ad-box--skyscraper">
-              <span className="ad-badge" style={{ marginBottom: 'auto' }}>Advertisement</span>
-              
-              <div style={{ margin: 'auto' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '40px', height: '40px', color: 'var(--text-muted)', marginBottom: '12px' }}><rect x="2" y="2" width="20" height="20" rx="2.5"></rect><line x1="22" y1="10" x2="2" y2="10"></line></svg>
-                <div style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px', fontSize: '0.85rem' }}>Responsive Ad Unit</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Displaying high-revenue media ads</div>
-              </div>
-              
-              <span style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 'auto' }}>AdSense / Media.net</span>
+              <ins className="adsbygoogle"
+                   style={{ display: 'block', height: '600px' }}
+                   data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                   data-ad-slot="XXXXXXXXXX"
+                   data-ad-format="auto"
+                   data-full-width-responsive="true"></ins>
             </div>
           </aside>
 
