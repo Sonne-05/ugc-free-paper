@@ -2280,7 +2280,7 @@ const Profile = () => {
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Paper:</label>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Paper:</label>
                         <select 
                           className="pane-select" 
                           value={selectedFilterPaperType} 
@@ -2297,7 +2297,7 @@ const Profile = () => {
                       </div>
                       {(selectedFilterPaperType === 'All' || selectedFilterPaperType === 'Paper II') && uniqueSetSubjects.length > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Subject:</label>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Subject:</label>
                           <select 
                             className="pane-select" 
                             value={selectedFilterSubject} 
@@ -2312,7 +2312,7 @@ const Profile = () => {
                         </div>
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter by Year:</label>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Year:</label>
                         <select 
                           className="pane-select" 
                           value={selectedFilterYear} 
