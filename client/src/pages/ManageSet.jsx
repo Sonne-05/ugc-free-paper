@@ -570,24 +570,10 @@ const DataInterpretationGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year,
-  isOpen,
-  onToggle
+  year
 }) => {
+  const [isOpen, setIsOpen] = useState(false)
   const [diMode, setDiMode] = useState('visual')
-  const cardRef = useRef(null)
-  useEffect(() => {
-    if (isOpen && cardRef.current) {
-      const timer = setTimeout(() => {
-        if (cardRef.current) {
-          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
-          const yOffset = -80;
-          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen])
   const [localPassage, setLocalPassage] = useState('')
   const [diTable, setDiTable] = useState([
     ['Year', 'Product A', 'Product B'],
@@ -895,8 +881,8 @@ const DataInterpretationGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex === 1 && q.type === 'di')
 
   return (
-    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
-      <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0fdf4' }}>
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0fdf4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#166534' }}>Q1 - Q5</span>
           <span className="ms-q-slot-badge" style={{ background: isSaved ? '#dcfce7' : '#f1f5f9', color: isSaved ? '#166534' : '#64748b' }}>
@@ -1207,24 +1193,10 @@ const ReadingComprehensionGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year,
-  isOpen,
-  onToggle
+  year
 }) => {
+  const [isOpen, setIsOpen] = useState(false)
   const [localPassage, setLocalPassage] = useState('')
-  const cardRef = useRef(null)
-  useEffect(() => {
-    if (isOpen && cardRef.current) {
-      const timer = setTimeout(() => {
-        if (cardRef.current) {
-          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
-          const yOffset = -80;
-          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen])
 
   const [questions, setQuestions] = useState([
     { text: '', options: ['', '', '', ''], correct: 1, explanation: '', statements: ['', '', '', '', ''], subPrompt: '' },
@@ -1473,8 +1445,8 @@ const ReadingComprehensionGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex >= 46 && q.qIndex <= 50 && q.type === 'comprehension')
 
   return (
-    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
-      <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0f9ff' }}>
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0f9ff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#0369a1' }}>Q46 - Q50</span>
           <span className="ms-q-slot-badge" style={{ background: isSaved ? '#e0f2fe' : '#f1f5f9', color: isSaved ? '#0369a1' : '#64748b' }}>
@@ -1702,24 +1674,10 @@ const QuestionSlot = ({
   onSave, 
   onDelete, 
   API_BASE_URL,
-  year,
-  isOpen,
-  onToggle
+  year
 }) => {
+  const [isOpen, setIsOpen] = useState(false)
   const [qType, setQType] = useState('mcq')
-  const cardRef = useRef(null)
-  useEffect(() => {
-    if (isOpen && cardRef.current) {
-      const timer = setTimeout(() => {
-        if (cardRef.current) {
-          const yCoordinate = cardRef.current.getBoundingClientRect().top + window.pageYOffset;
-          const yOffset = -80;
-          window.scrollTo({ top: yCoordinate + yOffset, behavior: 'smooth' });
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen])
   const [qText, setQText] = useState('')
   const [qOpts, setQOpts] = useState(['', '', '', ''])
   const [qCorrect, setQCorrect] = useState(1)
@@ -2280,8 +2238,8 @@ const QuestionSlot = ({
   const isSaved = !!question
 
   return (
-    <div ref={cardRef} className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
-      <div className="ms-q-slot-header" onClick={onToggle}>
+    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
+      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number">Q{index}</span>
           <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
@@ -2914,7 +2872,6 @@ const ManageSet = () => {
   
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
-  const [expandedSlot, setExpandedSlot] = useState(null)
   
   const [selectedSetId, setSelectedSetId] = useState('')
   const [importMode, setImportMode] = useState('single')
@@ -2991,7 +2948,6 @@ const ManageSet = () => {
           setNewSetIsPublished(false)
           setEditingSetQuestions([])
         }
-        setExpandedSlot(null)
       })
       .catch(err => console.error(err))
   }, [setId, navigate])
@@ -4565,8 +4521,6 @@ const ManageSet = () => {
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
                               year={newSetYear}
-                              isOpen={expandedSlot === 'di'}
-                              onToggle={() => setExpandedSlot(expandedSlot === 'di' ? null : 'di')}
                               onSave={(savedQs, updatedSet) => {
                                 setEditingSetQuestions(prev => {
                                   const next = [...prev]
@@ -4602,8 +4556,6 @@ const ManageSet = () => {
                                   setId={editingSetId}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
-                                  isOpen={expandedSlot === qIndex}
-                                  onToggle={() => setExpandedSlot(expandedSlot === qIndex ? null : qIndex)}
                                   onSave={(savedQ, updatedSet) => {
                                     setEditingSetQuestions(prev => {
                                       const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
@@ -4632,8 +4584,6 @@ const ManageSet = () => {
                                setId={editingSetId}
                                API_BASE_URL={API_BASE_URL}
                                year={newSetYear}
-                               isOpen={expandedSlot === 'comprehension'}
-                               onToggle={() => setExpandedSlot(expandedSlot === 'comprehension' ? null : 'comprehension')}
                                onSave={(savedQs, updatedSet) => {
                                  setEditingSetQuestions(prev => {
                                    const next = [...prev]
@@ -4671,8 +4621,6 @@ const ManageSet = () => {
                                  setId={editingSetId}
                                  API_BASE_URL={API_BASE_URL}
                                  year={newSetYear}
-                                 isOpen={expandedSlot === qIndex}
-                                 onToggle={() => setExpandedSlot(expandedSlot === qIndex ? null : qIndex)}
                                  onSave={(savedQ, updatedSet) => {
                                    setEditingSetQuestions(prev => {
                                      const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
