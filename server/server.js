@@ -462,28 +462,6 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '[]';
-  } else if (provider === 'nvidia') {
-    const apiKey = keyRotation.getNextKey('nvidia');
-    const nvidiaModel = overrideModel || process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct';
-    const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: nvidiaModel,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 4096
-      })
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`NVIDIA API failed with status ${response.status}: ${errText}`);
-    }
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || '[]';
   }
   throw new Error('Unsupported AI provider');
 }
@@ -600,7 +578,6 @@ Here is the raw text for the questions:\n\n`;
   const providers = [];
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
-  if (keyRotation.hasKeys('nvidia')) providers.push('nvidia');
 
   const errors = [];
   for (const provider of providers) {
@@ -845,14 +822,11 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
-      nvidiaIndex: 0,
       geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
-      nvidiaKeys: (process.env.NVIDIA_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
         if (provider === 'groq') return this.groqKeys.length > 0;
-        if (provider === 'nvidia') return this.nvidiaKeys.length > 0;
         return false;
       },
       getNextKey(provider) {
@@ -861,9 +835,6 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         }
         if (provider === 'groq') {
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
-        }
-        if (provider === 'nvidia') {
-          return this.nvidiaKeys[this.nvidiaIndex++ % this.nvidiaKeys.length];
         }
         return null;
       }
