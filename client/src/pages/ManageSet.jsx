@@ -77,6 +77,99 @@ const cleanStatementTextByIndex = (text, idx) => {
   return text.trim().replace(pattern, '').trim()
 }
 
+const parseAssertionReasonFromText = (fullText) => {
+  if (!fullText || typeof fullText !== 'string') return null;
+  
+  let cleaned = fullText.trim();
+  if (!cleaned) return null;
+  
+  // Regexes to locate Assertion (A) and Reason (R) and subprompt
+  const assertRegex = /\b(?:Assertion\s*\(A\)|Assertion\s*A|Assertion|Assert|A)\b\s*[\:\-\.\，\s]/i;
+  const reasonRegex = /\b(?:Reasons?\s*\(R\)|Reasons?\s*R|Reasons?)\b\s*[\:\-\.\，\s]/i;
+  const subPromptRegex = /\b(?:In\s+the\s+light\s+of|choose\s+the\s+correct|choose\s+the\s+most)\b/i;
+  
+  // Let's split by lines first
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  let introLines = [];
+  let assertionText = '';
+  let reasonText = '';
+  let subPromptText = '';
+  
+  let currentSection = 'intro';
+  
+  for (let line of lines) {
+    if (line.match(/^(?:Assertion\s*\(A\)|Assertion\s*A|Assertion|Assert|A)\s*[\:\-\.\，\s]/i)) {
+      assertionText = line.replace(/^(?:Assertion\s*\(A\)|Assertion\s*A|Assertion|Assert|A)\s*[\:\-\.\，\s]*/i, '').trim();
+      currentSection = 'assertion';
+      continue;
+    }
+    
+    if (line.match(/^(?:Reasons?\s*\(R\)|Reasons?\s*R|Reasons?)\s*[\:\-\.\，\s]/i)) {
+      reasonText = line.replace(/^(?:Reasons?\s*\(R\)|Reasons?\s*R|Reasons?)\s*[\:\-\.\，\s]*/i, '').trim();
+      currentSection = 'reason';
+      continue;
+    }
+    
+    if (line.match(/^(?:In\s+the\s+light\s+of|choose\s+the\s+correct|choose\s+the\s+most)/i)) {
+      subPromptText = line.trim();
+      currentSection = 'subprompt';
+      continue;
+    }
+    
+    // Otherwise, append to current section
+    if (currentSection === 'intro') {
+      introLines.push(line);
+    } else if (currentSection === 'assertion') {
+      assertionText += (assertionText ? ' ' : '') + line;
+    } else if (currentSection === 'reason') {
+      reasonText += (reasonText ? ' ' : '') + line;
+    } else if (currentSection === 'subprompt') {
+      subPromptText += (subPromptText ? ' ' : '') + line;
+    }
+  }
+  
+  // If we didn't find assertionText or reasonText via line splits, let's try a fallback inline split.
+  // Because sometimes it's pasted/stored as a single paragraph.
+  if (!assertionText && !reasonText) {
+    const assertIndexMatch = cleaned.match(/(?:Assertion\s*\(A\)|Assertion\s*A|Assertion|Assert)\s*[\:\-\s]/i);
+    const reasonIndexMatch = cleaned.match(/(?:Reasons?\s*\(R\)|Reasons?\s*R|Reasons?)\s*[\:\-\s]/i);
+    const subPromptIndexMatch = cleaned.match(/(?:In\s+the\s+light\s+of|choose\s+the\s+correct|choose\s+the\s+most)/i);
+    
+    if (assertIndexMatch && reasonIndexMatch) {
+      const assertIdx = assertIndexMatch.index;
+      const reasonIdx = reasonIndexMatch.index;
+      
+      const intro = cleaned.substring(0, assertIdx).trim();
+      if (intro) introLines = [intro];
+      
+      const assertFullMatch = assertIndexMatch[0];
+      const reasonFullMatch = reasonIndexMatch[0];
+      
+      let assertEndIdx = reasonIdx;
+      let reasonEndIdx = cleaned.length;
+      
+      if (subPromptIndexMatch && subPromptIndexMatch.index > reasonIdx) {
+        reasonEndIdx = subPromptIndexMatch.index;
+        subPromptText = cleaned.substring(subPromptIndexMatch.index).trim();
+      }
+      
+      assertionText = cleaned.substring(assertIdx + assertFullMatch.length, assertEndIdx).trim();
+      reasonText = cleaned.substring(reasonIdx + reasonFullMatch.length, reasonEndIdx).trim();
+    }
+  }
+  
+  if (!assertionText && !reasonText) return null;
+  
+  return {
+    intro: introLines.join('\n').trim(),
+    assertion: assertionText.trim(),
+    reason: reasonText.trim(),
+    subPrompt: subPromptText.trim()
+  };
+}
+
+
 const renderTextHtml = (str) => {
   if (!str) return '';
   const formatted = str
@@ -1943,6 +2036,8 @@ const QuestionSlot = ({
     // For assertion-reason
     let assertionFound = ''
     let reasonFound = ''
+    let subPromptFound = ''
+    let currentSection = 'intro'
     
     // For match-column
     let parsedList1 = ['', '', '', '']
@@ -1966,14 +2061,22 @@ const QuestionSlot = ({
       
       // 2. Assertion & Reason detection (for assertion-reason type)
       if (qType === 'assertion-reason') {
-        const assertMatch = line.match(/^(?:Assertion\s*\(A\)|Assertion|Assert|A)\s*[\:\-\s]\s*(.*)/i)
+        const assertMatch = line.match(/^(?:Assertion\s*\(A\)|Assertion\s*A|Assertion|Assert|A)\s*[\:\-\.\，\s]\s*(.*)/i)
         if (assertMatch) {
           assertionFound = assertMatch[1].trim()
+          currentSection = 'assertion'
           continue
         }
-        const reasonMatch = line.match(/^(?:Reason\s*\(R\)|Reason|R)\s*[\:\-\s]\s*(.*)/i)
+        const reasonMatch = line.match(/^(?:Reasons?\s*\(R\)|Reasons?\s*R|Reasons?|R)\s*[\:\-\.\，\s]\s*(.*)/i)
         if (reasonMatch) {
           reasonFound = reasonMatch[1].trim()
+          currentSection = 'reason'
+          continue
+        }
+        const subPromptMatch = line.match(/^(?:In\s+the\s+light\s+of|choose\s+the\s+correct|choose\s+the\s+most)/i)
+        if (subPromptMatch) {
+          subPromptFound = line.trim()
+          currentSection = 'subprompt'
           continue
         }
       }
@@ -2074,6 +2177,21 @@ const QuestionSlot = ({
         }
       }
       
+      if (qType === 'assertion-reason') {
+        if (currentSection === 'assertion') {
+          assertionFound += (assertionFound ? ' ' : '') + line
+          continue
+        } else if (currentSection === 'reason') {
+          reasonFound += (reasonFound ? ' ' : '') + line
+          continue
+        } else if (currentSection === 'subprompt') {
+          subPromptFound += (subPromptFound ? ' ' : '') + line
+          continue
+        } else if (currentSection === 'options') {
+          continue
+        }
+      }
+      
       promptLines.push(line)
     }
     
@@ -2110,6 +2228,7 @@ const QuestionSlot = ({
     if (qType === 'assertion-reason') {
       if (assertionFound) setQAssertion(assertionFound)
       if (reasonFound) setQReason(reasonFound)
+      if (subPromptFound) setQSubPrompt(subPromptFound)
     }
     if (qType === 'match-column') {
       if (parsedList1.some(l => l !== '')) setQList1(parsedList1)
@@ -2350,7 +2469,19 @@ const QuestionSlot = ({
                 }
 
                 if (type === 'assertion-reason') {
-                  setQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+                  const parsed = parseAssertionReasonFromText(qText);
+                  if (parsed && (parsed.assertion || parsed.reason)) {
+                    setQText(parsed.intro || 'Given below are two statements: One is labelled as Assertion A and the other is labelled as Reason R:');
+                    setQAssertion(parsed.assertion);
+                    setQReason(parsed.reason);
+                    if (parsed.subPrompt) {
+                      setQSubPrompt(parsed.subPrompt);
+                    } else {
+                      setQSubPrompt('In the light of the above statements, choose the correct answer from the options given below');
+                    }
+                  } else {
+                    setQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+                  }
                 } else if (type === 'match-column' || type === 'multiple-statement') {
                   setQSubPrompt('Choose the correct answer from the options given below:')
                 }
@@ -3503,6 +3634,16 @@ const ManageSet = () => {
         }
       }
 
+      if (q.type === 'assertion-reason' && (!q.assertion || !q.assertion.trim())) {
+        const parsed = parseAssertionReasonFromText(q.text)
+        if (parsed && (parsed.assertion || parsed.reason)) {
+          q.text = parsed.intro || 'Given below are two statements: One is labelled as Assertion A and the other is labelled as Reason R:'
+          q.assertion = parsed.assertion
+          q.reason = parsed.reason
+          if (parsed.subPrompt) q.subPrompt = parsed.subPrompt
+        }
+      }
+
       // Post-processing cleanup for match-column list header overflow
       if (q.type === 'match-column') {
         const isGeneric1 = !q.list1Header || /^list\s*[-–]?\s*i$/i.test(q.list1Header.trim());
@@ -3565,7 +3706,8 @@ const ManageSet = () => {
           list1Header: '',
           list2Header: '',
           statements: [],
-          passage: sharedPassage || ''
+          passage: sharedPassage || '',
+          subPrompt: ''
         }
         currentSection = 'text'
         continue
@@ -3596,16 +3738,21 @@ const ManageSet = () => {
         }
         continue
       }
-      if (/^assertion\s*\(?A\)?/i.test(line)) {
+      if (/^assertions?\s*\(?A\)?/i.test(line)) {
         currentQ.type = 'assertion-reason'
         currentSection = 'assertion'
-        currentQ.assertion = line.replace(/^assertion\s*\(?A\)?[\s\:\-\.]*/i, '')
+        currentQ.assertion = line.replace(/^assertions?\s*\(?A\)?[\s\:\-\.]*/i, '')
         continue
       }
-      if (/^reason\s*\(?R\)?/i.test(line)) {
+      if (/^reasons?\s*\(?R\)?/i.test(line)) {
         currentQ.type = 'assertion-reason'
         currentSection = 'reason'
-        currentQ.reason = line.replace(/^reason\s*\(?R\)?[\s\:\-\.]*/i, '')
+        currentQ.reason = line.replace(/^reasons?\s*\(?R\)?[\s\:\-\.]*/i, '')
+        continue
+      }
+      if (/^(?:In\s+the\s+light\s+of|choose\s+the\s+correct|choose\s+the\s+most)/i.test(line)) {
+        currentQ.subPrompt = line
+        currentSection = 'subprompt'
         continue
       }
       if (/^choose the correct/i.test(line) || /^options?\s*\:?/i.test(line) && !line.includes('(')) {
@@ -3694,6 +3841,8 @@ const ManageSet = () => {
         currentQ.assertion += ' ' + line
       } else if (currentSection === 'reason') {
         currentQ.reason += ' ' + line
+      } else if (currentSection === 'subprompt') {
+        currentQ.subPrompt += ' ' + line
       } else if (currentSection === 'passage') {
         currentQ.passage = (currentQ.passage || '') + line + '\n'
       } else if (currentSection === 'text') {
@@ -3942,7 +4091,19 @@ const ManageSet = () => {
       const type = e.target.value
       setNewQType(type)
       if (type === 'assertion-reason') {
-        setNewQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+        const parsed = parseAssertionReasonFromText(newQText);
+        if (parsed && (parsed.assertion || parsed.reason)) {
+          setNewQText(parsed.intro || 'Given below are two statements: One is labelled as Assertion A and the other is labelled as Reason R:');
+          setNewQAssertion(parsed.assertion);
+          setNewQReason(parsed.reason);
+          if (parsed.subPrompt) {
+            setNewQSubPrompt(parsed.subPrompt);
+          } else {
+            setNewQSubPrompt('In the light of the above statements, choose the correct answer from the options given below');
+          }
+        } else {
+          setNewQSubPrompt('In the light of the above statements, choose the correct answer from the options given below')
+        }
       } else if (type === 'match-column' || type === 'multiple-statement') {
         setNewQSubPrompt('Choose the correct answer from the options given below:')
       }

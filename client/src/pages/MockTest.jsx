@@ -185,9 +185,9 @@ const MockTest = () => {
     } else if (type === 'number') {
       stripped = cleaned.replace(/^[\(\[][0-9]+[\)\]]\s*/, '').replace(/^[0-9]+[\)\]\.\:\-\,\，]\s*/, '')
     } else if (type === 'assertion') {
-      stripped = cleaned.replace(/^assertion\s*\(?A\)?[\s\:\-\.\,\，\s]*/i, '')
+      stripped = cleaned.replace(/^assertions?\s*\(?A\)?[\s\:\-\.\,\，\s]*/i, '')
     } else if (type === 'reason') {
-      stripped = cleaned.replace(/^reason\s*\(?R\)?[\s\:\-\.\,\，\s]*/i, '')
+      stripped = cleaned.replace(/^reasons?\s*\(?R\)?[\s\:\-\.\,\，\s]*/i, '')
     }
     return stripped.trim() !== '' ? stripped.trim() : cleaned
   }
