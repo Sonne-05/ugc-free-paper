@@ -1201,7 +1201,7 @@ app.post('/api/questions/explain', async (req, res) => {
       const kimiModel = process.env.KIMI_MODEL || 'kimi-k2.6';
       console.log(`[AI Explain] Trying Kimi AI using model ${kimiModel}...`);
       try {
-        const kimiResponse = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+        const kimiResponse = await fetch('https://api.moonshot.ai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
