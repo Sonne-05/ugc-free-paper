@@ -1577,9 +1577,9 @@ const Profile = () => {
   // RENDER STUDENT DASHBOARD
   if (!isAdmin) {
     return (
-      <div className="profile-page">
+      <div className="profile-page profile-page--student">
         <div className="student-dashboard-wrapper">
-          <div className="profile-page__container" style={{ flex: 1 }}>
+          <div className="profile-page__container profile-page__container--student" style={{ flex: 1 }}>
             <div className="student-layout">
               {/* Sidebar Navigation */}
             <div className="student-tabs-bar">
@@ -1617,52 +1617,79 @@ const Profile = () => {
                   <p className="pane-desc">Monitor your overall exam readiness, study habits, and recent mock attempts.</p>
 
                   {/* Sleek Metric Cards Grid */}
-                  <div className="stats-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                    <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                  <div className="stats-row">
+                    <div className="stat-box stat-box--prep">
+                      <div className="stat-icon-wrap" style={{ color: 'var(--primary)', background: 'rgba(37, 99, 235, 0.06)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
+                      </div>
                       <span className="stat-val" style={{ color: 'var(--primary)' }}>{studentStats.prepScore}%</span>
                       <span className="stat-lbl">Prep Score</span>
                     </div>
-                    <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <div className="stat-box stat-box--streak">
+                      <div className="stat-icon-wrap" style={{ color: '#ea580c', background: 'rgba(234, 88, 12, 0.06)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                      </div>
                       <span className="stat-val" style={{ color: '#ea580c' }}>🔥 {studentStats.streak} Days</span>
                       <span className="stat-lbl">Daily Streak</span>
                     </div>
-                    <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <div className="stat-box stat-box--time">
+                      <div className="stat-icon-wrap" style={{ color: '#16a34a', background: 'rgba(22, 163, 74, 0.06)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      </div>
                       <span className="stat-val" style={{ color: '#16a34a' }}>{studentStats.hoursStudied} Hrs</span>
                       <span className="stat-lbl">Time Studied</span>
                     </div>
-                    <div className="stat-box" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                      <span className="stat-val" style={{ color: 'var(--text)' }}>{studentStats.testsAttempted} Completed</span>
+                    <div className="stat-box stat-box--tests">
+                      <div className="stat-icon-wrap" style={{ color: '#6366f1', background: 'rgba(99, 102, 241, 0.06)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                      </div>
+                      <span className="stat-val" style={{ color: 'var(--text)' }}>{studentStats.testsAttempted}</span>
                       <span className="stat-lbl">Tests Attempted</span>
                     </div>
                   </div>
 
-
-
                   {/* Recent Activities list */}
                   <div>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text)' }}>Recent Mock Test Attempts</h3>
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>PYQ Exam Module</th>
-                          <th>Score</th>
-                          <th>Time Spent</th>
-                          <th style={{ textAlign: 'right' }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {studentPYQs.filter(q => q.status === 'Completed').map(set => (
-                          <tr key={set.id}>
-                            <td style={{ fontWeight: 600 }}>{set.title}</td>
-                            <td style={{ color: 'var(--primary)', fontWeight: 700 }}>{set.score}</td>
-                            <td>{set.timeSpent}</td>
-                            <td style={{ textAlign: 'right' }}>
-                              <span className="role-badge role-badge--admin" style={{ background: '#dcfce7', color: '#15803d' }}>Reviewed</span>
-                            </td>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text)' }}>Recent Mock Test Attempts</h3>
+                    <div className="admin-table-container">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>PYQ Exam Module</th>
+                            <th>Score</th>
+                            <th>Time Spent</th>
+                            <th style={{ textAlign: 'right' }}>Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {studentPYQs.filter(q => q.status === 'Completed').length === 0 ? (
+                            <tr>
+                              <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }}>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                  </svg>
+                                  <span style={{ fontSize: '0.88rem' }}>No mock attempts completed yet. Start practicing to track your scores!</span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            studentPYQs.filter(q => q.status === 'Completed').map(set => (
+                              <tr key={set.id}>
+                                <td style={{ fontWeight: 600 }}>{set.title}</td>
+                                <td style={{ color: 'var(--primary)', fontWeight: 700 }}>{set.score}</td>
+                                <td>{set.timeSpent}</td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <span className="role-badge role-badge--admin" style={{ background: '#dcfce7', color: '#15803d' }}>Reviewed</span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1763,19 +1790,24 @@ const Profile = () => {
                     </div>
 
                     {/* Recommendation Feed */}
-                    <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '16px' }}>
-                      <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991b1b', marginBottom: '6px' }}>Recommended Study Focus</h3>
-                      <p style={{ fontSize: '0.8rem', color: '#7f1d1d', lineHeight: '1.4' }}>
-                        {analyticsData.hasAttempts ? (
-                          <>
-                            Your lowest-scoring unit is <strong>{analyticsData.lowestUnitName}</strong> ({analyticsData.lowestUnitAcc}%). We suggest {analyticsData.lowestUnitAdvice} to raise your score above the general cutoff threshold (70%+).
-                          </>
-                        ) : (
-                          <>
-                            Complete a mock test to generate personalized study recommendations and analyze your syllabus strengths!
-                          </>
-                        )}
-                      </p>
+                    <div className="recommendation-card">
+                      <div className="rec-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                      </div>
+                      <div>
+                        <h4 className="rec-title">Recommended Study Focus</h4>
+                        <p className="rec-text">
+                          {analyticsData.hasAttempts ? (
+                            <>
+                              Your lowest-scoring unit is <strong>{analyticsData.lowestUnitName}</strong> ({analyticsData.lowestUnitAcc}%). We suggest {analyticsData.lowestUnitAdvice} to raise your score above the general cutoff threshold (70%+).
+                            </>
+                          ) : (
+                            <>
+                              Complete a mock test to generate personalized study recommendations and analyze your syllabus strengths!
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
