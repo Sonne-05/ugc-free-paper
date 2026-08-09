@@ -1871,7 +1871,7 @@ const Profile = () => {
 
   // RENDER ADMIN DASHBOARD (WITHOUT STUDY PROGRESS CARD)
   return (
-    <div className="profile-page">
+    <div className="profile-page profile-page--admin">
       <div className="profile-page__container profile-page__container--admin">
 
 

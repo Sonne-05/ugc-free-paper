@@ -150,6 +150,17 @@
 }
 
 /* Admin Dashboard Wide Layout styling */
+.profile-page--admin {
+  padding: 56px 0 0 0 !important;
+}
+
+@media (min-width: 992px) {
+  .profile-page--admin {
+    overflow: hidden;
+    height: 100vh;
+  }
+}
+
 .profile-page__container--admin {
   max-width: 100%;
   width: 100%;
@@ -163,13 +174,15 @@
 .admin-layout {
   display: flex;
   flex-direction: column;
-  min-height: 600px;
-  margin-top: 15px;
+  min-height: calc(100vh - 56px);
+  margin-top: 0;
 }
 
 @media (min-width: 992px) {
   .admin-layout {
     flex-direction: row;
+    height: calc(100vh - 56px);
+    min-height: calc(100vh - 56px);
   }
 }
 
