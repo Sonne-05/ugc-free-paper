@@ -387,7 +387,11 @@ const cleanJsonString = (str) => {
 async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
     const apiKey = keyRotation.getNextKey('gemini');
-    const rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
+    if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
+      rawModel = 'gemini-3.6-flash';
+    }
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
@@ -916,6 +920,28 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         q.qIndex = matchedInputQ.qIndex;
         const pdfQNum = matchedInputQ.pdfQNum;
 
+        // Defensive normalization to prevent Mongoose validation errors
+        q.text = (q.text || q.question || q.questionText || q.prompt || '').trim();
+        if (!q.text) {
+          q.text = `Question ${q.qIndex}`;
+        }
+        
+        if (q.correct === undefined || q.correct === null) {
+          q.correct = 1;
+        } else {
+          q.correct = parseInt(q.correct, 10) || 1;
+        }
+        
+        if (!q.options || !Array.isArray(q.options) || q.options.length < 4) {
+          const rawOptions = q.options || [];
+          q.options = [
+            rawOptions[0] || 'Option 1',
+            rawOptions[1] || 'Option 2',
+            rawOptions[2] || 'Option 3',
+            rawOptions[3] || 'Option 4'
+          ];
+        }
+
         let isComprehensionOrDi = false;
         if (!isPaperII) {
           if (q.qIndex >= 1 && q.qIndex <= 5) {
@@ -1355,7 +1381,12 @@ app.post('/api/questions/explain', async (req, res) => {
 
     // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
-      const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+      let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+      // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
+      if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
+        rawModel = 'gemini-3.6-flash';
+      }
+      const geminiModel = rawModel.replace(/^models\//, '');
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
       
       const geminiResponse = await fetch(geminiUrl, {
