@@ -570,9 +570,10 @@ const DataInterpretationGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year
+  year,
+  isOpen,
+  onToggle
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [diMode, setDiMode] = useState('visual')
   const [localPassage, setLocalPassage] = useState('')
   const [diTable, setDiTable] = useState([
@@ -882,7 +883,7 @@ const DataInterpretationGroup = ({
 
   return (
     <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
-      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0fdf4' }}>
+      <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0fdf4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#166534' }}>Q1 - Q5</span>
           <span className="ms-q-slot-badge" style={{ background: isSaved ? '#dcfce7' : '#f1f5f9', color: isSaved ? '#166534' : '#64748b' }}>
@@ -1193,9 +1194,10 @@ const ReadingComprehensionGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year
+  year,
+  isOpen,
+  onToggle
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [localPassage, setLocalPassage] = useState('')
 
   const [questions, setQuestions] = useState([
@@ -1446,7 +1448,7 @@ const ReadingComprehensionGroup = ({
 
   return (
     <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
-      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0f9ff' }}>
+      <div className="ms-q-slot-header" onClick={onToggle} style={{ background: '#f0f9ff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#0369a1' }}>Q46 - Q50</span>
           <span className="ms-q-slot-badge" style={{ background: isSaved ? '#e0f2fe' : '#f1f5f9', color: isSaved ? '#0369a1' : '#64748b' }}>
@@ -1674,9 +1676,10 @@ const QuestionSlot = ({
   onSave, 
   onDelete, 
   API_BASE_URL,
-  year
+  year,
+  isOpen,
+  onToggle
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
   const [qType, setQType] = useState('mcq')
   const [qText, setQText] = useState('')
   const [qOpts, setQOpts] = useState(['', '', '', ''])
@@ -2239,7 +2242,7 @@ const QuestionSlot = ({
 
   return (
     <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
-      <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)}>
+      <div className="ms-q-slot-header" onClick={onToggle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number">Q{index}</span>
           <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
@@ -2872,6 +2875,7 @@ const ManageSet = () => {
   
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
+  const [expandedSlot, setExpandedSlot] = useState(null)
   
   const [selectedSetId, setSelectedSetId] = useState('')
   const [importMode, setImportMode] = useState('single')
@@ -2948,6 +2952,7 @@ const ManageSet = () => {
           setNewSetIsPublished(false)
           setEditingSetQuestions([])
         }
+        setExpandedSlot(null)
       })
       .catch(err => console.error(err))
   }, [setId, navigate])
@@ -4521,6 +4526,8 @@ const ManageSet = () => {
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
                               year={newSetYear}
+                              isOpen={expandedSlot === 'di'}
+                              onToggle={() => setExpandedSlot(expandedSlot === 'di' ? null : 'di')}
                               onSave={(savedQs, updatedSet) => {
                                 setEditingSetQuestions(prev => {
                                   const next = [...prev]
@@ -4556,6 +4563,8 @@ const ManageSet = () => {
                                   setId={editingSetId}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
+                                  isOpen={expandedSlot === qIndex}
+                                  onToggle={() => setExpandedSlot(expandedSlot === qIndex ? null : qIndex)}
                                   onSave={(savedQ, updatedSet) => {
                                     setEditingSetQuestions(prev => {
                                       const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
@@ -4584,6 +4593,8 @@ const ManageSet = () => {
                                setId={editingSetId}
                                API_BASE_URL={API_BASE_URL}
                                year={newSetYear}
+                               isOpen={expandedSlot === 'comprehension'}
+                               onToggle={() => setExpandedSlot(expandedSlot === 'comprehension' ? null : 'comprehension')}
                                onSave={(savedQs, updatedSet) => {
                                  setEditingSetQuestions(prev => {
                                    const next = [...prev]
@@ -4621,6 +4632,8 @@ const ManageSet = () => {
                                  setId={editingSetId}
                                  API_BASE_URL={API_BASE_URL}
                                  year={newSetYear}
+                                 isOpen={expandedSlot === qIndex}
+                                 onToggle={() => setExpandedSlot(expandedSlot === qIndex ? null : qIndex)}
                                  onSave={(savedQ, updatedSet) => {
                                    setEditingSetQuestions(prev => {
                                      const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
