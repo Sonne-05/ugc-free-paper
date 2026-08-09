@@ -885,9 +885,13 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
       const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII);
-      batchJson.forEach(q => {
-        const matchedInputQ = batch.find(bq => bq.qIndex === q.qIndex);
-        const pdfQNum = matchedInputQ ? matchedInputQ.pdfQNum : (isPaperII ? q.qIndex + 50 : q.qIndex);
+      batchJson.forEach((q, idx) => {
+        // Enforce index-based mapping to prevent AI from returning wrong qIndex (like absolute 51 instead of relative 1)
+        const matchedInputQ = batch[idx];
+        if (!matchedInputQ) return;
+        
+        q.qIndex = matchedInputQ.qIndex;
+        const pdfQNum = matchedInputQ.pdfQNum;
 
         let isComprehensionOrDi = false;
         if (!isPaperII) {
