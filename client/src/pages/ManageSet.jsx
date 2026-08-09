@@ -1677,6 +1677,9 @@ const QuestionSlot = ({
   year,
   pyqSets = []
 }) => {
+  const activeSet = pyqSets.find(s => (s.id || s._id) === setId);
+  const isPaperI = !activeSet || activeSet.paperType === 'Paper I';
+
   const [isOpen, setIsOpen] = useState(false)
   const [qType, setQType] = useState('mcq')
   const [qText, setQText] = useState('')
@@ -2286,15 +2289,19 @@ const QuestionSlot = ({
           <span className={`ms-q-slot-badge ${isSaved ? 'ms-q-slot-badge--saved' : 'ms-q-slot-badge--empty'}`}>
             {isSaved ? `Saved (${qType.replace('-', ' ')})` : 'Empty'}
           </span>
-          {isSaved && qUnit && qUnit.trim() !== '' ? (
-            <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-              {qUnit.split(':')[0]}
-            </span>
-          ) : isSaved ? (
-            <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-              Unassigned
-            </span>
-          ) : null}
+          {isPaperI && (
+            <>
+              {isSaved && qUnit && qUnit.trim() !== '' ? (
+                <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                  {qUnit.split(':')[0]}
+                </span>
+              ) : isSaved ? (
+                <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                  Unassigned
+                </span>
+              ) : null}
+            </>
+          )}
           <span className="ms-q-slot-preview" style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
             {qText ? (qText.length > 60 ? qText.substring(0, 60) + '...' : qText) : 'Click to add question content'}
           </span>
@@ -2322,7 +2329,7 @@ const QuestionSlot = ({
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isPaperI ? '1fr 1fr' : '1fr', gap: '12px', marginBottom: '12px' }}>
             <div className="ms-form-field">
               <label>Question Type</label>
               <select className="ms-input" value={qType} onChange={(e) => {
@@ -2358,15 +2365,17 @@ const QuestionSlot = ({
                 <option value="multiple-statement">Multiple Statements</option>
               </select>
             </div>
-            <div className="ms-form-field">
-              <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>{getSyllabusLabel()}</label>
-              <select className="ms-input" value={qUnit} onChange={(e) => setQUnit(e.target.value)}>
-                <option value="">Select Unit...</option>
-                {getSyllabusUnits().map(u => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
-            </div>
+            {isPaperI && (
+              <div className="ms-form-field">
+                <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>{getSyllabusLabel()}</label>
+                <select className="ms-input" value={qUnit} onChange={(e) => setQUnit(e.target.value)}>
+                  <option value="">Select Unit...</option>
+                  {getSyllabusUnits().map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {(qType === 'comprehension' || qType === 'di') && (
@@ -2968,6 +2977,10 @@ const ManageSet = () => {
     if (activeSet.paperType === 'Paper I') return 'Syllabus Unit (Paper I)';
     return `Syllabus Unit (Paper II - ${activeSet.subject || 'Generic'})`;
   };
+
+  const activeSet = pyqSets.find(s => (s.id || s._id) === (editingSetId || setId || selectedSetId));
+  const isPaperI = !activeSet || activeSet.paperType === 'Paper I';
+
   const [newQText, setNewQText] = useState('')
   const [newQOpts, setNewQOpts] = useState(['', '', '', ''])
   const [newQCorrect, setNewQCorrect] = useState(1)
@@ -3946,19 +3959,21 @@ const ManageSet = () => {
   </select>
 </div>
 
-<div className="ms-form-field" style={{ marginBottom: '12px' }}>
-  <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>{getSyllabusLabel()}</label>
-  <select 
-    className="ms-input"
-    value={newQUnit}
-    onChange={(e) => setNewQUnit(e.target.value)}
-  >
-    <option value="">Select Unit...</option>
-    {getSyllabusUnits().map(u => (
-      <option key={u} value={u}>{u}</option>
-    ))}
-  </select>
-</div>
+{isPaperI && (
+  <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+    <label style={{ fontSize: '0.8rem', fontWeight: '600' }}>{getSyllabusLabel()}</label>
+    <select 
+      className="ms-input"
+      value={newQUnit}
+      onChange={(e) => setNewQUnit(e.target.value)}
+    >
+      <option value="">Select Unit...</option>
+      {getSyllabusUnits().map(u => (
+        <option key={u} value={u}>{u}</option>
+      ))}
+    </select>
+  </div>
+)}
 
 {/* DYNAMIC FIELD PANEL: COMPREHENSION PASSAGE / DI TABLE DATA */}
 {(newQType === 'comprehension' || newQType === 'di') && (
