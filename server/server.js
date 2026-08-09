@@ -1082,7 +1082,6 @@ app.delete('/api/questions/:id', async (req, res) => {
 });
 
 // Global indices for API key rotation in individual explanation requests
-let kimiExplainIndex = 0;
 let geminiExplainIndex = 0;
 let groqExplainIndex = 0;
 
@@ -1093,17 +1092,15 @@ app.post('/api/questions/explain', async (req, res) => {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-    const kimiKeys = (process.env.KIMI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
-  const geminiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+      const geminiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
   const groqKeys = (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
-  const kimiApiKey = kimiKeys.length > 0 ? kimiKeys[kimiExplainIndex++ % kimiKeys.length] : '';
   const geminiApiKey = geminiKeys.length > 0 ? geminiKeys[geminiExplainIndex++ % geminiKeys.length] : '';
   const groqApiKey = groqKeys.length > 0 ? groqKeys[groqExplainIndex++ % groqKeys.length] : '';
 
-  if (!kimiApiKey && !geminiApiKey && !groqApiKey) {
+  if (!geminiApiKey && !groqApiKey) {
     return res.status(400).json({ 
-      message: 'No AI API keys configured on the server. Please add KIMI_API_KEY, GEMINI_API_KEY, or GROQ_API_KEY to your server\'s .env file.' 
+      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY or GROQ_API_KEY to your server\'s .env file.' 
     });
   }
 
@@ -1196,74 +1193,7 @@ app.post('/api/questions/explain', async (req, res) => {
     let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: 1. A clear step-by-step walkthrough of the concept or calculation. 2. A specific section justifying why the correct option is right. 3. A brief explanation of why the other options are incorrect.';
     systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly. Focus on explaining the concept, the correct answer, and briefly why the other options are incorrect. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
-    // 1. Try Kimi AI Direct if available (First priority)
-    if (kimiApiKey) {
-      const kimiModel = process.env.KIMI_MODEL || 'kimi-k2.6';
-      console.log(`[AI Explain] Trying Kimi AI using model ${kimiModel}...`);
-      try {
-        const kimiResponse = await fetch('https://api.moonshot.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${kimiApiKey}`
-          },
-          body: JSON.stringify({
-            model: kimiModel,
-            stream: true,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.2
-          })
-        });
-
-        if (kimiResponse.ok) {
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
-
-          const reader = kimiResponse.body;
-          if (reader) {
-            if (typeof reader[Symbol.asyncIterator] === 'function') {
-              for await (const chunk of reader) {
-                res.write(chunk);
-              }
-            } else {
-              const webReader = reader.getReader();
-              while (true) {
-                const { done, value } = await webReader.read();
-                if (done) break;
-                res.write(value);
-              }
-            }
-          }
-          res.end();
-          return; // Complete request successfully
-        } else {
-          const errText = await kimiResponse.text();
-          let errMsg = 'Failed call to Kimi API';
-          try {
-            const errJson = JSON.parse(errText);
-            errMsg = errJson.error?.message || errMsg;
-          } catch (_) {}
-
-          console.warn(`[AI Explain] Kimi API failed: ${errMsg}. Attempting fallback...`);
-
-          // If no fallback is available, throw this error back to the client
-          if (!geminiApiKey && !groqApiKey) {
-            return res.status(502).json({ message: errMsg });
-          }
-        }
-      } catch (err) {
-        console.warn(`[AI Explain] Kimi API failed with error: ${err.message}. Attempting fallback...`);
-        if (!geminiApiKey && !groqApiKey) {
-          return res.status(502).json({ message: err.message });
-        }
-      }
-    }
-
-    // 2. Try Google Gemini Direct if available
+    // 1. Try Google Gemini Direct if available
     if (geminiApiKey) {
       const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
