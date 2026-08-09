@@ -601,7 +601,7 @@ Here is the raw text for the questions:\n\n`;
   throw new Error(`All configured AI providers failed. Details: ${errors.join(' | ')}`);
 }
 
-const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB PDF limit
+const upload = multer({ limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB PDF limit
 
 // Decoupled Job manager for streaming progress over GET requests to bypass reverse-proxy buffering
 const importJobs = new Map();
