@@ -435,7 +435,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
         model: groqModel,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1,
-        max_tokens: 4096
+        max_tokens: 2000
       })
     });
     if (!response.ok) {
