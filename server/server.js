@@ -383,36 +383,86 @@ const cleanJsonString = (str) => {
 };
 
 // Unified helper to call AI for structuring questions
+// Unified helper to call AI for structuring questions
 async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
     const apiKey = keyRotation.getNextKey('gemini');
     const rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+    const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+        generationConfig: { 
+          responseMimeType: "application/json", 
+          temperature: 0.1,
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              questions: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    qIndex: { type: "INTEGER" },
+                    unit: { type: "STRING" },
+                    type: { 
+                      type: "STRING", 
+                      enum: ["mcq", "assertion-reason", "match-column", "comprehension", "multiple-statement", "di"] 
+                    },
+                    text: { type: "STRING" },
+                    options: {
+                      type: "ARRAY",
+                      items: { type: "STRING" }
+                    },
+                    statements: {
+                      type: "ARRAY",
+                      items: { type: "STRING" }
+                    },
+                    correct: { type: "INTEGER" },
+                    assertion: { type: "STRING" },
+                    reason: { type: "STRING" },
+                    list1: {
+                      type: "ARRAY",
+                      items: { type: "STRING" }
+                    },
+                    list2: {
+                      type: "ARRAY",
+                      items: { type: "STRING" }
+                    },
+                    list1Header: { type: "STRING" },
+                    list2Header: { type: "STRING" },
+                    explanation: { type: "STRING" }
+                  },
+                  required: ["qIndex", "unit", "type", "text", "options", "correct", "explanation"]
+                }
+              }
+            },
+            required: ["questions"]
+          }
+        }
       })
     });
     if (!response.ok) {
       const errText = await response.text();
-      if (response.status === 429 && retryCount < 5) {
-        const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
+      const maxRetries = Math.max(keysCount * 2, 10);
+      if (response.status === 429 && retryCount < maxRetries) {
         if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/5)...`);
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/${maxRetries})...`);
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          let waitTime = 20000 * (retryCount + 1);
+          const consecutiveWaitCount = Math.max(retryCount - keysCount + 1, 1);
+          let waitTime = 10000 * consecutiveWaitCount;
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
           if (retryMatch) {
             const waitSeconds = parseFloat(retryMatch[1]);
             waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/${maxRetries})...`);
           } else {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/5)...`);
+            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/${maxRetries})...`);
           }
           await new Promise(resolve => setTimeout(resolve, waitTime));
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
@@ -425,6 +475,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
   } else if (provider === 'groq') {
     const apiKey = keyRotation.getNextKey('groq');
     const groqModel = overrideModel || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const keysCount = keyRotation.groqKeys ? keyRotation.groqKeys.length : 1;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -445,14 +496,15 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
           console.warn(`[AI Structuring] Groq TPD Limit hit. Retrying immediately with fallback model llama-3.1-8b-instant...`);
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount, 'llama-3.1-8b-instant');
         }
-        if (retryCount < 3) {
-          const keysCount = keyRotation.groqKeys ? keyRotation.groqKeys.length : 1;
+        const maxRetries = Math.max(keysCount * 2, 5);
+        if (retryCount < maxRetries) {
           if (retryCount < keysCount - 1) {
-            console.warn(`[AI Structuring] Groq 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/3)...`);
+            console.warn(`[AI Structuring] Groq 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/${maxRetries})...`);
             return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
           } else {
-            const waitTime = 10000 * (retryCount + 1);
-            console.warn(`[AI Structuring] All Groq keys rate-limited. Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry...`);
+            const consecutiveWaitCount = Math.max(retryCount - keysCount + 1, 1);
+            const waitTime = 10000 * consecutiveWaitCount;
+            console.warn(`[AI Structuring] All Groq keys rate-limited. Groq 429 Rate Limited. Waiting ${waitTime / 1000}s before retry (Retry ${retryCount + 1}/${maxRetries})...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
           }
