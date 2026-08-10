@@ -533,7 +533,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - 'mcq': Standard single choice question with 4 options.
     - 'assertion-reason': Question containing SPECIFICALLY the words "Assertion (A)" (or "Assertion A") and "Reason (R)" (or "Reason R"). If the question has labels like (A), (B), (C), (D) representing list items (e.g. "(A) Selection threat"), it is NOT an assertion-reason question; it is a multiple-statement question.
     - 'match-column': Question containing matching lists ("List I" and "List II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. Note that List I and List II often have column subtitles/headers (e.g. 'Concept', 'Description', 'Method'). You MUST set "list1Header" and "list2Header" to these specific subtitles, NOT 'List I' or 'List II'. Do NOT include these subtitles in the "list1" or "list2" arrays; those arrays must contain only the 4 actual items.
-    - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or multiple points labeled A, B, C, D, E) followed by option combinations (e.g., "A, B and C only"). You MUST extract these statements into the "statements" array and NOT populate "assertion" or "reason".
+    - 'multiple-statement': Question containing multiple statements (e.g., "Statement I", "Statement II", or multiple points labeled A, B, C, D, E or (A), (B), (C), (D) or (a), (b), (c), (d)) followed by option combinations (e.g., "(1) (A) and (B) Only", "(2) (C) and (D) Only" or "A, B and C only"). CRITICAL: If a question has a list of items labeled (A), (B), (C), (D) AND is followed by combination options (labeled 1, 2, 3, 4 or (1), (2), (3), (4)), this is a 'multiple-statement' question, NOT a standard MCQ. You MUST extract the items (A), (B), (C), (D) into the "statements" array, and extract the combination options (1), (2), (3), (4) as the 4 items in the "options" array. Do NOT extract the statements as the question options.
     - ${isPaperII ? `'comprehension': Forced for Q91-Q100 (Reading Comprehension based on a passage).` : `'di': Forced for Q1-Q5 (Data Interpretation based on a table).`}
     - ${isPaperII ? `NOTE: Paper II does not contain 'di' questions.` : `'comprehension': Forced for Q46-Q50 (Reading Comprehension based on a passage).`}
     - NOTE ON DI/COMPREHENSION: Although ${isPaperII ? 'Q91-Q100' : 'Q1-Q5 and Q46-Q50'} are forced as comprehension/di, they can STILL structurally contain multiple statements, match columns, or assertion-reasons. For these, keep their 'type' as ${isPaperII ? "'comprehension'" : "'di' or 'comprehension'"} as forced, but STILL extract their structural elements into 'statements', 'list1'/'list2' (with 'list1Header'/'list2Header'), or 'assertion'/'reason' fields respectively.
@@ -968,19 +968,30 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         if (!isComprehensionOrDi) {
           // Heuristic validation layer to ensure accurate type selection
           const textLower = (q.text || '').toLowerCase();
+          const rawTextLower = (matchedInputQ && matchedInputQ.text || '').toLowerCase();
           
-          const hasListKeywords = textLower.includes('list i') && textLower.includes('list ii');
+          const hasListKeywords = (textLower.includes('list i') && textLower.includes('list ii')) ||
+                                  (rawTextLower.includes('list i') && rawTextLower.includes('list ii'));
           const hasListFields = (q.list1 && q.list1.filter(Boolean).length > 0) || (q.list2 && q.list2.filter(Boolean).length > 0);
           
           // Strict assertion check: must have BOTH assertion and reason keywords
-          const hasAssertionKeywords = textLower.includes('assertion') && 
-                                       (textLower.includes('reason') || textLower.includes('reasoning'));
+          const hasAssertionKeywords = (textLower.includes('assertion') && (textLower.includes('reason') || textLower.includes('reasoning'))) ||
+                                       (rawTextLower.includes('assertion') && (rawTextLower.includes('reason') || rawTextLower.includes('reasoning')));
           
           const hasStatementKeywords = textLower.includes('statement i') || 
                                        textLower.includes('statement ii') ||
-                                       (textLower.includes('options given below') && 
-                                        textLower.includes('only') && 
-                                        (textLower.includes('(a)') || textLower.includes('(b)')));
+                                       rawTextLower.includes('statement i') ||
+                                       rawTextLower.includes('statement ii') ||
+                                       (
+                                         (textLower.includes('options given below') || rawTextLower.includes('options given below') || rawTextLower.includes('options combinations') || rawTextLower.includes('answer from the options')) && 
+                                         (textLower.includes('only') || rawTextLower.includes('only')) && 
+                                         (
+                                           textLower.includes('(a)') || textLower.includes('(b)') || 
+                                           rawTextLower.includes('(a)') || rawTextLower.includes('(b)') || 
+                                           rawTextLower.includes('(1)') || rawTextLower.includes('(2)') ||
+                                           textLower.includes('statement') || rawTextLower.includes('statement')
+                                         )
+                                       );
           const hasStatementFields = q.statements && q.statements.filter(Boolean).length > 0;
           
           if (hasListKeywords || hasListFields) {
@@ -989,6 +1000,30 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
             q.type = 'assertion-reason';
           } else if (hasStatementKeywords || hasStatementFields) {
             q.type = 'multiple-statement';
+            
+            // Safety Net / Repair Layer: if the AI parsed statements into options
+            // and left q.statements empty, we extract the actual options from the raw text
+            // and move the statements from q.options to q.statements.
+            if ((!q.statements || q.statements.filter(Boolean).length === 0) && q.options && q.options.length === 4) {
+              const lines = (matchedInputQ.text || '').split('\n');
+              const foundOptions = [];
+              for (const line of lines) {
+                const optMatch = line.match(/^\s*[\(\[]?([1-4])[\)\]\.\-\s]\s*(.*)/);
+                if (optMatch) {
+                  const optNum = parseInt(optMatch[1], 10);
+                  const optVal = optMatch[2].trim();
+                  if (optNum >= 1 && optNum <= 4 && !foundOptions[optNum - 1]) {
+                    foundOptions[optNum - 1] = optVal;
+                  }
+                }
+              }
+              const validOptions = foundOptions.filter(Boolean);
+              if (validOptions.length === 4) {
+                q.statements = [...q.options];
+                q.options = foundOptions;
+              }
+            }
+            
             // If the AI incorrectly populated assertion/reason, migrate them to statements array
             if ((!q.statements || q.statements.length === 0) && (q.assertion || q.reason)) {
               q.statements = [];
