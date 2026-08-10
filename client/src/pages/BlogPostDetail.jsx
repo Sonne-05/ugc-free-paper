@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import './BlogPostDetail.css'
 
 const BlogPostDetail = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showMobileAd, setShowMobileAd] = useState(true)
+  const [suggestedPosts, setSuggestedPosts] = useState([])
+
+  // Scroll to top when loading a new post
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [id])
 
   useEffect(() => {
     setLoading(true)
-    fetch(`${API_BASE_URL}/api/posts/${id}`)
+    setError(null)
+
+    // Fetch dynamic blog post details
+    const fetchPost = fetch(`${API_BASE_URL}/api/posts/${id}`)
       .then(res => {
         if (!res.ok) {
           throw new Error('Post not found')
@@ -21,35 +31,57 @@ const BlogPostDetail = () => {
       })
       .then(data => {
         setPost(data)
-        setLoading(false)
+      })
+
+    // Fetch other posts to select recommendations
+    const fetchAllPosts = fetch(`${API_BASE_URL}/api/posts`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch articles')
+        }
+        return res.json()
+      })
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Exclude the current active post
+          const filtered = data.filter(p => p._id !== id).slice(0, 3)
+          setSuggestedPosts(filtered)
+        }
       })
       .catch(err => {
-        console.error('Failed to fetch blog post:', err)
+        console.error('Failed to load related articles:', err)
+      })
+
+    Promise.all([fetchPost, fetchAllPosts])
+      .catch(err => {
+        console.error('Failed to load blog detail content:', err)
         setError(err.message)
+      })
+      .finally(() => {
         setLoading(false)
       })
   }, [id])
 
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} - UGC Free Paper`;
-      let metaDesc = document.querySelector('meta[name="description"]');
+      document.title = `${post.title} - UGC Free Paper`
+      let metaDesc = document.querySelector('meta[name="description"]')
       if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.setAttribute('name', 'description');
-        document.head.appendChild(metaDesc);
+        metaDesc = document.createElement('meta')
+        metaDesc.setAttribute('name', 'description')
+        document.head.appendChild(metaDesc)
       }
-      metaDesc.setAttribute('content', post.excerpt || 'Read this article on UGC Free Paper.');
+      metaDesc.setAttribute('content', post.excerpt || 'Read this article on UGC Free Paper.')
     }
   }, [post])
 
   // Helper to dynamically inject an in-article ad after the second paragraph of dynamic HTML content
   const injectInArticleAd = (htmlContent) => {
-    if (!htmlContent) return '';
-    const paragraphs = htmlContent.split('</p>');
+    if (!htmlContent) return ''
+    const paragraphs = htmlContent.split('</p>')
     if (paragraphs.length > 2) {
-      const firstPart = paragraphs.slice(0, 2).join('</p>') + '</p>';
-      const secondPart = paragraphs.slice(2).join('</p>');
+      const firstPart = paragraphs.slice(0, 2).join('</p>') + '</p>'
+      const secondPart = paragraphs.slice(2).join('</p>')
       
       const adSlotHtml = `
         <div class="in-article-ad-container">
@@ -58,11 +90,11 @@ const BlogPostDetail = () => {
             <span class="ad-placeholder-text">Responsive AdSense Inline Banner</span>
           </div>
         </div>
-      `;
-      return firstPart + adSlotHtml + secondPart;
+      `
+      return firstPart + adSlotHtml + secondPart
     }
-    return htmlContent;
-  };
+    return htmlContent
+  }
 
   if (loading) {
     return (
@@ -111,6 +143,26 @@ const BlogPostDetail = () => {
             <div className="detail-body" dangerouslySetInnerHTML={{ __html: injectInArticleAd(post.content) }} />
 
             <div className="detail-divider" />
+
+            {/* Suggested Reads Section */}
+            {suggestedPosts.length > 0 && (
+              <section className="suggested-reads-container">
+                <h3 className="suggested-section-title">You Might Also Like</h3>
+                <div className="suggested-reads-grid">
+                  {suggestedPosts.map(item => (
+                    <article key={item._id} className="suggested-item-card" onClick={() => navigate(`/blog/${item._id}`)}>
+                      <span className="suggested-item-badge">{item.category}</span>
+                      <h4 className="suggested-item-title">{item.title}</h4>
+                      <div className="suggested-item-meta">
+                        <span>{item.date}</span>
+                        <span>•</span>
+                        <span>{item.readTime}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
           </article>
 
