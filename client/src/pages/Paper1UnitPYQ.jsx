@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, Fragment } from 'react'
 import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import './PaperPYQ.css'
 
@@ -183,30 +183,39 @@ const Paper1UnitPYQ = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {units.map((unit) => (
-                    <tr key={unit.id} className="pyq-table__tr">
-                      <td className="pyq-table__td font-semibold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', fontSize: '1.1rem' }}>
-                        {unit.id}
-                      </td>
-                      <td className="pyq-table__td">
-                        <div>
-                          <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                            {unit.name}
+                  {units.map((unit, index) => (
+                    <Fragment key={unit.id}>
+                      <tr className="pyq-table__tr">
+                        <td className="pyq-table__td font-semibold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', fontSize: '1.1rem' }}>
+                          {unit.id}
+                        </td>
+                        <td className="pyq-table__td">
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                              {unit.name}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                              {unit.desc}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                            {unit.desc}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="pyq-table__td col-action">
-                        <button 
-                          className="pyq-table__btn"
-                          onClick={() => handleStartPractice(unit)}
-                        >
-                          Practice
-                        </button>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="pyq-table__td col-action">
+                          <button 
+                            className="pyq-table__btn"
+                            onClick={() => handleStartPractice(unit)}
+                          >
+                            Practice
+                          </button>
+                        </td>
+                      </tr>
+                      {index === 4 && (
+                        <tr className="pyq-table__in-feed-ad-row">
+                          <td colSpan={3} className="pyq-table__in-feed-ad-td">
+                            <AdSensePlaceholder type="display" format="horizontal" />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

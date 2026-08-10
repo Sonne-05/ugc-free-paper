@@ -160,6 +160,11 @@ const Paper2PYQ = () => {
                               </td>
                             </tr>
                           ))}
+                          <tr className="pyq-table__in-feed-ad-row">
+                            <td colSpan={2} className="pyq-table__in-feed-ad-td">
+                              <AdSensePlaceholder type="display" format="horizontal" />
+                            </td>
+                          </tr>
                         </Fragment>
                       )
                     })}
