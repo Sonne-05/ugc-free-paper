@@ -8,6 +8,7 @@ const BlogPostDetail = () => {
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showMobileAd, setShowMobileAd] = useState(true)
 
   useEffect(() => {
     setLoading(true)
@@ -42,6 +43,27 @@ const BlogPostDetail = () => {
     }
   }, [post])
 
+  // Helper to dynamically inject an in-article ad after the second paragraph of dynamic HTML content
+  const injectInArticleAd = (htmlContent) => {
+    if (!htmlContent) return '';
+    const paragraphs = htmlContent.split('</p>');
+    if (paragraphs.length > 2) {
+      const firstPart = paragraphs.slice(0, 2).join('</p>') + '</p>';
+      const secondPart = paragraphs.slice(2).join('</p>');
+      
+      const adSlotHtml = `
+        <div class="in-article-ad-container">
+          <span class="ad-label">Advertisement</span>
+          <div class="ad-placeholder-box in-article-ad-box">
+            <span class="ad-placeholder-text">Responsive AdSense Inline Banner</span>
+          </div>
+        </div>
+      `;
+      return firstPart + adSlotHtml + secondPart;
+    }
+    return htmlContent;
+  };
+
   if (loading) {
     return (
       <div className="blog-detail-page loading-state">
@@ -65,8 +87,6 @@ const BlogPostDetail = () => {
     <div className="blog-detail-page">
       <div className="blog-detail-container">
         
-
-
         {/* Layout Wrapper */}
         <div className="blog-detail-layout">
           
@@ -87,8 +107,8 @@ const BlogPostDetail = () => {
 
             <div className="detail-divider" />
             
-            {/* HTML Article content */}
-            <div className="detail-body" dangerouslySetInnerHTML={{ __html: post.content }} />
+            {/* HTML Article content with dynamically injected in-article ad slot */}
+            <div className="detail-body" dangerouslySetInnerHTML={{ __html: injectInArticleAd(post.content) }} />
 
             <div className="detail-divider" />
 
@@ -98,8 +118,6 @@ const BlogPostDetail = () => {
           <aside className="blog-detail-sidebar">
             <div className="sidebar-sticky-wrapper">
               
-
-
               {/* Related/Newsletter block */}
               <div className="sidebar-promo-box">
                 <h3>Want NET Study Guides?</h3>
@@ -107,11 +125,31 @@ const BlogPostDetail = () => {
                 <Link to="/blog#subscribe" className="promo-btn">Go to Subscribe</Link>
               </div>
 
+              {/* 300x600 Half-page sticky sidebar ad box */}
+              <div className="sidebar-ad-card">
+                <span className="ad-badge-top">Advertisement</span>
+                <div className="sidebar-ad-box display-ad-600">
+                  <span className="ad-placeholder-text">Sticky Half-Page Ad (300 x 600)</span>
+                </div>
+              </div>
+
             </div>
           </aside>
 
         </div>
       </div>
+
+      {/* Sticky Bottom Anchor Ad for Mobile */}
+      {showMobileAd && (
+        <div className="mobile-sticky-ad-banner">
+          <button className="mobile-ad-close" onClick={() => setShowMobileAd(false)}>×</button>
+          <span className="mobile-ad-label">Advertisement</span>
+          <div className="mobile-ad-content-placeholder">
+            <span>Google AdSense Anchor Ad (320x50)</span>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
