@@ -1414,7 +1414,87 @@ app.post('/api/questions/explain', async (req, res) => {
     let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: 1. A clear step-by-step walkthrough of the concept or calculation. 2. A specific section justifying why the correct option is right. 3. A brief explanation of why the other options are incorrect.';
     systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly. Focus on explaining the concept, the correct answer, and briefly why the other options are incorrect. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
-    // 1. Try Google Gemini Direct if available
+    // 1. Try Groq Direct if configured (Primary Option)
+    if (groqApiKey) {
+      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      console.log(`[AI Explain] Trying Groq Direct using model ${defaultGroqModel}...`);
+
+      const callGroqExplain = async (modelName) => {
+        return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqApiKey}`
+          },
+          body: JSON.stringify({
+            model: modelName,
+            stream: true,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2
+          })
+        });
+      };
+
+      let groqResponse = await callGroqExplain(defaultGroqModel);
+
+      if (!groqResponse.ok) {
+        const errText = await groqResponse.text();
+        const isTpdLimit = errText.toLowerCase().includes('tokens per day') || errText.toLowerCase().includes('tpd');
+        if (isTpdLimit && defaultGroqModel !== 'llama-3.1-8b-instant') {
+          console.warn(`[AI Explain] Groq TPD Limit hit on ${defaultGroqModel}. Retrying immediately with fallback model llama-3.1-8b-instant...`);
+          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
+        } else {
+          // Re-embed errText so the fallback handler can parse it
+          groqResponse = {
+            ok: false,
+            text: async () => errText
+          };
+        }
+      }
+
+      if (groqResponse.ok) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = groqResponse.body;
+        if (reader) {
+          if (typeof reader[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of reader) {
+              res.write(chunk);
+            }
+          } else {
+            const webReader = reader.getReader();
+            while (true) {
+              const { done, value } = await webReader.read();
+              if (done) break;
+              res.write(value);
+            }
+          }
+        }
+        res.end();
+        return;
+      } else {
+        const errText = await groqResponse.text();
+        let errMsg = 'Failed call to Groq API';
+        try {
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.error?.message || errMsg;
+        } catch (_) {}
+
+        console.warn(`[AI Explain] Groq API hit limit/failed: ${errMsg}. Attempting fallback to Gemini...`);
+
+        // If no fallback is available, throw this error back to the client
+        if (!geminiApiKey) {
+          return res.status(502).json({ message: errMsg });
+        }
+      }
+    }
+
+    // 2. Fallback to Google Gemini Direct if configured (Secondary Option)
     if (geminiApiKey) {
       let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
       // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
@@ -1422,6 +1502,7 @@ app.post('/api/questions/explain', async (req, res) => {
         rawModel = 'gemini-3.6-flash';
       }
       const geminiModel = rawModel.replace(/^models\//, '');
+      console.log(`[AI Explain] Falling back to Gemini Direct using model ${geminiModel}...`);
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
       
       const geminiResponse = await fetch(geminiUrl, {
@@ -1490,87 +1571,7 @@ app.post('/api/questions/explain', async (req, res) => {
           errMsg = errJson.error?.message || errMsg;
         } catch (_) {}
 
-        console.warn(`[AI Explain] Google Gemini API hit limit/failed: ${errMsg}. Attempting fallback...`);
-
-        // If no fallback is available, throw this error back to the client
-        if (!groqApiKey) {
-          return res.status(502).json({ message: errMsg });
-        }
-      }
-    }
-
-    // 2. Fallback to Groq Direct if configured (Higher priority since it is free and super fast)
-    if (groqApiKey) {
-      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-      console.log(`[AI Explain] Falling back to Groq Direct using model ${defaultGroqModel}...`);
-
-      const callGroqExplain = async (modelName) => {
-        return await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqApiKey}`
-          },
-          body: JSON.stringify({
-            model: modelName,
-            stream: true,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.2
-          })
-        });
-      };
-
-      let groqResponse = await callGroqExplain(defaultGroqModel);
-
-      if (!groqResponse.ok) {
-        const errText = await groqResponse.text();
-        const isTpdLimit = errText.toLowerCase().includes('tokens per day') || errText.toLowerCase().includes('tpd');
-        if (isTpdLimit && defaultGroqModel !== 'llama-3.1-8b-instant') {
-          console.warn(`[AI Explain] Groq TPD Limit hit on ${defaultGroqModel}. Retrying immediately with fallback model llama-3.1-8b-instant...`);
-          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
-        } else {
-          // Re-embed errText so the fallback handler can parse it
-          groqResponse = {
-            ok: false,
-            text: async () => errText
-          };
-        }
-      }
-
-      if (groqResponse.ok) {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-
-        const reader = groqResponse.body;
-        if (reader) {
-          if (typeof reader[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of reader) {
-              res.write(chunk);
-            }
-          } else {
-            const webReader = reader.getReader();
-            while (true) {
-              const { done, value } = await webReader.read();
-              if (done) break;
-              res.write(value);
-            }
-          }
-        }
-        res.end();
-        return;
-      } else {
-        const errText = await groqResponse.text();
-        let errMsg = 'Failed call to Groq API';
-        try {
-          const errJson = JSON.parse(errText);
-          errMsg = errJson.error?.message || errMsg;
-        } catch (_) {}
-
-        console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
+        console.warn(`[AI Explain] Gemini fallback failed: ${errMsg}`);
         return res.status(502).json({ message: errMsg });
       }
     }
