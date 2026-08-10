@@ -53,11 +53,26 @@ const Question = mongoose.model('Question', QuestionSchema);
 const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
 // 3. Setup key rotation
-const geminiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+const primaryKeys = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
+const fallbackKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+
 const keyRotation = {
-  geminiIndex: 0,
-  getNextKey() {
-    return geminiKeys[this.geminiIndex++ % geminiKeys.length];
+  primaryIndex: 0,
+  fallbackIndex: 0,
+  getNextKey(retryCount = 0) {
+    // If we are on initial attempts and primary keys exist, prioritize primary keys
+    if (primaryKeys.length > 0 && retryCount < primaryKeys.length) {
+      return primaryKeys[this.primaryIndex++ % primaryKeys.length];
+    }
+    // Fallback to GEMINI_API_KEY
+    if (fallbackKeys.length > 0) {
+      return fallbackKeys[this.fallbackIndex++ % fallbackKeys.length];
+    }
+    // Final fallback back to primary key rotation if no fallback keys are available
+    if (primaryKeys.length > 0) {
+      return primaryKeys[this.primaryIndex++ % primaryKeys.length];
+    }
+    return '';
   }
 };
 
@@ -76,7 +91,7 @@ function cleanJsonString(str) {
 
 // 4. API Call to Gemini
 async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount = 0) {
-  const apiKey = keyRotation.getNextKey();
+  const apiKey = keyRotation.getNextKey(retryCount);
   const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
   const textPrompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
@@ -145,7 +160,7 @@ Schema:
     if (!response.ok) {
       const errText = await response.text();
       if ((response.status === 429 || response.status === 503) && retryCount < 15) {
-        const keysCount = geminiKeys.length || 1;
+        const keysCount = (primaryKeys.length + fallbackKeys.length) || 1;
         // If we have cycled through all keys once, wait 60s for full RPM/TPM reset, otherwise wait 15s to check next key
         const isCycleExhausted = retryCount > 0 && retryCount % keysCount === 0;
         const waitTime = isCycleExhausted ? 60000 : 15000;
