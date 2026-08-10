@@ -650,26 +650,40 @@ Here is the raw text for the questions:\n\n`;
   if (keyRotation.hasKeys('gemini')) providers.push('gemini');
   if (keyRotation.hasKeys('groq')) providers.push('groq');
 
-  const errors = [];
-  for (const provider of providers) {
-    try {
-      console.log(`[AI Structuring] Trying provider: ${provider}...`);
-      const rawResult = await callAIChatForStructure(prompt, keyRotation, provider);
-      const cleaned = cleanJsonString(rawResult);
+  const maxAttempts = 3;
+  let lastErrors = [];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    lastErrors = [];
+    console.log(`[AI Structuring] Outer retry attempt ${attempt}/${maxAttempts} starting...`);
+
+    for (const provider of providers) {
       try {
-        const parsed = JSON.parse(cleaned);
-        return getArrayFromParsed(parsed);
-      } catch (jsonErr) {
-        console.warn(`[AI Structuring] JSON parsing error on ${provider} response:`, jsonErr.message);
-        throw jsonErr;
+        console.log(`[AI Structuring] Trying provider: ${provider} (Attempt ${attempt}/${maxAttempts})...`);
+        const rawResult = await callAIChatForStructure(prompt, keyRotation, provider);
+        const cleaned = cleanJsonString(rawResult);
+        try {
+          const parsed = JSON.parse(cleaned);
+          return getArrayFromParsed(parsed);
+        } catch (jsonErr) {
+          console.warn(`[AI Structuring] JSON parsing error on ${provider} response:`, jsonErr.message);
+          throw jsonErr;
+        }
+      } catch (err) {
+        console.warn(`[AI Structuring] Provider ${provider} failed on attempt ${attempt}:`, err.message);
+        lastErrors.push(`${provider.toUpperCase()} (Attempt ${attempt}): ${err.message}`);
       }
-    } catch (err) {
-      console.warn(`[AI Structuring] Provider ${provider} failed:`, err.message);
-      errors.push(`${provider.toUpperCase()}: ${err.message}`);
+    }
+
+    // Wait 60 seconds for rate limits to reset before next outer attempt
+    if (attempt < maxAttempts) {
+      const waitTime = 60000;
+      console.warn(`[AI Structuring] All providers failed on attempt ${attempt}. Waiting ${waitTime / 1000}s for rate limits to reset before retrying...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
 
-  throw new Error(`All configured AI providers failed. Details: ${errors.join(' | ')}`);
+  throw new Error(`All configured AI providers failed after ${maxAttempts} cycles. Details: ${lastErrors.join(' | ')}`);
 }
 
 const upload = multer({ limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB PDF limit
