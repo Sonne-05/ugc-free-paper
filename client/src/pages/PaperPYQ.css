@@ -52,8 +52,15 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  align-self: stretch;
+}
+
+.pyq-page__sidebar-sticky {
   position: sticky;
   top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .pyq-page__intro {

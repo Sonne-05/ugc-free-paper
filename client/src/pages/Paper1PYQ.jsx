@@ -163,7 +163,9 @@ const Paper1PYQ = () => {
 
           <div className="pyq-page__sidebar">
             <AdSensePlaceholder type="display" format="rectangle" />
-            <AdSensePlaceholder type="display" format="rectangle" />
+            <div className="pyq-page__sidebar-sticky">
+              <AdSensePlaceholder type="display" format="rectangle" />
+            </div>
           </div>
         </div>
       </div>
