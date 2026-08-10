@@ -525,7 +525,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
 }
 
 // Helper to call Gemini multimodal vision API to parse a single PDF page image
-async function callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, retryCount = 0) {
+async function callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, importLanguage = 'English', retryCount = 0) {
   const provider = 'gemini';
   if (!keyRotation.hasKeys(provider)) {
     throw new Error('No Gemini API keys configured for OCR visual import.');
@@ -550,9 +550,17 @@ async function callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperI
   const textPrompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
 Look at the provided PDF page image and extract all multiple choice questions visible on it.
 
+Target Language Rule:
+You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
+- If "English" is in the selected target language (e.g. English Only): Extract only the English version of the questions. If the text has both English and Hindi/Sindhi versions, ignore the Hindi/Sindhi text and extract only the English text.
+- If "Hindi" is in the selected target language (e.g. Hindi Only): Extract only the Hindi version of the questions (in Devanagari script).
+- If "Sindhi" is in the selected target language (e.g. Sindhi Only): Extract only the Sindhi version of the questions.
+- If "Bilingual (English & Hindi)" is selected: Keep the question text bilingual (extract both the English and Hindi versions, showing the English text first and Hindi text below it). Do the same for option values (English option first, Hindi translation below it).
+- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it). Do the same for option values (English option first, Sindhi translation below it).
+
 Instructions:
-1. Extract the question text exactly as it appears in the image in its original script/language (e.g. Hindi, Sindhi, Devanagari). Do not translate it to English. Keep punctuation, spacing, and grammar identical. Filter out system headers/footers or pagination labels (like '-- 5 of 88 --').
-2. Extract exactly 4 options. They must be in the original script/language as they appear in the image.
+1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels (like '-- 5 of 88 --').
+2. Extract exactly 4 options matching the Target Language Rule.
 3. Identify the question number/index (e.g. Q51, Question Number: 51, or Question 51).
 4. Map the correct option index (1, 2, 3, or 4). Use the official answer key hints below to find the correct option if the question number matches. If the question number is not listed, solve the question to find the correct answer.
 5. Determine the question type (usually 'mcq', 'multiple-statement', 'match-column', or 'assertion-reason').
@@ -567,7 +575,7 @@ Schema:
       "qIndex": number,
       "unit": "",
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
-      "text": "Clean question text in original script...",
+      "text": "Clean question text in target script...",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
       "statements": ["Statement A", "Statement B", ...],
       "correct": number,
@@ -616,7 +624,7 @@ ${answerKeyHint}
       console.warn(`[AI OCR] Gemini 429 Rate Limited on Page ${pageNum}. Trying next key in rotation pool...`);
       // Sleep a bit and retry
       await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
-      return callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, retryCount + 1);
+      return callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, importLanguage, retryCount + 1);
     }
     throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
   }
@@ -641,11 +649,21 @@ ${answerKeyHint}
 }
 
 // Function to call AI to parse and solve a batch of 5 questions
-async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII) {
+async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII, importLanguage = 'English') {
   let prompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
 Analyze the raw text of the following ${batch.length} questions. You must:
-1. Extract the question text EXACTLY as it appears in the raw text. Do NOT rephrase, alter, summarize, add, or delete any sentences or words. Keep spelling, grammar, punctuation, and phrasing identical to the original PDF text. Only filter out system noise (e.g. page numbers, header/footer URLs, marks info like 'Correct Marks : 2 Wrong Marks : 0', or 'Question Id : ...').
-2. Extract exactly 4 options, word-for-word, without any alterations.
+
+Target Language Rule:
+You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
+- If "English" is in the selected target language (e.g. English Only): Extract only the English version of the questions. If the text has both English and Hindi/Sindhi versions, ignore the Hindi/Sindhi text and extract only the English text.
+- If "Hindi" is in the selected target language (e.g. Hindi Only): Extract only the Hindi version of the questions (in Devanagari script).
+- If "Sindhi" is in the selected target language (e.g. Sindhi Only): Extract only the Sindhi version of the questions.
+- If "Bilingual (English & Hindi)" is selected: Keep the question text bilingual (extract both the English and Hindi versions, showing the English text first and Hindi text below it). Do the same for option values (English option first, Hindi translation below it).
+- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it). Do the same for option values (English option first, Sindhi translation below it).
+
+Instructions:
+1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical. Only filter out system noise (e.g. page numbers, header/footer URLs, marks info like 'Correct Marks : 2 Wrong Marks : 0', or 'Question Id : ...').
+2. Extract exactly 4 options matching the Target Language Rule.
 3. Solve each question to determine the correct option index (1, 2, 3, or 4).
 4. Assign the correct 'type' based on these rules:
     - 'mcq': Standard single choice question with 4 options.
@@ -663,7 +681,7 @@ Analyze the raw text of the following ${batch.length} questions. You must:
     - CRITICAL: Do NOT include a breakdown or analysis of why the incorrect options are wrong. Focus purely on explaining the concept and the correct answer.
 7. CRITICAL: Do NOT use double quotes (") anywhere inside your string properties (like "text", "options", "explanation"). If you need quotes, use single quotes ('). Using double quotes inside string fields will break the JSON parser.
 8. CRITICAL: Do NOT output literal newlines inside JSON string values. Use escaped "\n" if you need a newline. All HTML attributes inside explanations MUST use single quotes only (e.g. <p class='highlight'>).
-9. CRITICAL: Under no circumstances should you edit, alter, improve, simplify, or rephrase the question text, statements, lists, or options. They must be exact, word-for-word copies from the raw text provided. Do not add any extra sentences, remarks, or summary comments to them.
+9. CRITICAL: Under no circumstances should you edit, alter, improve, simplify, or rephrase the question text, statements, lists, or options except to filter out the target language versions as instructed in the Target Language Rule above. Do not add any extra sentences, remarks, or summary comments to them.
 
 Output ONLY a JSON object with a "questions" key containing an array of objects, containing the following properties:
 {
@@ -854,9 +872,9 @@ function parseAnswerKey(text) {
   return mapping;
 }
 
-async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOcr = false) {
+async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOcr = false, importLanguage = 'English') {
   try {
-    console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId} (OCR: ${useOcr})...`);
+    console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId} (OCR: ${useOcr}, Language: ${importLanguage})...`);
 
     let answerKeyMap = null;
     if (answerKeyBuffer) {
@@ -979,7 +997,7 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
           
           console.log(`[Job ${jobId}] Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.`);
           
-          const pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation);
+          const pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, importLanguage);
           return { pageNum, pageQuestions };
         });
 
@@ -1285,7 +1303,7 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
       updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII);
+      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII, importLanguage);
       batchJson.forEach((q, idx) => {
         // Enforce index-based mapping to prevent AI from returning wrong qIndex (like absolute 51 instead of relative 1)
         const matchedInputQ = batch[idx];
@@ -1558,7 +1576,7 @@ app.post('/api/questions/import-pdf', upload.fields([
   { name: 'answerKey', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { setId, useOcr } = req.body;
+    const { setId, useOcr, importLanguage } = req.body;
     
     const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
     const answerKeyFile = req.files && req.files['answerKey'] ? req.files['answerKey'][0] : null;
@@ -1580,7 +1598,7 @@ app.post('/api/questions/import-pdf', upload.fields([
     });
 
     // Fire off background processing asynchronously
-    processImportJob(jobId, pdfFile.buffer, setId, answerKeyFile ? answerKeyFile.buffer : null, useOcr === 'true').catch(err => {
+    processImportJob(jobId, pdfFile.buffer, setId, answerKeyFile ? answerKeyFile.buffer : null, useOcr === 'true', importLanguage || 'English').catch(err => {
       console.error(`[Job Trigger Async Error]`, err);
     });
 
