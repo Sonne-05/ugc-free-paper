@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import './Home.css'
 
 const Home = () => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
+  const isLoggedIn = typeof localStorage !== 'undefined' ? localStorage.getItem('isLoggedIn') === 'true' : false
   return (
     <div className="home-page">
       {/* 1. Hero Section */}

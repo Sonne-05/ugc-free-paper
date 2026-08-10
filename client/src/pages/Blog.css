@@ -392,3 +392,90 @@
 .blog-modal-body li {
   margin-bottom: 4px;
 }
+
+/* Responsive adjustments for Blog Index */
+@media (max-width: 768px) {
+  .blog-page {
+    padding: 96px 16px 60px;
+  }
+
+  .blog-container {
+    gap: 28px;
+  }
+
+  .blog-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .blog-search-input {
+    max-width: 100%;
+  }
+
+  .blog-categories {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: -2px;
+    scrollbar-width: none; /* Firefox */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .blog-categories::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
+  .category-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .featured-title {
+    font-size: 1.4rem;
+  }
+
+  .featured-content {
+    padding: 16px;
+    gap: 8px;
+  }
+
+  .post-meta {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .posts-grid {
+    gap: 20px;
+  }
+
+  .post-card-content {
+    padding: 18px;
+    gap: 8px;
+  }
+
+  .post-card-title {
+    font-size: 1.1rem;
+  }
+
+  .newsletter-box {
+    padding: 28px 16px;
+    gap: 12px;
+  }
+
+  .newsletter-title {
+    font-size: 1.3rem;
+  }
+
+  .newsletter-form {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .newsletter-btn {
+    width: 100%;
+  }
+}

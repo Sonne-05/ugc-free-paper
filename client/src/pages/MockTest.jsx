@@ -464,8 +464,8 @@ const MockTest = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const bookletShowKeys = showAnswerKey || isReviewMode
 
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
-  const userName = isLoggedIn ? (localStorage.getItem('userName') || 'Aspirant') : 'Aspirant'
+  const isLoggedIn = typeof localStorage !== 'undefined' ? localStorage.getItem('isLoggedIn') === 'true' : false
+  const userName = isLoggedIn && typeof localStorage !== 'undefined' ? (localStorage.getItem('userName') || 'Aspirant') : 'Aspirant'
 
   // Pre-fill question report id based on active question index
   useEffect(() => {

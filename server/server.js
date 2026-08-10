@@ -2539,27 +2539,38 @@ app.post('/api/subscribe', async (req, res) => {
   }
 });
 
+// Robots.txt Route
+app.get('/robots.txt', (req, res) => {
+  res.header('Content-Type', 'text/plain');
+  res.status(200).send(`User-agent: *
+Allow: /
+
+Sitemap: https://ugcfreepaper.com/sitemap.xml`);
+});
+
 app.get('/sitemap.xml', async (req, res) => {
   try {
     const BlogPost = require('./models/BlogPost');
     const Note = require('./models/Note');
 
     const posts = await BlogPost.find({}).select('_id updatedAt').exec();
-    const notes = await Note.find({ isAvailable: true }).select('unitId updatedAt').exec();
+    const notes = await Note.find({ isAvailable: { $ne: false } }).select('unitId updatedAt').exec();
 
-    // Standard static pages
+    // Standard static pages with custom priority and changefreq
     const staticPages = [
-      '',
-      '/paper1',
-      '/paper2',
-      '/paper1-notes',
-      '/about',
-      '/blog',
-      '/contact',
-      '/support',
-      '/privacy',
-      '/terms',
-      '/refund-policy'
+      { path: '', priority: '1.0', changefreq: 'weekly' },
+      { path: '/paper1', priority: '0.8', changefreq: 'weekly' },
+      { path: '/paper1-unit-pyq', priority: '0.8', changefreq: 'weekly' },
+      { path: '/paper2', priority: '0.8', changefreq: 'weekly' },
+      { path: '/paper1-notes', priority: '0.8', changefreq: 'weekly' },
+      { path: '/mocktest', priority: '0.8', changefreq: 'weekly' },
+      { path: '/about', priority: '0.5', changefreq: 'monthly' },
+      { path: '/blog', priority: '0.8', changefreq: 'daily' },
+      { path: '/contact', priority: '0.5', changefreq: 'monthly' },
+      { path: '/support', priority: '0.5', changefreq: 'monthly' },
+      { path: '/privacy', priority: '0.3', changefreq: 'monthly' },
+      { path: '/terms', priority: '0.3', changefreq: 'monthly' },
+      { path: '/refund-policy', priority: '0.3', changefreq: 'monthly' }
     ];
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -2569,10 +2580,10 @@ app.get('/sitemap.xml', async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     staticPages.forEach(page => {
       xml += '  <url>\n';
-      xml += `    <loc>https://ugcfreepaper.com${page}</loc>\n`;
+      xml += `    <loc>https://ugcfreepaper.com${page.path}</loc>\n`;
       xml += `    <lastmod>${today}</lastmod>\n`;
-      xml += '    <changefreq>weekly</changefreq>\n';
-      xml += '    <priority>' + (page === '' ? '1.0' : '0.8') + '</priority>\n';
+      xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
+      xml += `    <priority>${page.priority}</priority>\n`;
       xml += '  </url>\n';
     });
 

@@ -238,3 +238,79 @@
 .back-btn:hover {
   background: var(--primary-dark);
 }
+
+/* Responsive adjustments for Blog Detail Page */
+@media (max-width: 768px) {
+  .blog-detail-page {
+    padding: 96px 16px 60px;
+  }
+
+  .blog-detail-main {
+    padding: 24px 16px;
+  }
+
+  .detail-title {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+  }
+
+  .detail-meta {
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+
+  .detail-divider {
+    margin: 20px 0;
+  }
+
+  .detail-body {
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .detail-body h2 {
+    font-size: 1.3rem;
+    margin: 24px 0 12px;
+  }
+
+  .detail-body h3 {
+    font-size: 1.15rem;
+    margin: 20px 0 10px;
+  }
+}
+
+/* Rich-Text content limits to prevent horizontal page overflow (Desktop + Mobile) */
+.detail-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  margin: 16px 0;
+}
+
+.detail-body table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-body table th,
+.detail-body table td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.detail-body pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--bg-card-hover);
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
