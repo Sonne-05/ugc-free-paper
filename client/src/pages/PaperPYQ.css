@@ -5,7 +5,7 @@
 }
 
 .pyq-page__container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -28,6 +28,32 @@
   color: var(--text-secondary);
   margin-bottom: 32px;
   text-align: center;
+}
+
+/* 2-Column Responsive Grid Layout */
+.pyq-page__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .pyq-page__layout {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+.pyq-page__main-content {
+  min-width: 0; /* Prevents flex/grid item overflow */
+}
+
+.pyq-page__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 100px;
 }
 
 .pyq-page__intro {
@@ -72,6 +98,36 @@
 
 .pyq-table__tr:hover {
   background-color: rgba(37, 99, 235, 0.01);
+}
+
+.pyq-table__year-td {
+  padding: 14px 20px;
+  background: var(--bg-elevated);
+  border-bottom: 2px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+
+.pyq-table__year-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pyq-table__year-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.pyq-table__year-badge {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .pyq-table__td {
@@ -122,6 +178,7 @@
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
   text-align: center;
+  white-space: nowrap;
 }
 
 .pyq-table__btn:hover {
@@ -134,16 +191,17 @@
   transform: translateY(0);
 }
 
-.col-year {
-  width: 15%;
-}
-
 .col-cycle {
-  width: 65%;
+  width: 80%;
 }
 
 .col-action {
   width: 20%;
+  text-align: right;
+}
+
+.col-action-th {
+  text-align: right;
 }
 
 @media (max-width: 640px) {
@@ -156,15 +214,6 @@
   }
 }
 
-.pyq-table__td--year-group {
-  vertical-align: middle;
-  border-right: 1px solid var(--border);
-  text-align: center;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: rgba(37, 99, 235, 0.005);
-}
 
 .unit-pyq-card:hover {
   transform: translateY(-4px);

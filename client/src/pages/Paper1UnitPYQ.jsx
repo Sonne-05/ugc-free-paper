@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
@@ -157,51 +158,60 @@ const Paper1UnitPYQ = () => {
         <h1 className="pyq-page__title">UGC NET Paper I PYQs (Unit Wise)</h1>
         <p className="pyq-page__subtitle">Practice previous year questions organized by syllabus units.</p>
 
-        {/* SEO Intro */}
-        <section className="pyq-page__intro">
-          <h2>About Unit-wise Practice</h2>
-          <p>
-            Practicing previous years' questions (PYQs) organized by unit allows you to isolate specific areas of the UGC NET Paper 1 syllabus and strengthen your conceptual understanding. Master individual topic weights, test your speed, and review explanations for each question in a target-focused practice environment.
-          </p>
-        </section>
+        <div className="pyq-page__layout">
+          <div className="pyq-page__main-content">
+            {/* SEO Intro */}
+            <section className="pyq-page__intro">
+              <h2>About Unit-wise Practice</h2>
+              <p>
+                Practicing previous years' questions (PYQs) organized by unit allows you to isolate specific areas of the UGC NET Paper 1 syllabus and strengthen your conceptual understanding. Master individual topic weights, test your speed, and review explanations for each question in a target-focused practice environment.
+              </p>
+            </section>
 
-        <div className="pyq-page__content">
-          <table className="pyq-table">
-            <thead>
-              <tr>
-                <th className="pyq-table__th col-year" style={{ textAlign: 'center' }}>Unit</th>
-                <th className="pyq-table__th col-cycle">Syllabus Unit Name & Description</th>
-                <th className="pyq-table__th col-action">Practice</th>
-              </tr>
-            </thead>
-            <tbody>
-              {units.map((unit) => (
-                <tr key={unit.id} className="pyq-table__tr">
-                  <td className="pyq-table__td font-semibold pyq-table__td--year-group">
-                    {unit.id}
-                  </td>
-                  <td className="pyq-table__td">
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        {unit.name}
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        {unit.desc}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="pyq-table__td">
-                    <button 
-                      className="pyq-table__btn"
-                      onClick={() => handleStartPractice(unit)}
-                    >
-                      Practice
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="pyq-page__content">
+              <table className="pyq-table">
+                <thead>
+                  <tr>
+                    <th className="pyq-table__th" style={{ width: '80px', textAlign: 'center' }}>Unit</th>
+                    <th className="pyq-table__th col-cycle">Syllabus Unit Name & Description</th>
+                    <th className="pyq-table__th col-action col-action-th">Practice</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {units.map((unit) => (
+                    <tr key={unit.id} className="pyq-table__tr">
+                      <td className="pyq-table__td font-semibold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', fontSize: '1.1rem' }}>
+                        {unit.id}
+                      </td>
+                      <td className="pyq-table__td">
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+                            {unit.name}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                            {unit.desc}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="pyq-table__td col-action">
+                        <button 
+                          className="pyq-table__btn"
+                          onClick={() => handleStartPractice(unit)}
+                        >
+                          Practice
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="pyq-page__sidebar">
+            <AdSensePlaceholder type="display" format="rectangle" />
+            <AdSensePlaceholder type="display" format="rectangle" />
+          </div>
         </div>
       </div>
     </div>
