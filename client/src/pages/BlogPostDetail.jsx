@@ -177,20 +177,6 @@ const BlogPostDetail = () => {
                 <Link to="/blog#subscribe" className="promo-btn">Go to Subscribe</Link>
               </div>
 
-              {/* Related Articles list in Sidebar */}
-              {suggestedPosts.length > 0 && (
-                <div className="sidebar-widget related-posts-widget">
-                  <h3>Related Articles</h3>
-                  <div className="sidebar-related-list">
-                    {suggestedPosts.map(p => (
-                      <div key={p._id} className="related-item" onClick={() => navigate(`/blog/${p._id}`)}>
-                        <span className="related-category">{p.category}</span>
-                        <h4 className="related-title">{p.title}</h4>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 300x600 Half-page sticky sidebar ad box */}
               <div className="sidebar-ad-card">
