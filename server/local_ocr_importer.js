@@ -60,8 +60,11 @@ const keyRotation = {
   primaryIndex: 0,
   fallbackIndex: 0,
   getNextKey(retryCount = 0) {
-    // If we are on initial attempts and primary keys exist, prioritize primary keys
-    if (primaryKeys.length > 0 && retryCount < primaryKeys.length) {
+    const totalKeys = (primaryKeys.length + fallbackKeys.length) || 1;
+    const index = retryCount % totalKeys;
+
+    // Prioritize primaryKeys for the first primaryKeys.length positions of the cycle
+    if (primaryKeys.length > 0 && index < primaryKeys.length) {
       return primaryKeys[this.primaryIndex++ % primaryKeys.length];
     }
     // Fallback to GEMINI_API_KEY
@@ -159,13 +162,13 @@ Schema:
 
     if (!response.ok) {
       const errText = await response.text();
-      if ((response.status === 429 || response.status === 503) && retryCount < 15) {
+      if ((response.status === 429 || response.status === 503) && retryCount < 30) {
         const keysCount = (primaryKeys.length + fallbackKeys.length) || 1;
         // If we have cycled through all keys once, wait 60s for full RPM/TPM reset, otherwise wait 15s to check next key
         const isCycleExhausted = retryCount > 0 && retryCount % keysCount === 0;
         const waitTime = isCycleExhausted ? 60000 : 15000;
 
-        console.warn(`[AI OCR] Gemini rate limited (429/503) on Page ${pageNum}. Details: ${errText.substring(0, 250)}. Waiting ${waitTime / 1000}s for reset (Retry ${retryCount + 1}/15) with next key...`);
+        console.warn(`[AI OCR] Gemini rate limited (429/503) on Page ${pageNum}. Details: ${errText.substring(0, 250)}. Waiting ${waitTime / 1000}s for reset (Retry ${retryCount + 1}/30) with next key...`);
         await new Promise(r => setTimeout(r, waitTime));
         return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
       }
@@ -180,16 +183,16 @@ Schema:
       const parsed = JSON.parse(cleaned);
       return parsed.questions || parsed;
     } catch (jsonErr) {
-      if (retryCount < 15) {
-        console.warn(`[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/15)...`);
+      if (retryCount < 30) {
+        console.warn(`[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`);
         await new Promise(r => setTimeout(r, 2000));
         return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
       }
       throw jsonErr;
     }
   } catch (err) {
-    if (retryCount < 15 && (err.message.includes('fetch') || err.message.includes('timeout') || err.message.includes('API error'))) {
-      console.warn(`[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/15)...`);
+    if (retryCount < 30 && (err.message.includes('fetch') || err.message.includes('timeout') || err.message.includes('API error'))) {
+      console.warn(`[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/30)...`);
       await new Promise(r => setTimeout(r, 5000));
       return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
     }
