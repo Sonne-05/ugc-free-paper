@@ -1709,16 +1709,37 @@ app.get('/api/settings', async (req, res) => {
 
 app.post('/api/settings', async (req, res) => {
   try {
-    const { maintenanceMode, adsenseEnabled, passPercentage, timerDuration, studyNotesEnabled } = req.body;
+    const { 
+      maintenanceMode, 
+      adsenseEnabled, 
+      passPercentage, 
+      timerDuration, 
+      studyNotesEnabled,
+      adsensePublisherId,
+      adsenseHorizontalSlot,
+      adsenseRectangleSlot
+    } = req.body;
     let settings = await Setting.findOne();
     if (!settings) {
-      settings = new Setting({ maintenanceMode, adsenseEnabled, passPercentage, timerDuration, studyNotesEnabled });
+      settings = new Setting({ 
+        maintenanceMode, 
+        adsenseEnabled, 
+        passPercentage, 
+        timerDuration, 
+        studyNotesEnabled,
+        adsensePublisherId,
+        adsenseHorizontalSlot,
+        adsenseRectangleSlot
+      });
     } else {
       if (maintenanceMode !== undefined) settings.maintenanceMode = maintenanceMode;
       if (adsenseEnabled !== undefined) settings.adsenseEnabled = adsenseEnabled;
       if (passPercentage !== undefined) settings.passPercentage = passPercentage;
       if (timerDuration !== undefined) settings.timerDuration = timerDuration;
       if (studyNotesEnabled !== undefined) settings.studyNotesEnabled = studyNotesEnabled;
+      if (adsensePublisherId !== undefined) settings.adsensePublisherId = adsensePublisherId;
+      if (adsenseHorizontalSlot !== undefined) settings.adsenseHorizontalSlot = adsenseHorizontalSlot;
+      if (adsenseRectangleSlot !== undefined) settings.adsenseRectangleSlot = adsenseRectangleSlot;
     }
     await settings.save();
     res.json(settings);

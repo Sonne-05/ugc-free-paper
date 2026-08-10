@@ -4,17 +4,24 @@ import { useEffect } from 'react'
 // When false, all ads, sidebar spacers, and table ad rows are completely removed from the DOM.
 export const ENABLE_ADSENSE = false;
 
-const AdSensePlaceholder = ({ format = 'horizontal' }) => {
+const AdSensePlaceholder = ({ format = 'horizontal', config }) => {
+  const enabled = config ? config.adsenseEnabled : false
+
   useEffect(() => {
-    if (!ENABLE_ADSENSE) return;
+    if (!enabled) return
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch (e) {
       // Ads might fail to load if blocked or not yet approved; fail silently
     }
-  }, []);
+  }, [enabled]);
 
-  if (!ENABLE_ADSENSE) return null;
+  if (!enabled) return null;
+
+  const pubId = config.adsensePublisherId || 'ca-pub-XXXXXXXXXXXXXXXX'
+  const slotId = format === 'horizontal'
+    ? (config.adsenseHorizontalSlot || 'HORIZONTAL_SLOT_ID')
+    : (config.adsenseRectangleSlot || 'RECTANGLE_SLOT_ID')
 
   // Set sizing based on format to reserve proper layout spacing
   const style = format === 'horizontal'
@@ -25,8 +32,8 @@ const AdSensePlaceholder = ({ format = 'horizontal' }) => {
     <ins
       className="adsbygoogle"
       style={style}
-      data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" // Replace with your approved AdSense Publisher ID
-      data-ad-slot={format === 'horizontal' ? 'HORIZONTAL_SLOT_ID' : 'RECTANGLE_SLOT_ID'} // Replace with your approved Ad Unit Slot IDs
+      data-ad-client={pubId}
+      data-ad-slot={slotId}
       data-ad-format="auto"
       data-full-width-responsive="true"
     />

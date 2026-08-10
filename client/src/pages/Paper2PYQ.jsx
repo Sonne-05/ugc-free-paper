@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, Fragment } from 'react'
 import { API_BASE_URL } from '../services/api'
-import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import SuggestedBlogs from '../components/layout/SuggestedBlogs'
 import './PaperPYQ.css'
 
@@ -64,6 +64,16 @@ const Paper2PYQ = () => {
   const navigate = useNavigate()
   const { search } = useLocation()
   const [groupedPapers, setGroupedPapers] = useState({})
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) setSettings(data)
+      })
+      .catch(err => console.error('Failed to fetch settings:', err))
+  }, [])
 
   const query = new URLSearchParams(search)
   const activeSubject = query.get('subject') || 'Sociology'
@@ -92,6 +102,8 @@ const Paper2PYQ = () => {
       .catch(err => console.error('Failed to fetch pyq sets:', err))
   }, [activeSubject])
 
+  const adsEnabled = settings ? settings.adsenseEnabled : false
+
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
@@ -99,13 +111,13 @@ const Paper2PYQ = () => {
         <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} Previous Year Question papers.</p>
 
         {/* Top Leaderboard Ad */}
-        {ENABLE_ADSENSE && (
+        {adsEnabled && (
           <div className="pyq-page__top-ad">
-            <AdSensePlaceholder type="display" format="horizontal" />
+            <AdSensePlaceholder type="display" format="horizontal" config={settings} />
           </div>
         )}
 
-        <div className="pyq-page__layout">
+        <div className={`pyq-page__layout ${!adsEnabled ? 'pyq-page__layout--no-ads' : ''}`}>
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -168,10 +180,10 @@ const Paper2PYQ = () => {
                               </td>
                             </tr>
                           ))}
-                          {ENABLE_ADSENSE && (
+                          {adsEnabled && (
                             <tr className="pyq-table__in-feed-ad-row">
                               <td colSpan={2} className="pyq-table__in-feed-ad-td">
-                                <AdSensePlaceholder type="display" format="horizontal" />
+                                <AdSensePlaceholder type="display" format="horizontal" config={settings} />
                               </td>
                             </tr>
                           )}
@@ -185,12 +197,12 @@ const Paper2PYQ = () => {
 
           <div className="pyq-page__sidebar">
             <SuggestedBlogs limit={3} />
-            {ENABLE_ADSENSE && (
+            {adsEnabled && (
               <>
-                <AdSensePlaceholder type="display" format="rectangle" />
-                <AdSensePlaceholder type="display" format="rectangle" />
+                <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                <AdSensePlaceholder type="display" format="rectangle" config={settings} />
                 <div className="pyq-page__sidebar-sticky">
-                  <AdSensePlaceholder type="display" format="rectangle" />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
                 </div>
               </>
             )}

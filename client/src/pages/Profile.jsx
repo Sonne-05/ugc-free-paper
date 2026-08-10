@@ -113,7 +113,10 @@ const Profile = () => {
     maintenanceMode: false,
     adsenseEnabled: true,
     studyNotesEnabled: true,
-    timerDuration: 120 // minutes
+    timerDuration: 120, // minutes
+    adsensePublisherId: 'ca-pub-XXXXXXXXXXXXXXXX',
+    adsenseHorizontalSlot: 'HORIZONTAL_SLOT_ID',
+    adsenseRectangleSlot: 'RECTANGLE_SLOT_ID'
   })
 
   const [notes, setNotes] = useState([])
@@ -137,6 +140,17 @@ const Profile = () => {
 
   // Form states
   const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [pubIdInput, setPubIdInput] = useState('')
+  const [horizSlotInput, setHorizSlotInput] = useState('')
+  const [rectSlotInput, setRectSlotInput] = useState('')
+
+  useEffect(() => {
+    if (settings) {
+      setPubIdInput(settings.adsensePublisherId || '')
+      setHorizSlotInput(settings.adsenseHorizontalSlot || '')
+      setRectSlotInput(settings.adsenseRectangleSlot || '')
+    }
+  }, [settings])
 
   // New PYQ Set Form states
   const [newSetPaperType, setNewSetPaperType] = useState('Paper I')
@@ -632,6 +646,31 @@ const Profile = () => {
       }
     } catch (err) {
       console.error('Failed to save adsense status:', err);
+    }
+  }
+
+  const handleSaveAdsenseConfig = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adsensePublisherId: pubIdInput,
+          adsenseHorizontalSlot: horizSlotInput,
+          adsenseRectangleSlot: rectSlotInput
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSettings(data);
+        alert('AdSense configurations saved successfully!');
+      } else {
+        alert('Failed to save AdSense configurations.');
+      }
+    } catch (err) {
+      console.error('Failed to save AdSense configurations:', err);
+      alert('Error saving AdSense configurations.');
     }
   }
 
@@ -2095,6 +2134,108 @@ const Profile = () => {
                       <span className="toggle-slider"></span>
                     </button>
                   </div>
+
+                  {settings.adsenseEnabled && (
+                    <div className="adsense-config-box" style={{
+                      background: 'var(--bg-hover, #f9fafb)',
+                      padding: '20px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border)',
+                      marginTop: '-12px',
+                      marginBottom: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
+                    }}>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
+                        Google AdSense API Config
+                      </h3>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          AdSense Publisher ID (ca-pub-...)
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. ca-pub-1234567890123456"
+                          value={pubIdInput}
+                          onChange={(e) => setPubIdInput(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid var(--border)',
+                            borderRadius: '8px',
+                            fontSize: '0.9rem',
+                            background: 'white',
+                            color: 'var(--text)'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Horizontal Ad Slot ID
+                          </label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 1234567890"
+                            value={horizSlotInput}
+                            onChange={(e) => setHorizSlotInput(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              fontSize: '0.9rem',
+                              background: 'white',
+                              color: 'var(--text)'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Rectangle Ad Slot ID
+                          </label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. 0987654321"
+                            value={rectSlotInput}
+                            onChange={(e) => setRectSlotInput(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              fontSize: '0.9rem',
+                              background: 'white',
+                              color: 'var(--text)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={handleSaveAdsenseConfig}
+                        style={{
+                          alignSelf: 'flex-start',
+                          padding: '10px 20px',
+                          background: 'var(--primary, #3b82f6)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease',
+                          marginTop: '4px'
+                        }}
+                      >
+                        Save AdSense IDs
+                      </button>
+                    </div>
+                  )}
 
                   <div className="setting-row">
                     <div className="setting-info">

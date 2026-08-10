@@ -1,11 +1,23 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect, Fragment } from 'react'
-import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
+import { useState, useEffect, Fragment } from 'react'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import SuggestedBlogs from '../components/layout/SuggestedBlogs'
+import { API_BASE_URL } from '../services/api'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
   const navigate = useNavigate()
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    // Fetch dynamic platform settings
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) setSettings(data)
+      })
+      .catch(err => console.error('Failed to fetch settings:', err))
+  }, [])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -153,6 +165,8 @@ const Paper1UnitPYQ = () => {
     })
   }
 
+  const adsEnabled = settings ? settings.adsenseEnabled : false
+
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
@@ -160,13 +174,13 @@ const Paper1UnitPYQ = () => {
         <p className="pyq-page__subtitle">Practice previous year questions organized by syllabus units.</p>
 
         {/* Top Leaderboard Ad */}
-        {ENABLE_ADSENSE && (
+        {adsEnabled && (
           <div className="pyq-page__top-ad">
-            <AdSensePlaceholder type="display" format="horizontal" />
+            <AdSensePlaceholder type="display" format="horizontal" config={settings} />
           </div>
         )}
 
-        <div className="pyq-page__layout">
+        <div className={`pyq-page__layout ${!adsEnabled ? 'pyq-page__layout--no-ads' : ''}`}>
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -216,10 +230,10 @@ const Paper1UnitPYQ = () => {
                           </button>
                         </td>
                       </tr>
-                      {ENABLE_ADSENSE && index === 4 && (
+                      {adsEnabled && index === 4 && (
                         <tr className="pyq-table__in-feed-ad-row">
                           <td colSpan={3} className="pyq-table__in-feed-ad-td">
-                            <AdSensePlaceholder type="display" format="horizontal" />
+                            <AdSensePlaceholder type="display" format="horizontal" config={settings} />
                           </td>
                         </tr>
                       )}
@@ -232,12 +246,12 @@ const Paper1UnitPYQ = () => {
 
           <div className="pyq-page__sidebar">
             <SuggestedBlogs limit={3} />
-            {ENABLE_ADSENSE && (
+            {adsEnabled && (
               <>
-                <AdSensePlaceholder type="display" format="rectangle" />
-                <AdSensePlaceholder type="display" format="rectangle" />
+                <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                <AdSensePlaceholder type="display" format="rectangle" config={settings} />
                 <div className="pyq-page__sidebar-sticky">
-                  <AdSensePlaceholder type="display" format="rectangle" />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
                 </div>
               </>
             )}

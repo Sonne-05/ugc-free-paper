@@ -20,6 +20,18 @@ const settingSchema = new mongoose.Schema({
   studyNotesEnabled: {
     type: Boolean,
     default: true
+  },
+  adsensePublisherId: {
+    type: String,
+    default: 'ca-pub-XXXXXXXXXXXXXXXX'
+  },
+  adsenseHorizontalSlot: {
+    type: String,
+    default: 'HORIZONTAL_SLOT_ID'
+  },
+  adsenseRectangleSlot: {
+    type: String,
+    default: 'RECTANGLE_SLOT_ID'
   }
 }, { timestamps: true });
 
