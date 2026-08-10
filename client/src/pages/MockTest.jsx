@@ -1334,7 +1334,7 @@ Submitted by User: ${userName}
         }}>
           <div className="mt-header__left" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <Link to="/" className="mt-header__logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="navbar__logo-icon" style={{ width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="navbar__logo-icon" style={{ width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '0px' }}>
                 <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               <span className="mt-header__logo-text-dark" style={{ color: '#1C2355', fontWeight: 'bold', fontSize: '1.1rem', marginLeft: '-5px' }}>GC Free Paper</span>
@@ -1552,7 +1552,7 @@ Submitted by User: ${userName}
         <header className="mt-header">
           <div className="mt-header__left">
             <Link to="/" className="mt-header__logo" style={{ textDecoration: 'none' }}>
-              <div className="navbar__logo-icon" style={{ width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="navbar__logo-icon" style={{ width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '0px' }}>
                 <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               <span className="mt-header__logo-text-dark" style={{ marginLeft: '-5px' }}>GC Free Paper</span>
