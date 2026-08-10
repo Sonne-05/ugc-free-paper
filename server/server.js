@@ -814,16 +814,16 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
     // If Format A and B found 0 matches, try Format C (Garbled/Devanagari NTA response sheet format)
     if (matchesList.length === 0) {
       console.log(`[Job ${jobId}] No Format A or B headers found. Trying Format C (Garbled/Devanagari)...`);
-      const qGarbledRegex = /\D*(?:Question\s*Number|[पप्रज९]\S*\s+\S*)\s*[:;]+\s*(\d+\]?|\d+)\s+(?:[^\n]+?)(?:Question\s*Id|[^\n]*?76[\s:;]+)\s*(\d{10})/gi;
+      const qGarbledRegex = /\D*(?:Question\s*Number|[पप्रज९]\S*\s+\S*)\s*[:;]+\s*([|0-9\]]+)\s+(?:[^\n]+?)(?:Question\s*Id|[^\n]*?7[0-9॥][\s:;]+)\s*([0-9\]]{10})/gi;
       
       const tempMatches = [];
       qGarbledRegex.lastIndex = 0;
       while ((match = qGarbledRegex.exec(text)) !== null) {
         let rawNum = match[1];
-        let qId = match[2];
+        let qId = match[2].replace(/\]/g, '1'); // Normalize ID
         
         // Normalize basic character anomalies in number strings
-        let numStr = rawNum;
+        let numStr = rawNum.replace(/\|/g, ''); // Remove vertical bars
         if (numStr.endsWith(']')) {
           numStr = numStr.slice(0, -1) + '1';
         }
@@ -855,11 +855,31 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         
         if (consensusOffset) {
           console.log(`[Job ${jobId}] Detected consensus QId-to-QNum offset: ${consensusOffset}`);
+          const seenIds = new Set();
           for (const m of tempMatches) {
             const idVal = parseInt(m.qId, 10);
             const correctedNum = idVal - consensusOffset;
-            matchesList.push({ index: m.index, qNum: correctedNum, qId: m.qId });
+            if (!seenIds.has(m.qId)) {
+              seenIds.add(m.qId);
+              matchesList.push({ index: m.index, qNum: correctedNum, qId: m.qId });
+            }
           }
+          
+          // Fallback scan for remaining missing IDs using lenient ID-only regex
+          const qIdFallbackRegex = /(?:Question\s*Id|[पप्रज९]\S*\s*7[0-9॥\s:;]+|7[0-9॥][\s:;]+)\s*([0-9\]]{10})/gi;
+          qIdFallbackRegex.lastIndex = 0;
+          let fbCount = 0;
+          while ((match = qIdFallbackRegex.exec(text)) !== null) {
+            const rawId = match[1].replace(/\]/g, '1');
+            if (!seenIds.has(rawId)) {
+              seenIds.add(rawId);
+              const idVal = parseInt(rawId, 10);
+              const correctedNum = idVal - consensusOffset;
+              matchesList.push({ index: match.index, qNum: correctedNum, qId: rawId });
+              fbCount++;
+            }
+          }
+          console.log(`[Job ${jobId}] Resolved ${fbCount} additional questions using fallback ID scanner.`);
         } else {
           // Fallback to the temp matches if no consensus offset could be determined
           matchesList.push(...tempMatches);
