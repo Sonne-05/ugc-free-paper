@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, Fragment } from 'react'
 import { API_BASE_URL } from '../services/api'
 import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
+import SuggestedBlogs from '../components/layout/SuggestedBlogs'
 import './PaperPYQ.css'
 
 const monthMap = {
@@ -178,6 +179,7 @@ const Paper2PYQ = () => {
           </div>
 
           <div className="pyq-page__sidebar">
+            <SuggestedBlogs limit={3} />
             {ENABLE_ADSENSE && (
               <>
                 <AdSensePlaceholder type="display" format="rectangle" />

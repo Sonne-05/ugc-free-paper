@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, Fragment } from 'react'
 import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
+import SuggestedBlogs from '../components/layout/SuggestedBlogs'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
@@ -225,6 +226,7 @@ const Paper1UnitPYQ = () => {
           </div>
 
           <div className="pyq-page__sidebar">
+            <SuggestedBlogs limit={3} />
             {ENABLE_ADSENSE && (
               <>
                 <AdSensePlaceholder type="display" format="rectangle" />
