@@ -57,6 +57,9 @@ async function run() {
   }
   const template = fs.readFileSync(templatePath, 'utf-8')
 
+  // Save the original clean, unrendered template to fallback.html for SPA fallback routing
+  fs.writeFileSync(toAbsolute('dist/fallback.html'), template)
+
   // 2. Import server entry
   const serverBundlePath = toAbsolute('dist/server/entry-server.js')
   if (!fs.existsSync(serverBundlePath)) {
