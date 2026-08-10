@@ -45,12 +45,7 @@
   color: #1C2355;
   letter-spacing: -0.01em;
   margin-left: -2px;
-  -webkit-text-stroke: 1px #e65100;
-  text-shadow: 
-    -1px -1px 0 #e65100,  
-     1px -1px 0 #e65100,
-    -1px  1px 0 #e65100,
-     1px  1px 0 #e65100;
+  -webkit-text-stroke: 0.5px #e65100;
 }
 
 .footer__desc {
