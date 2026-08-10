@@ -46,11 +46,18 @@
 }
 
 .navbar__logo-text {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
   color: #1C2355;
-  letter-spacing: -0.02em;
-  margin-left: -4px;
+  letter-spacing: -0.01em;
+  margin-left: -2px;
+  -webkit-text-stroke: 1px #e65100;
+  text-shadow: 
+    -1px -1px 0 #e65100,  
+     1px -1px 0 #e65100,
+    -1px  1px 0 #e65100,
+     1px  1px 0 #e65100;
 }
 
 /* ── Desktop Center Navigation Links ── */
@@ -93,9 +100,9 @@
   gap: 6px;
   padding: 8px 0;
   height: 38px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1C2355;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
