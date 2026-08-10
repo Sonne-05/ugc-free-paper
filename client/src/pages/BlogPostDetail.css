@@ -140,6 +140,9 @@
 /* Sidebar */
 .blog-detail-sidebar {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .sidebar-sticky-wrapper {
@@ -546,3 +549,12 @@
   margin-top: auto;
 }
 
+.sidebar-scroll-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.display-ad-300 {
+  height: 250px;
+}

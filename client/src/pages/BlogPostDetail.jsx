@@ -168,7 +168,8 @@ const BlogPostDetail = () => {
 
           {/* Sidebar column with advertisement */}
           <aside className="blog-detail-sidebar">
-            <div className="sidebar-sticky-wrapper">
+            {/* These widgets scroll normally */}
+            <div className="sidebar-scroll-wrapper">
               
               {/* Related/Newsletter block */}
               <div className="sidebar-promo-box">
@@ -177,15 +178,33 @@ const BlogPostDetail = () => {
                 <Link to="/blog#subscribe" className="promo-btn">Go to Subscribe</Link>
               </div>
 
+              {/* Ad Slot 1: Top Sidebar Ad (300x250) */}
+              <div className="sidebar-ad-card">
+                <span className="ad-badge-top">Advertisement</span>
+                <div className="sidebar-ad-box display-ad-300">
+                  <span className="ad-placeholder-text">Display Ad 1 (300 x 250)</span>
+                </div>
+              </div>
 
-              {/* 300x600 Half-page sticky sidebar ad box */}
+              {/* Ad Slot 2: Middle Sidebar Ad (300x250) */}
+              <div className="sidebar-ad-card">
+                <span className="ad-badge-top">Advertisement</span>
+                <div className="sidebar-ad-box display-ad-300">
+                  <span className="ad-placeholder-text">Display Ad 2 (300 x 250)</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Only this bottom slot becomes sticky as the user scrolls further down */}
+            <div className="sidebar-sticky-wrapper">
+              {/* Ad Slot 3: Bottom Sticky Sidebar Ad (300x600) */}
               <div className="sidebar-ad-card">
                 <span className="ad-badge-top">Advertisement</span>
                 <div className="sidebar-ad-box display-ad-600">
                   <span className="ad-placeholder-text">Sticky Half-Page Ad (300 x 600)</span>
                 </div>
               </div>
-
             </div>
           </aside>
 
