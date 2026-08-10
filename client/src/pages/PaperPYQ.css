@@ -409,4 +409,8 @@
   width: 100%;
 }
 
+.pyq-page__layout--no-ads {
+  grid-template-columns: 1fr !important;
+}
+
 

@@ -1,13 +1,20 @@
 import { useEffect } from 'react'
 
+// Set to true once approved to render ads on the site.
+// When false, all ads, sidebar spacers, and table ad rows are completely removed from the DOM.
+export const ENABLE_ADSENSE = false;
+
 const AdSensePlaceholder = ({ format = 'horizontal' }) => {
   useEffect(() => {
+    if (!ENABLE_ADSENSE) return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch (e) {
       // Ads might fail to load if blocked or not yet approved; fail silently
     }
   }, []);
+
+  if (!ENABLE_ADSENSE) return null;
 
   // Set sizing based on format to reserve proper layout spacing
   const style = format === 'horizontal'

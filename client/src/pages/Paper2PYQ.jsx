@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, Fragment } from 'react'
 import { API_BASE_URL } from '../services/api'
-import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
+import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
 import './PaperPYQ.css'
 
 const monthMap = {
@@ -98,11 +98,13 @@ const Paper2PYQ = () => {
         <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} Previous Year Question papers.</p>
 
         {/* Top Leaderboard Ad */}
-        <div className="pyq-page__top-ad">
-          <AdSensePlaceholder type="display" format="horizontal" />
-        </div>
+        {ENABLE_ADSENSE && (
+          <div className="pyq-page__top-ad">
+            <AdSensePlaceholder type="display" format="horizontal" />
+          </div>
+        )}
 
-        <div className="pyq-page__layout">
+        <div className={`pyq-page__layout ${!ENABLE_ADSENSE ? 'pyq-page__layout--no-ads' : ''}`}>
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -160,11 +162,13 @@ const Paper2PYQ = () => {
                               </td>
                             </tr>
                           ))}
-                          <tr className="pyq-table__in-feed-ad-row">
-                            <td colSpan={2} className="pyq-table__in-feed-ad-td">
-                              <AdSensePlaceholder type="display" format="horizontal" />
-                            </td>
-                          </tr>
+                          {ENABLE_ADSENSE && (
+                            <tr className="pyq-table__in-feed-ad-row">
+                              <td colSpan={2} className="pyq-table__in-feed-ad-td">
+                                <AdSensePlaceholder type="display" format="horizontal" />
+                              </td>
+                            </tr>
+                          )}
                         </Fragment>
                       )
                     })}
@@ -173,13 +177,15 @@ const Paper2PYQ = () => {
             </div>
           </div>
 
-          <div className="pyq-page__sidebar">
-            <AdSensePlaceholder type="display" format="rectangle" />
-            <AdSensePlaceholder type="display" format="rectangle" />
-            <div className="pyq-page__sidebar-sticky">
+          {ENABLE_ADSENSE && (
+            <div className="pyq-page__sidebar">
               <AdSensePlaceholder type="display" format="rectangle" />
+              <AdSensePlaceholder type="display" format="rectangle" />
+              <div className="pyq-page__sidebar-sticky">
+                <AdSensePlaceholder type="display" format="rectangle" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, Fragment } from 'react'
-import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
+import AdSensePlaceholder, { ENABLE_ADSENSE } from '../components/layout/AdSensePlaceholder'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
@@ -159,11 +159,13 @@ const Paper1UnitPYQ = () => {
         <p className="pyq-page__subtitle">Practice previous year questions organized by syllabus units.</p>
 
         {/* Top Leaderboard Ad */}
-        <div className="pyq-page__top-ad">
-          <AdSensePlaceholder type="display" format="horizontal" />
-        </div>
+        {ENABLE_ADSENSE && (
+          <div className="pyq-page__top-ad">
+            <AdSensePlaceholder type="display" format="horizontal" />
+          </div>
+        )}
 
-        <div className="pyq-page__layout">
+        <div className={`pyq-page__layout ${!ENABLE_ADSENSE ? 'pyq-page__layout--no-ads' : ''}`}>
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -208,7 +210,7 @@ const Paper1UnitPYQ = () => {
                           </button>
                         </td>
                       </tr>
-                      {index === 4 && (
+                      {ENABLE_ADSENSE && index === 4 && (
                         <tr className="pyq-table__in-feed-ad-row">
                           <td colSpan={3} className="pyq-table__in-feed-ad-td">
                             <AdSensePlaceholder type="display" format="horizontal" />
@@ -222,13 +224,15 @@ const Paper1UnitPYQ = () => {
             </div>
           </div>
 
-          <div className="pyq-page__sidebar">
-            <AdSensePlaceholder type="display" format="rectangle" />
-            <AdSensePlaceholder type="display" format="rectangle" />
-            <div className="pyq-page__sidebar-sticky">
+          {ENABLE_ADSENSE && (
+            <div className="pyq-page__sidebar">
               <AdSensePlaceholder type="display" format="rectangle" />
+              <AdSensePlaceholder type="display" format="rectangle" />
+              <div className="pyq-page__sidebar-sticky">
+                <AdSensePlaceholder type="display" format="rectangle" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
