@@ -52,7 +52,7 @@
   color: #1C2355;
   letter-spacing: -0.01em;
   margin-left: -2px;
-  -webkit-text-stroke: 0.5px #e65100;
+  text-shadow: 1.5px 1.5px 0 #e65100;
 }
 
 /* ── Desktop Center Navigation Links ── */
