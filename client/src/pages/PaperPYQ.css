@@ -77,7 +77,6 @@
 
 .pyq-table__in-feed-ad-td {
   padding: 24px 20px;
-  border-bottom: 1px solid var(--border);
   text-align: center;
   background: transparent;
 }
