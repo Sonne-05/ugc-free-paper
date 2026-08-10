@@ -320,18 +320,29 @@
 
 /* Sidebar Display Ad Card */
 .sidebar-ad-card {
-  display: none !important; /* Hide during AdSense approval phase */
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.sidebar-ad-card:has(ins[data-ad-status="filled"]),
+.sidebar-ad-card:has(iframe) {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
   gap: 10px;
+  margin-bottom: 24px;
 }
 
 .ad-badge-top {
+  display: none;
   font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -340,7 +351,13 @@
   text-align: center;
 }
 
+.sidebar-ad-card:has(ins[data-ad-status="filled"]) .ad-badge-top,
+.sidebar-ad-card:has(iframe) .ad-badge-top {
+  display: block;
+}
+
 .sidebar-ad-box {
+  display: none !important; /* Hide placeholders completely */
   background: var(--bg);
   border: 2px dashed var(--border);
   border-radius: var(--radius-sm);
@@ -363,15 +380,19 @@
   opacity: 0.6;
 }
 
-/* Inline In-Article Ads */
+/* Inline In-Article Ads - hidden by default, shown only when filled */
 .in-article-ad-container {
-  display: none !important; /* Hide during AdSense approval phase */
+  display: none !important;
+}
+
+.in-article-ad-container:has(ins[data-ad-status="filled"]),
+.in-article-ad-container:has(iframe) {
+  display: flex !important;
   background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
   margin: 28px 0;
-  display: flex;
   flex-direction: column;
   gap: 8px;
 }
@@ -386,21 +407,17 @@
 }
 
 .in-article-ad-box {
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  display: none !important; /* Hide placeholders completely */
 }
 
-/* Mobile Sticky Bottom Banner Ad */
+/* Mobile Sticky Bottom Banner Ad - hidden by default, shown only when filled */
 .mobile-sticky-ad-banner {
-  display: none !important; /* Hide during AdSense approval phase */
+  display: none !important;
+}
+
+.mobile-sticky-ad-banner:has(ins[data-ad-status="filled"]),
+.mobile-sticky-ad-banner:has(iframe) {
+  display: flex !important;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -410,15 +427,15 @@
   box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
   z-index: 999;
   padding: 12px 16px;
-  display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
-  .mobile-sticky-ad-banner {
-    display: none; /* Hide mobile banner on desktop */
+  .mobile-sticky-ad-banner:has(ins[data-ad-status="filled"]),
+  .mobile-sticky-ad-banner:has(iframe) {
+    display: none !important; /* Hide mobile banner on desktop */
   }
 }
 
@@ -451,17 +468,7 @@
 }
 
 .mobile-ad-content-placeholder {
-  background: var(--bg);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  width: 320px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  display: none !important; /* Hide placeholders completely */
 }
 
 /* Suggested Reads Section */
