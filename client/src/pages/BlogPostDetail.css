@@ -317,6 +317,7 @@
 
 /* Sidebar Display Ad Card */
 .sidebar-ad-card {
+  display: none !important; /* Hide during AdSense approval phase */
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -361,6 +362,7 @@
 
 /* Inline In-Article Ads */
 .in-article-ad-container {
+  display: none !important; /* Hide during AdSense approval phase */
   background: var(--bg-card-hover);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -395,6 +397,7 @@
 
 /* Mobile Sticky Bottom Banner Ad */
 .mobile-sticky-ad-banner {
+  display: none !important; /* Hide during AdSense approval phase */
   position: fixed;
   bottom: 0;
   left: 0;

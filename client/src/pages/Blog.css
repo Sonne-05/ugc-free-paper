@@ -516,6 +516,7 @@
 
 /* Sidebar Widgets and Ads */
 .sidebar-ad-card {
+  display: none !important; /* Hide during AdSense approval phase */
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -648,6 +649,7 @@
 
 /* Native In-Feed Ad Card in Posts Grid */
 .native-ad-card {
+  display: none !important; /* Hide during AdSense approval phase */
   border-top: 3px solid #22c55e !important; /* Green badge indicator for sponsored content */
   background: var(--bg-card) !important;
 }
@@ -694,6 +696,7 @@
 
 /* Mobile Sticky Bottom Banner Ad */
 .mobile-sticky-ad-banner {
+  display: none !important; /* Hide during AdSense approval phase */
   position: fixed;
   bottom: 0;
   left: 0;
