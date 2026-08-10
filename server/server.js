@@ -1,4 +1,6 @@
 require('dotenv').config();
+const path = require('path');
+const url = require('url');
 const bcrypt = require('bcryptjs');
 const express = require('express');
 const cors = require('cors');
@@ -522,6 +524,122 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
   throw new Error('Unsupported AI provider');
 }
 
+// Helper to call Gemini multimodal vision API to parse a single PDF page image
+async function callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, retryCount = 0) {
+  const provider = 'gemini';
+  if (!keyRotation.hasKeys(provider)) {
+    throw new Error('No Gemini API keys configured for OCR visual import.');
+  }
+
+  const apiKey = keyRotation.getNextKey('gemini');
+  let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+  if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
+    rawModel = 'gemini-3.6-flash';
+  }
+  const geminiModel = rawModel.replace(/^models\//, '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+
+  let answerKeyHint = '';
+  if (answerKeyMap && Object.keys(answerKeyMap).length > 0) {
+    answerKeyHint = `\nHere are the official correct option indices for reference (resolve 'correct' value if you extract these question indices from the image):\n`;
+    for (const qIdx in answerKeyMap) {
+      answerKeyHint += `- Question ${qIdx}: Option ${answerKeyMap[qIdx]}\n`;
+    }
+  }
+
+  const textPrompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
+Look at the provided PDF page image and extract all multiple choice questions visible on it.
+
+Instructions:
+1. Extract the question text exactly as it appears in the image in its original script/language (e.g. Hindi, Sindhi, Devanagari). Do not translate it to English. Keep punctuation, spacing, and grammar identical. Filter out system headers/footers or pagination labels (like '-- 5 of 88 --').
+2. Extract exactly 4 options. They must be in the original script/language as they appear in the image.
+3. Identify the question number/index (e.g. Q51, Question Number: 51, or Question 51).
+4. Map the correct option index (1, 2, 3, or 4). Use the official answer key hints below to find the correct option if the question number matches. If the question number is not listed, solve the question to find the correct answer.
+5. Determine the question type (usually 'mcq', 'multiple-statement', 'match-column', or 'assertion-reason').
+6. Set the 'unit' property to an empty string "".
+7. Generate a detailed, high-quality explanation in clean HTML (about 150 words) in standard English.
+8. Output ONLY a JSON object with a "questions" key containing an array of objects matching the following schema. Do not include markdown code fence formatting.
+
+Schema:
+{
+  "questions": [
+    {
+      "qIndex": number,
+      "unit": "",
+      "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
+      "text": "Clean question text in original script...",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "statements": ["Statement A", "Statement B", ...],
+      "correct": number,
+      "assertion": "Assertion text",
+      "reason": "Reason text",
+      "list1": ["Item 1", "Item 2", "Item 3", "Item 4"],
+      "list2": ["Item 1", "Item 2", "Item 3", "Item 4"],
+      "list1Header": "Header 1",
+      "list2Header": "Header 2",
+      "explanation": "Detailed explanation in English..."
+    }
+  ]
+}
+${answerKeyHint}
+`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { text: textPrompt },
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: base64Image
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.1
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    if (response.status === 429 && retryCount < 5) {
+      console.warn(`[AI OCR] Gemini 429 Rate Limited on Page ${pageNum}. Trying next key in rotation pool...`);
+      // Sleep a bit and retry
+      await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
+      return callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation, retryCount + 1);
+    }
+    throw new Error(`Gemini API failed with status ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+  const cleaned = cleanJsonString(rawText);
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === 'object') {
+      if (Array.isArray(parsed.questions)) return parsed.questions;
+      for (const key in parsed) {
+        if (Array.isArray(parsed[key])) return parsed[key];
+      }
+    }
+    return [];
+  } catch (jsonErr) {
+    console.warn(`[AI OCR] JSON parsing error on page ${pageNum}:`, jsonErr.message);
+    throw jsonErr;
+  }
+}
+
 // Function to call AI to parse and solve a batch of 5 questions
 async function callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII) {
   let prompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
@@ -736,9 +854,9 @@ function parseAnswerKey(text) {
   return mapping;
 }
 
-async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
+async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOcr = false) {
   try {
-    console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId}...`);
+    console.log(`[Job ${jobId}] Starting automatic upload parsing for Set ${setId} (OCR: ${useOcr})...`);
 
     let answerKeyMap = null;
     if (answerKeyBuffer) {
@@ -760,25 +878,205 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       }
     }
 
-    // 1. Extract raw text from PDF buffer
-    const parser = new PDFParse({ data: fileBuffer });
-    const parsedPdf = await parser.getText();
-    const text = parsedPdf.text;
-    console.log(`[Job ${jobId}] Extracted raw text. Length: ${text.length} characters.`);
-    updateJobProgress(jobId, 10, 'PDF text parsed, structuring questions...');
-
-    // 1. Get target PyqSet details to check if it's Paper II
+    // Get target PyqSet details to check if it's Paper II
     const targetSet = await PyqSet.findById(setId);
     if (!targetSet) {
       throw new Error(`Target set not found: ${setId}`);
     }
     const isPaperII = targetSet.paperType === 'Paper II';
 
-    // 2. Identify and parse the question blocks
-    const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
-    let match;
-    const questionsMap = new Map();
-    const matchesList = [];
+    let parsedQuestions = [];
+
+    if (useOcr) {
+      console.log(`[Job ${jobId}] Starting OCR/vision import...`);
+      updateJobProgress(jobId, 10, 'Initializing PDF.js rendering engine...');
+      
+      const wsNodeModules = path.resolve('node_modules');
+      const pdfjsPath = path.join(wsNodeModules, 'pdfjs-dist/legacy/build/pdf.mjs');
+      const pdfjsUrl = url.pathToFileURL(pdfjsPath).href;
+      const pdfjs = await import(pdfjsUrl);
+      
+      const workerPath = path.join(wsNodeModules, 'pdfjs-dist/legacy/build/pdf.worker.mjs');
+      const workerUrl = url.pathToFileURL(workerPath).href;
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+
+      console.log(`[Job ${jobId}] Loading document with PDF.js...`);
+      const loadingTask = pdfjs.getDocument({ data: new Uint8Array(fileBuffer) });
+      const pdfDoc = await loadingTask.promise;
+      const totalPages = pdfDoc.numPages;
+      console.log(`[Job ${jobId}] Loaded PDF. Total pages: ${totalPages}`);
+
+      // Step 1: Scan text layers locally to identify question-bearing pages
+      updateJobProgress(jobId, 12, 'Pre-scanning PDF pages for questions...');
+      const ocrPages = [];
+      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+        const page = await pdfDoc.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        
+        // Match standard question headers (e.g. Question Number/Id or Q. X)
+        const hasHeader = /Question\s*Number\s*:\s*\d+/i.test(pageText) || 
+                          /Question\s*Id\s*:\s*\d+/i.test(pageText) || 
+                          /Q\s*\.\s*\d+/i.test(pageText) ||
+                          /Question\s*ID\s*:\s*\d+/i.test(pageText);
+                          
+        if (hasHeader) {
+          ocrPages.push({ pageNum, page });
+        }
+      }
+      
+      console.log(`[Job ${jobId}] Pre-scan found ${ocrPages.length} question-bearing pages out of ${totalPages}.`);
+      if (ocrPages.length === 0) {
+        throw new Error('No question-bearing pages identified during local pre-scan.');
+      }
+
+      // Step 2: Initialize canvas and keyRotation
+      const canvasPkg = require('@napi-rs/canvas');
+      const { createCanvas } = canvasPkg;
+      
+      const keyRotation = {
+        geminiIndex: 0,
+        geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+        hasKeys(provider) {
+          if (provider === 'gemini') return this.geminiKeys.length > 0;
+          return false;
+        },
+        getNextKey(provider) {
+          if (provider === 'gemini') {
+            return this.geminiKeys[this.geminiIndex++ % this.geminiKeys.length];
+          }
+          return null;
+        }
+      };
+
+      // Step 3: Loop through pages, render and call OCR API
+      let completedOcrCount = 0;
+      const totalOcrPages = ocrPages.length;
+      
+      // Batch processing (process 3 pages concurrently to match key rotation and avoid rate limits)
+      const ocrBatches = [];
+      const batchSize = Math.min(3, keyRotation.geminiKeys.length || 1);
+      for (let i = 0; i < ocrPages.length; i += batchSize) {
+        ocrBatches.push(ocrPages.slice(i, i + batchSize));
+      }
+
+      for (let b = 0; b < ocrBatches.length; b++) {
+        const batch = ocrBatches[b];
+        const progressPercent = Math.round(15 + ((completedOcrCount / totalOcrPages) * 75));
+        updateJobProgress(jobId, progressPercent, `Performing OCR & vision import (${completedOcrCount}/${totalOcrPages} pages)...`);
+        
+        console.log(`[Job ${jobId}] OCR Batch ${b + 1}/${ocrBatches.length}...`);
+        
+        const batchPromises = batch.map(async ({ pageNum, page }) => {
+          // Render page to canvas
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const context = canvas.getContext('2d');
+          
+          await page.render({ canvasContext: context, viewport }).promise;
+          const imgBuffer = canvas.toBuffer('image/png');
+          const base64Image = imgBuffer.toString('base64');
+          
+          console.log(`[Job ${jobId}] Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.`);
+          
+          const pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, answerKeyMap, isPaperII, keyRotation);
+          return { pageNum, pageQuestions };
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        
+        for (const { pageNum, pageQuestions } of batchResults) {
+          console.log(`[Job ${jobId}] Page ${pageNum} OCR returned ${pageQuestions.length} questions.`);
+          
+          pageQuestions.forEach(q => {
+            // Defensive validation and normalization
+            q.text = (q.text || q.question || q.questionText || q.prompt || '').trim();
+            if (!q.text) return; // Skip if no text
+            
+            q.qIndex = parseInt(q.qIndex, 10);
+            if (isNaN(q.qIndex)) return; // Skip if index is invalid
+            
+            if (q.correct === undefined || q.correct === null) {
+              q.correct = 1;
+            } else {
+              q.correct = parseInt(q.correct, 10) || 1;
+            }
+            
+            if (!q.options || !Array.isArray(q.options) || q.options.length < 4) {
+              const rawOptions = q.options || [];
+              q.options = [
+                rawOptions[0] || 'Option 1',
+                rawOptions[1] || 'Option 2',
+                rawOptions[2] || 'Option 3',
+                rawOptions[3] || 'Option 4'
+              ];
+            }
+
+            // Map comprehension and data interpretation tags
+            const pdfQNum = q.qIndex; // In OCR we assume qIndex is the direct PDF question number
+            let qNumOffset = 0;
+            if (isPaperII) {
+              // check if Paper II range
+              if (pdfQNum >= 51 && pdfQNum <= 150) {
+                qNumOffset = 50;
+              }
+            }
+            const dbQIndex = pdfQNum - qNumOffset;
+            q.qIndex = dbQIndex;
+
+            let isComprehensionOrDi = false;
+            // Get forced DI/comprehension passages if any
+            if (!isPaperII) {
+              if (dbQIndex >= 1 && dbQIndex <= 5) {
+                // DI
+                q.type = 'di';
+                isComprehensionOrDi = true;
+              } else if (dbQIndex >= 46 && dbQIndex <= 50) {
+                // Comprehension
+                q.type = 'comprehension';
+                isComprehensionOrDi = true;
+              }
+            } else {
+              if (dbQIndex >= 91 && dbQIndex <= 95) {
+                q.type = 'comprehension';
+                isComprehensionOrDi = true;
+              } else if (dbQIndex >= 96 && dbQIndex <= 100) {
+                q.type = 'comprehension';
+                isComprehensionOrDi = true;
+              }
+            }
+            
+            parsedQuestions.push(q);
+          });
+          
+          completedOcrCount++;
+        }
+        
+        // Wait a bit to prevent rate limit
+        if (b < ocrBatches.length - 1) {
+          const numKeys = Math.max(keyRotation.geminiKeys.length, 1);
+          const remainingDelay = Math.max(Math.ceil(6000 / numKeys), 1000);
+          console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next OCR batch...`);
+          await new Promise(resolve => setTimeout(resolve, remainingDelay));
+        }
+      }
+      
+      // Sort parsed questions by index
+      parsedQuestions.sort((a, b) => a.qIndex - b.qIndex);
+      console.log(`[Job ${jobId}] Finished OCR processing. Found ${parsedQuestions.length} total questions.`);
+    } else {
+      // 1. Extract raw text from PDF buffer
+      const parser = new PDFParse({ data: fileBuffer });
+      const parsedPdf = await parser.getText();
+      const text = parsedPdf.text;
+      console.log(`[Job ${jobId}] Extracted raw text. Length: ${text.length} characters.`);
+      updateJobProgress(jobId, 10, 'PDF text parsed, structuring questions...');
+
+      // 2. Identify and parse the question blocks
+      const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
+      let match;
+      const questionsMap = new Map();
+      const matchesList = [];
 
     // First try official NTA format A: Question Number : X Question Id : Y
     while ((match = qHeaderRegex.exec(text)) !== null) {
@@ -978,7 +1276,6 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
       batches.push(englishQuestions.slice(i, i + 5));
     }
 
-    const parsedQuestions = [];
     let completedQuestionsCount = 0;
     const totalQuestions = englishQuestions.length;
 
@@ -1177,6 +1474,7 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
     }
+  }
 
     updateJobProgress(jobId, 95, 'Saving parsed questions to database...');
 
@@ -1260,7 +1558,7 @@ app.post('/api/questions/import-pdf', upload.fields([
   { name: 'answerKey', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { setId } = req.body;
+    const { setId, useOcr } = req.body;
     
     const pdfFile = req.files && req.files['pdf'] ? req.files['pdf'][0] : null;
     const answerKeyFile = req.files && req.files['answerKey'] ? req.files['answerKey'][0] : null;
@@ -1282,7 +1580,7 @@ app.post('/api/questions/import-pdf', upload.fields([
     });
 
     // Fire off background processing asynchronously
-    processImportJob(jobId, pdfFile.buffer, setId, answerKeyFile ? answerKeyFile.buffer : null).catch(err => {
+    processImportJob(jobId, pdfFile.buffer, setId, answerKeyFile ? answerKeyFile.buffer : null, useOcr === 'true').catch(err => {
       console.error(`[Job Trigger Async Error]`, err);
     });
 
