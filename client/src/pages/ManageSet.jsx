@@ -3062,7 +3062,6 @@ const ManageSet = () => {
   const [pdfUploadPercent, setPdfUploadPercent] = useState(0)
   const [pdfQuestionsFile, setPdfQuestionsFile] = useState(null)
   const [pdfAnswerKeyFile, setPdfAnswerKeyFile] = useState(null)
-  const [useOcr, setUseOcr] = useState(false)
   const [importLanguage, setImportLanguage] = useState('English')
   const [uploadKey, setUploadKey] = useState(0)
 
@@ -3925,7 +3924,6 @@ const ManageSet = () => {
       formData.append('answerKey', pdfAnswerKeyFile)
     }
     formData.append('setId', editingSetId)
-    formData.append('useOcr', useOcr)
     formData.append('importLanguage', importLanguage)
 
     let queueInterval = null
@@ -4063,7 +4061,6 @@ const ManageSet = () => {
       setIsUploadingPdf(false)
       setPdfQuestionsFile(null)
       setPdfAnswerKeyFile(null)
-      setUseOcr(false)
       setImportLanguage('English')
       setUploadKey(prev => prev + 1)
     }
@@ -4738,19 +4735,7 @@ const ManageSet = () => {
                             />
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', marginBottom: '4px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="useOcrCheckbox"
-                              checked={useOcr}
-                              onChange={(e) => setUseOcr(e.target.checked)}
-                              disabled={isUploadingPdf}
-                              style={{ cursor: isUploadingPdf ? 'not-allowed' : 'pointer', width: '16px', height: '16px' }}
-                            />
-                            <label htmlFor="useOcrCheckbox" style={{ fontSize: '0.82rem', fontWeight: '600', color: '#4f46e5', cursor: isUploadingPdf ? 'not-allowed' : 'pointer', selectBlendedText: 'none' }}>
-                              ⚡ Use OCR Parser (Recommended for Hindi/Sindhi/Garbled PDFs)
-                            </label>
-                          </div>
+
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px', marginBottom: '8px' }}>
                             <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#4b5563' }}>Target Question Language</label>
