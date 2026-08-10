@@ -315,10 +315,16 @@ async function main() {
       console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
       completedOcrCount++;
       
-      // Cooldown delay between pages to be safe from rate limits (shorter since we rotate keys)
+      // Cooldown delay between pages to dynamically stay under Gemini's 15 RPM free-tier limit per key
       if (i < ocrPages.length - 1) {
-        const cooldownDelay = 2000; // 2 seconds delay
-        console.log(`Waiting ${cooldownDelay / 1000} seconds before next page...`);
+        const activeKeysCount = (primaryKeys.length + fallbackKeys.length) || 1;
+        // Target 12 RPM per key average to stay safely below 15 RPM.
+        // Delay (ms) = 60000ms / (activeKeysCount * 12 RPM)
+        const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 12));
+        // Keep delay bounded between 2 seconds (for speed) and 12 seconds (safe for 1 key)
+        const cooldownDelay = Math.max(2000, Math.min(12000, calculatedDelay));
+
+        console.log(`Waiting ${cooldownDelay / 1000} seconds before next page (dynamic pacing based on ${activeKeysCount} keys)...`);
         await new Promise(resolve => setTimeout(resolve, cooldownDelay));
       }
     }
