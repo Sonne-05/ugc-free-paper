@@ -324,8 +324,8 @@ async function main() {
         // Target 12 RPM per key average to stay safely below 15 RPM.
         // Delay (ms) = 60000ms / (activeKeysCount * 12 RPM)
         const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 12));
-        // Keep delay bounded between 2 seconds (for speed) and 12 seconds (safe for 1 key)
-        const cooldownDelay = Math.max(2000, Math.min(12000, calculatedDelay));
+        // Keep delay bounded between 6 seconds (for maximum smoothness) and 12 seconds (safe for 1 key)
+        const cooldownDelay = Math.max(6000, Math.min(12000, calculatedDelay));
 
         console.log(`Waiting ${cooldownDelay / 1000} seconds before next page (dynamic pacing based on ${activeKeysCount} keys)...`);
         await new Promise(resolve => setTimeout(resolve, cooldownDelay));
