@@ -104,7 +104,7 @@ const Paper2PYQ = () => {
           </div>
         )}
 
-        <div className={`pyq-page__layout ${!ENABLE_ADSENSE ? 'pyq-page__layout--no-ads' : ''}`}>
+        <div className="pyq-page__layout">
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -177,15 +177,17 @@ const Paper2PYQ = () => {
             </div>
           </div>
 
-          {ENABLE_ADSENSE && (
-            <div className="pyq-page__sidebar">
-              <AdSensePlaceholder type="display" format="rectangle" />
-              <AdSensePlaceholder type="display" format="rectangle" />
-              <div className="pyq-page__sidebar-sticky">
+          <div className="pyq-page__sidebar">
+            {ENABLE_ADSENSE && (
+              <>
                 <AdSensePlaceholder type="display" format="rectangle" />
-              </div>
-            </div>
-          )}
+                <AdSensePlaceholder type="display" format="rectangle" />
+                <div className="pyq-page__sidebar-sticky">
+                  <AdSensePlaceholder type="display" format="rectangle" />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
