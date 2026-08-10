@@ -1,27 +1,28 @@
-import './AdSensePlaceholder.css'
+import { useEffect } from 'react'
 
-// Toggle this flag to true once AdSense is approved to show the ads
-const SHOW_ADS = false;
+const AdSensePlaceholder = ({ format = 'horizontal' }) => {
+  useEffect(() => {
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      // Ads might fail to load if blocked or not yet approved; fail silently
+    }
+  }, []);
 
-const AdSensePlaceholder = ({ type = 'display', format = 'horizontal' }) => {
-  if (!SHOW_ADS) return null;
-
-  const getDimensionsText = () => {
-    if (format === 'horizontal') return 'Responsive Leaderboard (728 × 90)'
-    if (format === 'vertical') return 'Wide Skyscraper (160 × 600)'
-    return 'Medium Rectangle (300 × 250)'
-  }
+  // Set sizing based on format to reserve proper layout spacing
+  const style = format === 'horizontal'
+    ? { display: 'block', margin: '20px auto', minHeight: '90px' }
+    : { display: 'block', margin: '0 auto', minHeight: '250px' };
 
   return (
-    <div className={`ad-placeholder ad-placeholder--${type} ad-placeholder--${format}`}>
-      <span className="ad-placeholder__label">Sponsored</span>
-      <div className="ad-placeholder__content">
-        <span className="ad-placeholder__logo">AdSense</span>
-        <span className="ad-placeholder__dimensions">
-          {getDimensionsText()}
-        </span>
-      </div>
-    </div>
+    <ins
+      className="adsbygoogle"
+      style={style}
+      data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" // Replace with your approved AdSense Publisher ID
+      data-ad-slot={format === 'horizontal' ? 'HORIZONTAL_SLOT_ID' : 'RECTANGLE_SLOT_ID'} // Replace with your approved Ad Unit Slot IDs
+      data-ad-format="auto"
+      data-full-width-responsive="true"
+    />
   )
 }
 
