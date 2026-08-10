@@ -96,6 +96,11 @@ const Paper1PYQ = () => {
         <h1 className="pyq-page__title">UGC NET Paper I PYQs</h1>
         <p className="pyq-page__subtitle">Solve official year-wise Previous Year Question papers for general teaching & research aptitude.</p>
 
+        {/* Top Leaderboard Ad */}
+        <div className="pyq-page__top-ad">
+          <AdSensePlaceholder type="display" format="horizontal" />
+        </div>
+
         <div className="pyq-page__layout">
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
@@ -162,6 +167,7 @@ const Paper1PYQ = () => {
           </div>
 
           <div className="pyq-page__sidebar">
+            <AdSensePlaceholder type="display" format="rectangle" />
             <AdSensePlaceholder type="display" format="rectangle" />
             <div className="pyq-page__sidebar-sticky">
               <AdSensePlaceholder type="display" format="rectangle" />

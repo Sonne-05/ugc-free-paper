@@ -97,6 +97,11 @@ const Paper2PYQ = () => {
         <h1 className="pyq-page__title">UGC NET Paper II {activeSubject} PYQs</h1>
         <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} Previous Year Question papers.</p>
 
+        {/* Top Leaderboard Ad */}
+        <div className="pyq-page__top-ad">
+          <AdSensePlaceholder type="display" format="horizontal" />
+        </div>
+
         <div className="pyq-page__layout">
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
@@ -164,6 +169,7 @@ const Paper2PYQ = () => {
           </div>
 
           <div className="pyq-page__sidebar">
+            <AdSensePlaceholder type="display" format="rectangle" />
             <AdSensePlaceholder type="display" format="rectangle" />
             <div className="pyq-page__sidebar-sticky">
               <AdSensePlaceholder type="display" format="rectangle" />
