@@ -461,10 +461,6 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
           await new Promise(resolve => setTimeout(resolve, 2000));
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          if (provider === 'gemini' && keyRotation.hasKeys('groq')) {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Falling back to Groq immediately.`);
-            throw new Error(`All Gemini keys rate-limited.`);
-          }
           const consecutiveWaitCount = Math.max(retryCount - keysCount + 1, 1);
           let waitTime = 10000 * consecutiveWaitCount;
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
