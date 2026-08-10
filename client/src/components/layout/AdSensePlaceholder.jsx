@@ -1,6 +1,11 @@
 import './AdSensePlaceholder.css'
 
+// Toggle this flag to true once AdSense is approved to show the ads
+const SHOW_ADS = false;
+
 const AdSensePlaceholder = ({ type = 'display', format = 'horizontal' }) => {
+  if (!SHOW_ADS) return null;
+
   const getDimensionsText = () => {
     if (format === 'horizontal') return 'Responsive Leaderboard (728 × 90)'
     if (format === 'vertical') return 'Wide Skyscraper (160 × 600)'
