@@ -810,6 +810,63 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer) {
         }
       }
     }
+
+    // If Format A and B found 0 matches, try Format C (Garbled/Devanagari NTA response sheet format)
+    if (matchesList.length === 0) {
+      console.log(`[Job ${jobId}] No Format A or B headers found. Trying Format C (Garbled/Devanagari)...`);
+      const qGarbledRegex = /\D*(?:Question\s*Number|[पप्रज९]\S*\s+\S*)\s*[:;]+\s*(\d+\]?|\d+)\s+(?:[^\n]+?)(?:Question\s*Id|[^\n]*?76[\s:;]+)\s*(\d{10})/gi;
+      
+      const tempMatches = [];
+      qGarbledRegex.lastIndex = 0;
+      while ((match = qGarbledRegex.exec(text)) !== null) {
+        let rawNum = match[1];
+        let qId = match[2];
+        
+        // Normalize basic character anomalies in number strings
+        let numStr = rawNum;
+        if (numStr.endsWith(']')) {
+          numStr = numStr.slice(0, -1) + '1';
+        }
+        let qNum = parseInt(numStr, 10);
+        tempMatches.push({ index: match.index, qNum, qId });
+      }
+      
+      if (tempMatches.length > 0) {
+        // Resolve consensus offset = qId - qNum
+        const offsetsCount = {};
+        for (const m of tempMatches) {
+          const idVal = parseInt(m.qId, 10);
+          const numVal = m.qNum;
+          // Only consider clean numbers in the expected range for the consensus offset
+          if (!isNaN(idVal) && !isNaN(numVal) && numVal >= 1 && numVal <= 200) {
+            const offset = idVal - numVal;
+            offsetsCount[offset] = (offsetsCount[offset] || 0) + 1;
+          }
+        }
+        
+        let consensusOffset = null;
+        let maxCount = 0;
+        for (const offset in offsetsCount) {
+          if (offsetsCount[offset] > maxCount) {
+            maxCount = offsetsCount[offset];
+            consensusOffset = parseInt(offset, 10);
+          }
+        }
+        
+        if (consensusOffset) {
+          console.log(`[Job ${jobId}] Detected consensus QId-to-QNum offset: ${consensusOffset}`);
+          for (const m of tempMatches) {
+            const idVal = parseInt(m.qId, 10);
+            const correctedNum = idVal - consensusOffset;
+            matchesList.push({ index: m.index, qNum: correctedNum, qId: m.qId });
+          }
+        } else {
+          // Fallback to the temp matches if no consensus offset could be determined
+          matchesList.push(...tempMatches);
+        }
+      }
+    }
+
     console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
 
     // Capture comprehension blocks (passages/tables)
