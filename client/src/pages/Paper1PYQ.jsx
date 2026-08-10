@@ -114,6 +114,11 @@ const Paper1PYQ = () => {
               </p>
             </section>
 
+            {/* Mobile/Tablet suggested blogs */}
+            <div className="pyq-page__suggested-blogs-mobile">
+              <SuggestedBlogs limit={3} />
+            </div>
+
             <div className="pyq-page__content">
               <table className="pyq-table">
                 <thead>
