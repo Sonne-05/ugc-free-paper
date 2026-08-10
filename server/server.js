@@ -457,7 +457,8 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
       const maxRetries = Math.max(keysCount * 2, 10);
       if (response.status === 429 && retryCount < maxRetries) {
         if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Trying next key in rotation pool immediately (Retry ${retryCount + 1}/${maxRetries})...`);
+          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting 2s before trying next key in rotation pool (Retry ${retryCount + 1}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
           const consecutiveWaitCount = Math.max(retryCount - keysCount + 1, 1);
@@ -999,6 +1000,7 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
     const totalQuestions = englishQuestions.length;
 
     for (let i = 0; i < batches.length; i++) {
+      const batchStart = Date.now();
       const batch = batches[i];
       const initialPercent = Math.round(15 + ((completedQuestionsCount / totalQuestions) * 75));
       updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
@@ -1184,12 +1186,12 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // Safe delay to guarantee free-tier rate limits, dynamically scaling down based on key rotation pool size
+      // Safe delay to guarantee free-tier rate limits, enforcing a safe minimum interval of 12 seconds per batch to avoid IP-based 429 limits
       if (i < batches.length - 1) {
-        const numKeys = Math.max(keyRotation.geminiKeys.length, 1);
-        const baseDelay = Math.ceil(5000 / numKeys);
-        const remainingDelay = Math.max(baseDelay - (batchJson.length * 300), 500);
-        console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch (rotated over ${numKeys} keys)...`);
+        const elapsed = Date.now() - batchStart;
+        const targetInterval = 12000; // 12 seconds between batch starts (5 RPM)
+        const remainingDelay = Math.max(targetInterval - elapsed, 1000); // Wait at least 1 second
+        console.log(`[Job ${jobId}] Waiting ${remainingDelay / 1000} seconds before next batch to prevent rate limits...`);
         await new Promise(resolve => setTimeout(resolve, remainingDelay));
       }
     }
