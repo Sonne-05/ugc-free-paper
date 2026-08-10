@@ -315,9 +315,9 @@ async function main() {
       console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
       completedOcrCount++;
       
-      // Cooldown delay between pages to be safe from rate limits
+      // Cooldown delay between pages to be safe from rate limits (shorter since we rotate keys)
       if (i < ocrPages.length - 1) {
-        const cooldownDelay = 12000; // 12 seconds delay
+        const cooldownDelay = 2000; // 2 seconds delay
         console.log(`Waiting ${cooldownDelay / 1000} seconds before next page...`);
         await new Promise(resolve => setTimeout(resolve, cooldownDelay));
       }
