@@ -53,29 +53,14 @@ const Question = mongoose.model('Question', QuestionSchema);
 const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
 // 3. Setup key rotation
-const primaryKeys = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
-const fallbackKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+const apiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
 const keyRotation = {
-  primaryIndex: 0,
-  fallbackIndex: 0,
+  currentIndex: 0,
   getNextKey(retryCount = 0) {
-    const totalKeys = (primaryKeys.length + fallbackKeys.length) || 1;
-    const index = retryCount % totalKeys;
-
-    // Prioritize primaryKeys for the first primaryKeys.length positions of the cycle
-    if (primaryKeys.length > 0 && index < primaryKeys.length) {
-      return primaryKeys[this.primaryIndex++ % primaryKeys.length];
-    }
-    // Fallback to GEMINI_API_KEY
-    if (fallbackKeys.length > 0) {
-      return fallbackKeys[this.fallbackIndex++ % fallbackKeys.length];
-    }
-    // Final fallback back to primary key rotation if no fallback keys are available
-    if (primaryKeys.length > 0) {
-      return primaryKeys[this.primaryIndex++ % primaryKeys.length];
-    }
-    return '';
+    if (apiKeys.length === 0) return '';
+    const index = (this.currentIndex++ + retryCount) % apiKeys.length;
+    return apiKeys[index];
   }
 };
 
@@ -83,7 +68,7 @@ const keyRotation = {
 const requestHistory = [];
 
 function getDynamicLimits() {
-  const activeKeysCount = (primaryKeys.length + fallbackKeys.length) || 1;
+  const activeKeysCount = apiKeys.length || 1;
   // Scale limits based on number of active keys, capped at 45 RPM to protect single IP from getting blocked
   const calculatedRpm = activeKeysCount * 15;
   const maxRpm = Math.min(45, calculatedRpm);
