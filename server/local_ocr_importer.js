@@ -52,9 +52,7 @@ const PyqSetSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', QuestionSchema);
 const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
-// 3. Setup key rotation and proxy routing
-const { ProxyAgent } = require('undici');
-
+// 3. Setup key rotation
 const primaryKeys = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
 const fallbackKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
@@ -80,18 +78,6 @@ const keyRotation = {
     return '';
   }
 };
-
-// Proxy list configuration (Rule 4)
-const proxyList = (process.env.GEMINI_PROXIES || '').split(',').map(p => p.trim()).filter(Boolean);
-let proxyIndex = 0;
-
-function getProxyAgent() {
-  if (proxyList.length === 0) return null;
-  const proxyUrl = proxyList[proxyIndex++ % proxyList.length];
-  // Hide credentials in console logs
-  console.log(`[Proxy] Routing request through proxy: ${proxyUrl.replace(/:[^:@]*@/, ':***@')}`);
-  return new ProxyAgent(proxyUrl);
-}
 
 // Client-side Sliding Window Rate Limiter (Rule 3)
 const requestHistory = [];
@@ -200,7 +186,6 @@ Schema:
 `;
 
   try {
-    const agent = getProxyAgent();
     const response = await fetch(urlEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,8 +197,7 @@ Schema:
           ]
         }],
         generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
-      }),
-      ...(agent ? { dispatcher: agent } : {})
+      })
     });
 
     if (!response.ok) {
