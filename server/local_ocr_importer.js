@@ -368,14 +368,45 @@ async function main() {
       }
     }
 
-    if (parsedQuestions.length > 0) {
+    // Deduplicate and filter out-of-bounds question indices
+    const questionMap = new Map();
+    const maxAllowedQuestions = isPaperII ? 100 : 50;
+
+    parsedQuestions.forEach(q => {
+      // Validate index range
+      if (q.qIndex < 1 || q.qIndex > maxAllowedQuestions) {
+        console.warn(`[Deduplicator] Skipping out-of-bounds question with qIndex=${q.qIndex}`);
+        return;
+      }
+
+      if (!questionMap.has(q.qIndex)) {
+        questionMap.set(q.qIndex, q);
+      } else {
+        // If a duplicate is found, keep the version with more complete text and metadata content
+        const existing = questionMap.get(q.qIndex);
+        const existingScore = (existing.text || '').length + (existing.explanation || '').length + (existing.options || []).join('').length;
+        const newScore = (q.text || '').length + (q.explanation || '').length + (q.options || []).join('').length;
+        
+        if (newScore > existingScore) {
+          console.log(`[Deduplicator] Overwriting duplicate qIndex ${q.qIndex} with more complete version.`);
+          questionMap.set(q.qIndex, q);
+        } else {
+          console.log(`[Deduplicator] Keeping existing duplicate qIndex ${q.qIndex} version.`);
+        }
+      }
+    });
+
+    const finalQuestions = Array.from(questionMap.values());
+    console.log(`Original parsed count: ${parsedQuestions.length}. Deduplicated clean count: ${finalQuestions.length}`);
+
+    if (finalQuestions.length > 0) {
       console.log(`Cleaning old questions for Set ${TARGET_SET_ID}...`);
       await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
       
-      console.log(`Inserting ${parsedQuestions.length} newly parsed questions into database...`);
-      await Question.insertMany(parsedQuestions);
+      console.log(`Inserting ${finalQuestions.length} newly parsed questions into database...`);
+      await Question.insertMany(finalQuestions);
       
-      await PyqSet.findByIdAndUpdate(TARGET_SET_ID, { questionsLoaded: parsedQuestions.length });
+      await PyqSet.findByIdAndUpdate(TARGET_SET_ID, { questionsLoaded: finalQuestions.length });
       console.log("Database updated successfully!");
     } else {
       console.log("No questions extracted.");
