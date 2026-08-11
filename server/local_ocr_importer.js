@@ -163,12 +163,10 @@ Schema:
     if (!response.ok) {
       const errText = await response.text();
       if ((response.status === 429 || response.status === 503) && retryCount < 30) {
-        const keysCount = (primaryKeys.length + fallbackKeys.length) || 1;
-        // If we have cycled through all keys once, wait 60s for full RPM/TPM reset, otherwise wait 15s to check next key
-        const isCycleExhausted = retryCount > 0 && retryCount % keysCount === 0;
-        const waitTime = isCycleExhausted ? 60000 : 15000;
-
-        console.warn(`[AI OCR] Gemini rate limited (429/503) on Page ${pageNum}. Details: ${errText.substring(0, 250)}. Waiting ${waitTime / 1000}s for reset (Retry ${retryCount + 1}/30) with next key...`);
+        // Wait 65s (60s reset window + 5s buffer) to guarantee the rate-limit window resets completely.
+        const waitTime = 65000;
+        console.warn(`[AI OCR] Gemini rate limited (429/503) on Page ${pageNum}. Details: ${errText.substring(0, 250)}.`);
+        console.warn(`Waiting ${waitTime / 1000}s for the rate-limit window to reset completely (Retry ${retryCount + 1}/30)...`);
         await new Promise(r => setTimeout(r, waitTime));
         return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
       }
@@ -318,14 +316,14 @@ async function main() {
       console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
       completedOcrCount++;
       
-      // Cooldown delay between pages to dynamically stay under Gemini's 15 RPM free-tier limit per key
+      // Cooldown delay between pages to dynamically stay under Gemini's RPM/TPM limits
       if (i < ocrPages.length - 1) {
         const activeKeysCount = (primaryKeys.length + fallbackKeys.length) || 1;
-        // Target 12 RPM per key average to stay safely below 15 RPM.
-        // Delay (ms) = 60000ms / (activeKeysCount * 12 RPM)
-        const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 12));
-        // Keep delay bounded between 6 seconds (for maximum smoothness) and 12 seconds (safe for 1 key)
-        const cooldownDelay = Math.max(6000, Math.min(12000, calculatedDelay));
+        // Target 6 RPM per key average to stay safely below limits (especially TPM limits for images).
+        // Delay (ms) = 60000ms / (activeKeysCount * 6 RPM)
+        const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 6));
+        // Keep delay bounded between 6 seconds (minimum safety for multi-keys) and 15 seconds (maximum safety for single-keys)
+        const cooldownDelay = Math.max(6000, Math.min(15000, calculatedDelay));
 
         console.log(`Waiting ${cooldownDelay / 1000} seconds before next page (dynamic pacing based on ${activeKeysCount} keys)...`);
         await new Promise(resolve => setTimeout(resolve, cooldownDelay));
