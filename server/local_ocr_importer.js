@@ -322,8 +322,8 @@ async function main() {
         // Target 6 RPM per key average to stay safely below limits (especially TPM limits for images).
         // Delay (ms) = 60000ms / (activeKeysCount * 6 RPM)
         const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 6));
-        // Keep delay bounded between 6 seconds (minimum safety for multi-keys) and 15 seconds (maximum safety for single-keys)
-        const cooldownDelay = Math.max(6000, Math.min(15000, calculatedDelay));
+        // Keep delay bounded between 18 seconds (minimum safety for shared project/IP quotas) and 25 seconds
+        const cooldownDelay = Math.max(18000, Math.min(25000, calculatedDelay));
 
         console.log(`Waiting ${cooldownDelay / 1000} seconds before next page (dynamic pacing based on ${activeKeysCount} keys)...`);
         await new Promise(resolve => setTimeout(resolve, cooldownDelay));
