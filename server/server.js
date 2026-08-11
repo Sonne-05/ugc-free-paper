@@ -716,9 +716,20 @@ function parseAnswerKey(text) {
   const lines = text.split('\n');
   
   for (const line of lines) {
-    const cleanLine = line.trim();
+    let cleanLine = line.trim();
     if (!cleanLine) continue;
     
+    // Apply pre-processing string replacements for common OCR typos
+    cleanLine = cleanLine
+      .replace(/\s*\|\s*/g, '1 ')        // '8 | B' -> '81 B' (replace space-pipe-space with '1 ')
+      .replace(/\]/g, '1')              // '4]' -> '41', '9]' -> '91'
+      .replace(/\bT(\d+)\b/g, '7$1')     // 'T7' -> '77'
+      .replace(/\bl(\d+)\b/g, '1$1')     // 'l5' -> '15'
+      .replace(/\bI(\d+)\b/g, '1$1')     // 'I5' -> '15'
+      .replace(/\bl\b/g, '1')            // isolated 'l' -> '1'
+      .replace(/\bI\b/g, '1')            // isolated 'I' -> '1'
+      .replace(/\big\b/g, '11');         // 'ig' -> '11'
+      
     // Split by whitespace, comma, tab, semicolon, vertical bar
     const tokens = cleanLine.split(/[\s,;|]+/);
     
@@ -745,7 +756,7 @@ function parseAnswerKey(text) {
     const optionMap = { 
       'a': 1, 'b': 2, 'c': 3, 'd': 4, 
       '1': 1, '2': 2, '3': 3, '4': 4,
-      'dropped': 0, 'drop': 0, 'null': 0, '0': 0, 'd': 0
+      'dropped': 0, 'drop': 0, 'null': 0, '0': 0
     };
     
     for (let i = 0; i < cleanTokens.length - 1; i += 2) {
