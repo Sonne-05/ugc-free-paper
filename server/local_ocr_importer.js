@@ -157,7 +157,10 @@ Instructions:
     - 'comprehension': Question based on a shared reading passage. You MUST extract the passage text into the "passage" field. All questions belonging to the same passage must have the exact same "passage" content.
     - 'di': Data Interpretation question based on a shared table, graph, or data description. You MUST extract the data description and format the data table as a clean Markdown table in the "passage" field. All questions belonging to the same DI block must have the exact same "passage" content.
 6. Set the 'unit' property to an empty string "".
-7. Generate a detailed explanation in standard English.
+7. Generate a detailed explanation:
+    - If the Target Language is "Hindi" or contains "Hindi" (e.g. Bilingual (English & Hindi)): You MUST generate the explanation entirely in Hindi (in Devanagari script).
+    - If the Target Language is "Sindhi" or contains "Sindhi" (e.g. Bilingual (English & Sindhi)): You MUST generate the explanation entirely in Sindhi (using the Arabic script or Devanagari script, matching the script used in the question text).
+    - Otherwise, generate the explanation in English.
 8. Output ONLY a JSON object matching the following schema:
 
 Schema:
@@ -178,7 +181,7 @@ Schema:
       "list2": ["Item 1", "Item 2", "Item 3", "Item 4"],
       "list1Header": "Header 1",
       "list2Header": "Header 2",
-      "explanation": "Detailed explanation in English..."
+      "explanation": "Detailed explanation in target language..."
     }
   ]
 }

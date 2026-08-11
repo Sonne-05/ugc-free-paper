@@ -558,6 +558,10 @@ Instructions:
     - A clear explanation of why the correct option is right.
     - CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly.
     - CRITICAL: Do NOT include a breakdown or analysis of why the incorrect options are wrong. Focus purely on explaining the concept and the correct answer.
+    - LANGUAGE OF THE EXPLANATION:
+      * If the Target Language is "Hindi" or contains "Hindi" (e.g. Bilingual (English & Hindi)): You MUST generate the explanation entirely in Hindi (in Devanagari script).
+      * If the Target Language is "Sindhi" or contains "Sindhi" (e.g. Bilingual (English & Sindhi)): You MUST generate the explanation entirely in Sindhi (using Arabic script or Devanagari script, matching the script of the question).
+      * Otherwise, generate the explanation in English.
 7. CRITICAL: Do NOT use double quotes (") anywhere inside your string properties (like "text", "options", "explanation"). If you need quotes, use single quotes ('). Using double quotes inside string fields will break the JSON parser.
 8. CRITICAL: Do NOT output literal newlines inside JSON string values. Use escaped "\n" if you need a newline. All HTML attributes inside explanations MUST use single quotes only (e.g. <p class='highlight'>).
 9. CRITICAL: Under no circumstances should you edit, alter, improve, simplify, or rephrase the question text, statements, lists, or options except to filter out the target language versions as instructed in the Target Language Rule above. Do not add any extra sentences, remarks, or summary comments to them.
@@ -1533,6 +1537,37 @@ app.post('/api/questions/explain', async (req, res) => {
 
     let systemPrompt = 'You are an expert educator specializing in UGC NET exam preparation. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: 1. A clear step-by-step walkthrough of the concept or calculation. 2. A specific section justifying why the correct option is right. 3. A brief explanation of why the other options are incorrect.';
     systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content and concepts of the question directly. Focus on explaining the concept, the correct answer, and briefly why the other options are incorrect. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+
+    // Auto-detect target language from question content to properly support Hindi/Sindhi language sets
+    let detectedLanguage = 'English';
+    const sampleText = [
+      text,
+      passage,
+      assertion,
+      reason,
+      ...(options || []),
+      ...(statements || []),
+      ...(list1 || []),
+      ...(list2 || [])
+    ].filter(Boolean).join(' ');
+
+    if (/[\u0600-\u06FF]/.test(sampleText)) {
+      detectedLanguage = 'Sindhi';
+    } else if (/[\u0900-\u097F]/.test(sampleText)) {
+      if (/[\u097B\u097C\u097E\u097F]/.test(sampleText)) {
+        detectedLanguage = 'Sindhi';
+      } else {
+        detectedLanguage = 'Hindi';
+      }
+    }
+
+    if (detectedLanguage === 'Hindi') {
+      systemPrompt += ' CRITICAL: The question is written in Hindi. You MUST generate the entire explanation in Hindi (using Devanagari script). All explanations, steps, lists, and headings must be in Hindi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Hindi.';
+    } else if (detectedLanguage === 'Sindhi') {
+      const usesArabicScript = /[\u0600-\u06FF]/.test(sampleText);
+      const scriptName = usesArabicScript ? 'Arabic script' : 'Devanagari script';
+      systemPrompt += ` CRITICAL: The question is written in Sindhi. You MUST generate the entire explanation in Sindhi (using ${scriptName}). All explanations, steps, lists, and headings must be in Sindhi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Sindhi.`;
+    }
 
     // 1. Try Groq Direct if configured (Primary Option)
     if (groqApiKey) {
