@@ -3050,6 +3050,7 @@ const ManageSet = () => {
   const [newSetSubtitle, setNewSetSubtitle] = useState('')
   const [newSetCount, setNewSetCount] = useState(50)
   const [newSetIsPublished, setNewSetIsPublished] = useState(false)
+  const [newSetSubject, setNewSetSubject] = useState('Sociology')
   
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
@@ -3162,6 +3163,7 @@ const ManageSet = () => {
             setNewSetSubtitle(target.subtitle)
             setNewSetCount(target.questionsCount)
             setNewSetIsPublished(target.isPublished || false)
+            setNewSetSubject(target.subject || 'Sociology')
             loadQuestionsForSet(setId)
           }
         } else {
@@ -3172,6 +3174,7 @@ const ManageSet = () => {
           setNewSetSubtitle('')
           setNewSetCount(50)
           setNewSetIsPublished(false)
+          setNewSetSubject('Sociology')
           setEditingSetQuestions([])
         }
       })
@@ -3295,11 +3298,12 @@ const ManageSet = () => {
       return
     }
     
-    const title = `UGC NET ${newSetPaperType} ${newSetPaperType === 'Paper II' ? 'Sociology ' : ''}(${newSetYear})`
+    const title = `UGC NET ${newSetPaperType} ${newSetPaperType === 'Paper II' ? `${newSetSubject} ` : ''}(${newSetYear})`
     
     let finalSubtitle = newSetSubtitle
-    if (!finalSubtitle.startsWith('Sociology') && !finalSubtitle.startsWith('General')) {
-      finalSubtitle = `${newSetPaperType === 'Paper II' ? 'Sociology' : 'General Paper'} ${newSetYear} ${newSetSubtitle}`
+    const subjectPrefix = newSetPaperType === 'Paper II' ? newSetSubject : 'General Paper'
+    if (!finalSubtitle.startsWith(subjectPrefix) && !finalSubtitle.startsWith('General')) {
+      finalSubtitle = `${subjectPrefix} ${newSetYear} ${newSetSubtitle}`
     }
 
     try {
@@ -3310,7 +3314,8 @@ const ManageSet = () => {
           paperType: newSetPaperType,
           year: newSetYear,
           questionsCount: Number(newSetCount),
-          isPublished: newSetIsPublished
+          isPublished: newSetIsPublished,
+          subject: newSetPaperType === 'Paper II' ? newSetSubject : 'General Paper'
         }
         const res = await fetch(`${API_BASE_URL}/api/pyqsets/${editingSetId}`, {
           method: 'PUT',
@@ -3330,7 +3335,8 @@ const ManageSet = () => {
         year: newSetYear,
         questionsCount: Number(newSetCount),
         questionsLoaded: 0,
-        isPublished: newSetIsPublished
+        isPublished: newSetIsPublished,
+        subject: newSetPaperType === 'Paper II' ? newSetSubject : 'General Paper'
       }
 
       const res = await fetch(`${API_BASE_URL}/api/pyqsets`, {
@@ -4612,9 +4618,22 @@ const ManageSet = () => {
                         }}
                       >
                         <option value="Paper I">Paper I (General Aptitude)</option>
-                        <option value="Paper II">Paper II (Sociology)</option>
+                        <option value="Paper II">Paper II</option>
                       </select>
                     </div>
+
+                    {newSetPaperType === 'Paper II' && (
+                      <div className="ms-form-field" style={{ marginBottom: '12px' }}>
+                        <label>Subject</label>
+                        <input 
+                          type="text" 
+                          required 
+                          placeholder="e.g. Sociology, Sindhi" 
+                          value={newSetSubject}
+                          onChange={(e) => setNewSetSubject(e.target.value)}
+                        />
+                      </div>
+                    )}
 
                     <div className="ms-form-field" style={{ marginBottom: '12px' }}>
                       <label>Exam Year</label>
