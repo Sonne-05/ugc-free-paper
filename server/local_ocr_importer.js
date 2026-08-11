@@ -52,7 +52,9 @@ const PyqSetSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', QuestionSchema);
 const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
-// 3. Setup key rotation
+// 3. Setup key rotation and proxy routing
+const { ProxyAgent } = require('undici');
+
 const primaryKeys = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
 const fallbackKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
@@ -79,6 +81,54 @@ const keyRotation = {
   }
 };
 
+// Proxy list configuration (Rule 4)
+const proxyList = (process.env.GEMINI_PROXIES || '').split(',').map(p => p.trim()).filter(Boolean);
+let proxyIndex = 0;
+
+function getProxyAgent() {
+  if (proxyList.length === 0) return null;
+  const proxyUrl = proxyList[proxyIndex++ % proxyList.length];
+  // Hide credentials in console logs
+  console.log(`[Proxy] Routing request through proxy: ${proxyUrl.replace(/:[^:@]*@/, ':***@')}`);
+  return new ProxyAgent(proxyUrl);
+}
+
+// Client-side Sliding Window Rate Limiter (Rule 3)
+const requestHistory = [];
+const MAX_RPM = 15; // Max 15 Requests Per Minute globally
+const MAX_TPM = 60000; // Max 60,000 Tokens Per Minute globally (very safe for images)
+
+function estimateRequestTokens(base64Image) {
+  // Estimated tokens based on base64 string size and average output length
+  const imageTokens = 3000; 
+  const promptTokens = 1500;
+  return imageTokens + promptTokens;
+}
+
+async function rateLimitCheck(estimatedTokens = 4500) {
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+  
+  // Filter history to keep only requests from the last 60 seconds
+  while (requestHistory.length > 0 && requestHistory[0].timestamp < oneMinuteAgo) {
+    requestHistory.shift();
+  }
+  
+  const currentRequestsCount = requestHistory.length;
+  const currentTokensCount = requestHistory.reduce((sum, r) => sum + r.tokens, 0);
+  
+  // If we exceed RPM or TPM, wait until the oldest request falls out of the window
+  if (currentRequestsCount >= MAX_RPM || (currentTokensCount + estimatedTokens) >= MAX_TPM) {
+    const oldestRequest = requestHistory[0];
+    const waitTime = oldestRequest.timestamp + 60000 - now + 500; // Wait until oldest falls out + buffer
+    if (waitTime > 0) {
+      console.log(`[Rate Limiter] Approaching limits (${currentRequestsCount}/${MAX_RPM} RPM, ${currentTokensCount}/${MAX_TPM} TPM). Pausing for ${(waitTime / 1000).toFixed(1)} seconds to stay within quota...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return rateLimitCheck(estimatedTokens); // Re-evaluate recursively
+    }
+  }
+}
+
 function cleanJsonString(str) {
   let cleaned = str.trim();
   if (cleaned.startsWith('```')) {
@@ -94,6 +144,10 @@ function cleanJsonString(str) {
 
 // 4. API Call to Gemini
 async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount = 0) {
+  // Estimate tokens and enforce sliding window rate-limits before sending the request
+  const estimatedTokens = estimateRequestTokens(base64Image);
+  await rateLimitCheck(estimatedTokens);
+
   const apiKey = keyRotation.getNextKey(retryCount);
   const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
@@ -146,6 +200,7 @@ Schema:
 `;
 
   try {
+    const agent = getProxyAgent();
     const response = await fetch(urlEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -157,21 +212,28 @@ Schema:
           ]
         }],
         generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
-      })
+      }),
+      ...(agent ? { dispatcher: agent } : {})
     });
 
     if (!response.ok) {
       const errText = await response.text();
       if ((response.status === 429 || response.status === 503) && retryCount < 30) {
-        // Wait 65s (60s reset window + 5s buffer) to guarantee the rate-limit window resets completely.
-        const waitTime = 65000;
+        // Exponential backoff with Jitter (Rule 2)
+        const baseWait = 2000 * Math.pow(2, retryCount);
+        const jitter = Math.floor(Math.random() * 2000);
+        const waitTime = Math.min(65000, baseWait + jitter);
+
         console.warn(`[AI OCR] Gemini rate limited (429/503) on Page ${pageNum}. Details: ${errText.substring(0, 250)}.`);
-        console.warn(`Waiting ${waitTime / 1000}s for the rate-limit window to reset completely (Retry ${retryCount + 1}/30)...`);
+        console.warn(`Waiting ${(waitTime / 1000).toFixed(1)}s for the rate-limit window to reset completely (Retry ${retryCount + 1}/30)...`);
         await new Promise(r => setTimeout(r, waitTime));
         return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
       }
       throw new Error(`API error: ${response.status} - ${errText}`);
     }
+
+    // Add successful request to sliding window history
+    requestHistory.push({ timestamp: Date.now(), tokens: estimatedTokens });
 
     const data = await response.json();
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
@@ -316,17 +378,10 @@ async function main() {
       console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
       completedOcrCount++;
       
-      // Cooldown delay between pages to dynamically stay under Gemini's RPM/TPM limits
+      // Small spacing delay between requests to keep the IP connection throughput smooth (pacing is primarily handled by rateLimiterCheck)
       if (i < ocrPages.length - 1) {
-        const activeKeysCount = (primaryKeys.length + fallbackKeys.length) || 1;
-        // Target 6 RPM per key average to stay safely below limits (especially TPM limits for images).
-        // Delay (ms) = 60000ms / (activeKeysCount * 6 RPM)
-        const calculatedDelay = Math.ceil(60000 / (activeKeysCount * 6));
-        // Keep delay bounded between 18 seconds (minimum safety for shared project/IP quotas) and 25 seconds
-        const cooldownDelay = Math.max(18000, Math.min(25000, calculatedDelay));
-
-        console.log(`Waiting ${cooldownDelay / 1000} seconds before next page (dynamic pacing based on ${activeKeysCount} keys)...`);
-        await new Promise(resolve => setTimeout(resolve, cooldownDelay));
+        const spacingDelay = 1500; // 1.5 seconds minimum spacing
+        await new Promise(resolve => setTimeout(resolve, spacingDelay));
       }
     }
 
