@@ -60,6 +60,25 @@ const getSortValue = (paper) => {
   return month * 1000 + day * 10 + shift
 }
 
+const cleanExamTitle = (subtitle) => {
+  if (!subtitle) return '';
+  let cleaned = subtitle
+    .replace(/^UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)\s+([a-zA-Z\s]+?)\s*Previous\s+Year\s+Question\s+Paper\s*/i, '')
+    .replace(/^UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)\s*Previous\s+Year\s+Question\s+Paper\s*/i, '')
+    .replace(/^UGC\s+NET\s+Previous\s+Year\s+Question\s+Paper\s*/i, '')
+    .replace(/^General\s+Paper\s+\d{4}\s*/i, '')
+    .replace(/^General\s+Paper\s*/i, '')
+    .replace(/^Previous\s+Year\s+Question\s+Paper\s*/i, '')
+    .replace(/\s*-\s*Free\s+Mock\s+Test\s*$/i, '')
+    .replace(/\s*Free\s+Mock\s+Test\s*$/i, '')
+    .trim();
+  
+  if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  return cleaned || subtitle;
+}
+
 const Paper1PYQ = () => {
   const navigate = useNavigate()
   const [groupedPapers, setGroupedPapers] = useState({})
@@ -84,9 +103,7 @@ const Paper1PYQ = () => {
           paper1Sets.forEach(set => {
             if (!grouped[set.year]) grouped[set.year] = []
             
-            const cleanedCycle = set.subtitle
-              ? set.subtitle.replace(/^General\s+Paper\s+\d{4}\s*/i, '').replace(/^General\s+Paper\s*/i, '')
-              : ''
+            const cleanedCycle = cleanExamTitle(set.subtitle);
 
             grouped[set.year].push({
               id: set.id,
@@ -158,7 +175,15 @@ const Paper1PYQ = () => {
                           {yearPapers.map((paper) => (
                             <tr key={paper.id} className="pyq-table__tr">
                               <td className="pyq-table__td">
-                                {paper.cycle}
+                                <div className="pyq-card-meta">
+                                  <span className="pyq-card-title pyq-card-title--desktop">
+                                    {paper.title}
+                                  </span>
+                                  <span className="pyq-card-title pyq-card-title--mobile">
+                                    {paper.cycle}
+                                  </span>
+                                  <span className="pyq-card-questions">{paper.questions} Questions</span>
+                                </div>
                               </td>
                               <td className="pyq-table__td col-action">
                                 <button 
