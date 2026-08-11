@@ -17,6 +17,72 @@ function askQuestion(query) {
   }));
 }
 
+// Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
+function parseAnswerKey(text) {
+  const mapping = {};
+  const lines = text.split('\n');
+  
+  for (const line of lines) {
+    let cleanLine = line.trim();
+    if (!cleanLine) continue;
+    
+    // Apply pre-processing string replacements for common OCR typos
+    cleanLine = cleanLine
+      .replace(/\s*\|\s*/g, '1 ')        // '8 | B' -> '81 B' (replace space-pipe-space with '1 ')
+      .replace(/\]/g, '1')              // '4]' -> '41', '9]' -> '91'
+      .replace(/\bT(\d+)\b/g, '7$1')     // 'T7' -> '77'
+      .replace(/\bl(\d+)\b/g, '1$1')     // 'l5' -> '15'
+      .replace(/\bI(\d+)\b/g, '1$1')     // 'I5' -> '15'
+      .replace(/\bl\b/g, '1')            // isolated 'l' -> '1'
+      .replace(/\bI\b/g, '1')            // isolated 'I' -> '1'
+      .replace(/\big\b/g, '11');         // 'ig' -> '11'
+      
+    // Split by whitespace, comma, tab, semicolon, vertical bar
+    const tokens = cleanLine.split(/[\s,;|]+/);
+    
+    // Check if there are any words with length >= 3 to avoid headers/footers
+    let hasLongWord = false;
+    for (const t of tokens) {
+      const lower = t.toLowerCase();
+      // Allow 'dropped', 'drop', 'null' as valid answer key tokens
+      if (['dropped', 'drop', 'null'].includes(lower)) {
+        continue;
+      }
+      if (/[a-zA-Z]{3,}/.test(t)) {
+        hasLongWord = true;
+        break;
+      }
+    }
+    if (hasLongWord) continue;
+    
+    // Clean tokens: remove Q/q from start, dots/colons from end
+    const cleanTokens = tokens.map(t => {
+      return t.replace(/^[Qq]/, '').replace(/[.:]$/, '').trim();
+    }).filter(Boolean);
+    
+    const optionMap = { 
+      'a': 1, 'b': 2, 'c': 3, 'd': 4, 
+      '1': 1, '2': 2, '3': 3, '4': 4,
+      'dropped': 0, 'drop': 0, 'null': 0, '0': 0
+    };
+    
+    for (let i = 0; i < cleanTokens.length - 1; i += 2) {
+      const qStr = cleanTokens[i];
+      const aStr = cleanTokens[i+1];
+      
+      const q = parseInt(qStr, 10);
+      const aLower = aStr.toLowerCase();
+      const a = optionMap[aLower];
+      
+      if (!isNaN(q) && q >= 1 && q <= 200 && a !== undefined) {
+        mapping[q] = a;
+      }
+    }
+  }
+  
+  return mapping;
+}
+
 // 1. Load your env file manually to avoid framework process.env overrides
 const envConfig = dotenv.parse(fs.readFileSync(path.resolve('.env')));
 for (const k in envConfig) {
@@ -264,6 +330,12 @@ async function main() {
 
   const LANGUAGE = await askQuestion("Enter Target Language (e.g. English, Hindi, Sindhi): ");
 
+  const ANSWER_KEY_PATH = await askQuestion("Enter the absolute path to your Answer Key PDF file (optional, press Enter to skip): ");
+  if (ANSWER_KEY_PATH && !fs.existsSync(ANSWER_KEY_PATH)) {
+    console.error(`Error: Answer Key PDF file does not exist at path: "${ANSWER_KEY_PATH}"`);
+    process.exit(1);
+  }
+
   try {
     console.log("\nConnecting to live MongoDB database...");
     await mongoose.connect(process.env.MONGODB_URI);
@@ -285,6 +357,27 @@ async function main() {
     const workerPath = path.resolve('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = url.pathToFileURL(workerPath).href;
 
+    // Load and parse answer key PDF if provided
+    let answerKeyMap = null;
+    if (ANSWER_KEY_PATH) {
+      console.log("Loading Answer Key PDF document...");
+      const keyData = new Uint8Array(fs.readFileSync(ANSWER_KEY_PATH));
+      const keyPdfDoc = await pdfjs.getDocument({ data: keyData }).promise;
+      let keyText = "";
+      for (let pageNum = 1; pageNum <= keyPdfDoc.numPages; pageNum++) {
+        const page = await keyPdfDoc.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        keyText += pageText + "\n";
+      }
+      answerKeyMap = parseAnswerKey(keyText);
+      const mappedCount = Object.keys(answerKeyMap).length;
+      console.log(`Successfully mapped ${mappedCount} answers from key.`);
+      if (mappedCount === 0) {
+        console.warn("⚠️  Warning: No valid question/answer mappings could be parsed from the Answer Key PDF.");
+      }
+    }
+
     console.log("Loading local PDF document...");
     const data = new Uint8Array(fs.readFileSync(PDF_PATH));
     const pdfDoc = await pdfjs.getDocument({ data }).promise;
@@ -301,8 +394,19 @@ async function main() {
                         /Q\s*\.\s*\d+/i.test(pageText);
       if (hasHeader) ocrPages.push({ pageNum, page });
     }
-
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
+    
+    if (ocrPages.length === 0) {
+      console.log("\n⚠️  No text-bearing pages found. This PDF appears to be a scanned (image-only) document.");
+      const answer = await askQuestion("Would you like to force-process all pages instead? (y/n): ");
+      if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+        console.log(`Adding all ${totalPages} pages for OCR processing...`);
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+          const page = await pdfDoc.getPage(pageNum);
+          ocrPages.push({ pageNum, page });
+        }
+      }
+    }
     
     let parsedQuestions = [];
     let completedOcrCount = 0;
@@ -355,6 +459,19 @@ async function main() {
             updatedQ.type = 'comprehension';
           } else if (dbQIndex >= 96 && dbQIndex <= 100) {
             updatedQ.type = 'comprehension';
+          }
+        }
+
+        // Override correct answer with official key if provided
+        if (answerKeyMap) {
+          let correctAns = undefined;
+          if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
+            correctAns = answerKeyMap[pdfQNum];
+          } else if (answerKeyMap[dbQIndex] !== undefined) {
+            correctAns = answerKeyMap[dbQIndex];
+          }
+          if (correctAns !== undefined) {
+            updatedQ.correct = correctAns;
           }
         }
         
