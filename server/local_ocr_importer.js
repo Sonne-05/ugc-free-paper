@@ -154,6 +154,8 @@ Instructions:
     - 'assertion-reason': Question containing SPECIFICALLY the words "Assertion (A)" (or "Assertion A") and "Reason (R)" (or "Reason R"). You MUST extract the assertion text into the "assertion" field and the reason text into the "reason" field.
     - 'match-column': Question containing matching lists ("List I" and "List II" or "सूची I" and "सूची II"). You MUST extract and populate "list1", "list2", "list1Header", and "list2Header" fields. The "list1Header" and "list2Header" should be the subtitles/headers of the lists (e.g. 'Concept', 'Description').
     - 'multiple-statement': Question containing multiple statements (e.g., points labeled A, B, C, D, E or (A), (B), (C), (D), (E) or I, II, III, IV, V) followed by a set of option combinations (e.g., "(1) A and C only", "(2) D and E only", "(3) B and C only", "(4) B and D only"). CRITICAL: If a question has a list of items labeled with letters/numbers AND is followed by combination options (labeled 1, 2, 3, 4 or (1), (2), (3), (4)), you MUST classify this as 'multiple-statement' (NOT 'mcq'). You MUST extract the statements (A, B, C, D, E) into the "statements" array, and extract the combination options (1, 2, 3, 4) as the 4 items in the "options" array. Do NOT include the statements (A, B, C, D, E) inside the "text" or "options" fields.
+    - 'comprehension': Question based on a shared reading passage. You MUST extract the passage text into the "passage" field. All questions belonging to the same passage must have the exact same "passage" content.
+    - 'di': Data Interpretation question based on a shared table, graph, or data description. You MUST extract the data description and format the data table as a clean Markdown table in the "passage" field. All questions belonging to the same DI block must have the exact same "passage" content.
 6. Set the 'unit' property to an empty string "".
 7. Generate a detailed explanation in standard English.
 8. Output ONLY a JSON object matching the following schema:
@@ -166,6 +168,7 @@ Schema:
       "unit": "",
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
       "text": "Clean question text in target script...",
+      "passage": "Passage or table details here (only for comprehension or di types)",
       "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
       "statements": ["Statement A", "Statement B", ...],
       "correct": number,
