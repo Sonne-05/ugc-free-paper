@@ -43,10 +43,12 @@ const SuggestedBlogs = ({ limit = 3 }) => {
       })
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          // Shuffle or slice to get unique suggestions
-          setPosts(data.slice(0, limit))
+          // Shuffle the array randomly and take the first 'limit' posts
+          const shuffled = [...data].sort(() => 0.5 - Math.random())
+          setPosts(shuffled.slice(0, limit))
         } else {
-          setPosts(FALLBACK_POSTS.slice(0, limit))
+          const shuffledFallback = [...FALLBACK_POSTS].sort(() => 0.5 - Math.random())
+          setPosts(shuffledFallback.slice(0, limit))
         }
         setLoading(false)
       })
