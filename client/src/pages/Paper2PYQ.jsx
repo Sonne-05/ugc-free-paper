@@ -111,6 +111,7 @@ const Paper2PYQ = () => {
               id: set.id,
               subject: activeSubject,
               cycle: cleanExamTitle(set.subtitle),
+              desktopTitle: set.subtitle,
               questions: set.questionsCount,
               title: set.title
             })
@@ -182,9 +183,9 @@ const Paper2PYQ = () => {
                                 <div className="pyq-card-meta">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                     <span className="subject-badge">{paper.subject}</span>
-                                    <span className="pyq-card-title pyq-card-title--desktop">
-                                      {paper.title}
-                                    </span>
+                                     <span className="pyq-card-title pyq-card-title--desktop">
+                                       {paper.desktopTitle}
+                                     </span>
                                     <span className="pyq-card-title pyq-card-title--mobile">
                                       {paper.cycle}
                                     </span>

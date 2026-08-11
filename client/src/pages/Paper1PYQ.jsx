@@ -104,10 +104,14 @@ const Paper1PYQ = () => {
             if (!grouped[set.year]) grouped[set.year] = []
             
             const cleanedCycle = cleanExamTitle(set.subtitle);
+            const desktopTitle = set.subtitle
+              ? set.subtitle.replace(/^General\s+Paper\s+\d{4}\s*/i, '').replace(/^General\s+Paper\s*/i, '')
+              : '';
 
             grouped[set.year].push({
               id: set.id,
               cycle: cleanedCycle,
+              desktopTitle: desktopTitle,
               questions: set.questionsCount,
               title: set.title
             })
@@ -177,7 +181,7 @@ const Paper1PYQ = () => {
                               <td className="pyq-table__td">
                                 <div className="pyq-card-meta">
                                   <span className="pyq-card-title pyq-card-title--desktop">
-                                    {paper.title}
+                                    {paper.desktopTitle}
                                   </span>
                                   <span className="pyq-card-title pyq-card-title--mobile">
                                     {paper.cycle}
