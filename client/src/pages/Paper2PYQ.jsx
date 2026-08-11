@@ -103,7 +103,13 @@ const Paper2PYQ = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const paper2Sets = data.filter(set => set.paperType === 'Paper II' && (set.subject || 'Sociology') === activeSubject)
+          const normalizeSubject = (sub) => (sub || '').toLowerCase().replace(/\s+language$/i, '').trim();
+          const activeSubNorm = normalizeSubject(activeSubject);
+          const paper2Sets = data.filter(set => {
+            if (set.paperType !== 'Paper II') return false;
+            const setSubNorm = normalizeSubject(set.subject || 'Sociology');
+            return setSubNorm === activeSubNorm;
+          });
           const grouped = {}
           paper2Sets.forEach(set => {
             if (!grouped[set.year]) grouped[set.year] = []
