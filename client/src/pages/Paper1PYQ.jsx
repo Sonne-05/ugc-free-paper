@@ -186,7 +186,6 @@ const Paper1PYQ = () => {
                                   <span className="pyq-card-title pyq-card-title--mobile">
                                     {paper.cycle}
                                   </span>
-                                  <span className="pyq-card-questions">{paper.questions} Questions</span>
                                 </div>
                               </td>
                               <td className="pyq-table__td col-action">

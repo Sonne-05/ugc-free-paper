@@ -204,7 +204,6 @@ const Paper2PYQ = () => {
                                       {paper.cycle}
                                     </span>
                                   </div>
-                                  <span className="pyq-card-questions">{paper.questions} Questions</span>
                                 </div>
                               </td>
                               <td className="pyq-table__td col-action">
