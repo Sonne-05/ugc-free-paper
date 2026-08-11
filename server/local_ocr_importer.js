@@ -69,9 +69,9 @@ const requestHistory = [];
 
 function getDynamicLimits() {
   const activeKeysCount = apiKeys.length || 1;
-  // Scale limits based on number of active keys, capped at 45 RPM to protect single IP from getting blocked
+  // Scale limits based on number of active keys, capped at 20 RPM to protect single IP from getting blocked or throttled
   const calculatedRpm = activeKeysCount * 15;
-  const maxRpm = Math.min(45, calculatedRpm);
+  const maxRpm = Math.min(20, calculatedRpm);
   
   // Scale TPM with RPM (each request averages ~4,500 tokens)
   const maxTpm = maxRpm * 4500; 
