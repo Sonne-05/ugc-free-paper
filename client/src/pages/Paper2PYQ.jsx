@@ -60,23 +60,58 @@ const getSortValue = (paper) => {
   return month * 1000 + day * 10 + shift
 }
 
-const cleanExamTitle = (subtitle) => {
+const cleanExamTitle = (subtitle, subject, year) => {
   if (!subtitle) return '';
-  let cleaned = subtitle
-    .replace(/^UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)\s+([a-zA-Z\s]+?)\s*Previous\s+Year\s+Question\s+Paper\s*/i, '')
-    .replace(/^UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)\s*Previous\s+Year\s+Question\s+Paper\s*/i, '')
-    .replace(/^UGC\s+NET\s+Previous\s+Year\s+Question\s+Paper\s*/i, '')
-    .replace(/^General\s+Paper\s+\d{4}\s*/i, '')
-    .replace(/^General\s+Paper\s*/i, '')
-    .replace(/^Previous\s+Year\s+Question\s+Paper\s*/i, '')
-    .replace(/\s*-\s*Free\s+Mock\s+Test\s*$/i, '')
-    .replace(/\s*Free\s+Mock\s+Test\s*$/i, '')
-    .trim();
+  let cleaned = subtitle;
   
-  if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
-    cleaned = cleaned.slice(1, -1).trim();
+  // Remove "Free Mock Test" or similar suffixes
+  cleaned = cleaned.replace(/\s*[-–—:]*\s*(?:Free\s+)?Mock\s+Test\s*$/i, '');
+  
+  // Remove the full subject name and its variations
+  if (subject) {
+    const normSub = subject.toLowerCase().replace(/\s+language$/i, '').trim();
+    const firstWord = normSub.split(/\s+/)[0];
+    
+    // Replace full subject name (optionally followed by year or "Language")
+    const subRegex = new RegExp(`(?:${normSub}|${subject})(?:\\s+language)?(?:\\s+${year})?`, 'gi');
+    cleaned = cleaned.replace(subRegex, '');
+    
+    // Replace the first word of the subject name (like "Sindhi")
+    if (firstWord && firstWord.length > 2) {
+      const wordRegex = new RegExp(`\\b${firstWord}\\b`, 'gi');
+      cleaned = cleaned.replace(wordRegex, '');
+    }
   }
-  return cleaned || subtitle;
+  
+  // Also remove standalone year
+  if (year) {
+    const yearRegex = new RegExp(`\\b${year}\\b`, 'g');
+    cleaned = cleaned.replace(yearRegex, '');
+  }
+
+  // General cleanups for paper names
+  cleaned = cleaned
+    .replace(/UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)/gi, '')
+    .replace(/UGC\s+NET/gi, '')
+    .replace(/UGC-NET/gi, '')
+    .replace(/Paper\s+(1|I|II|2|one|two)/gi, '')
+    .trim();
+    
+  // Clean up duplicate spaces and double separators
+  cleaned = cleaned.replace(/\s+/g, ' ');
+  cleaned = cleaned.replace(/[-–—:\s]+[-–—:\s]+/g, '-');
+  
+  // Clean up any remaining leading/trailing hyphens, colons, or punctuation
+  cleaned = cleaned.replace(/^[-–—:\s,]+|[-–—:\s,]+$/g, '').trim();
+  
+  // If it ended up empty, fallback to the original subtitle cleaned slightly
+  if (!cleaned) {
+    cleaned = subtitle
+      .replace(/\s*[-–—:]*\s*(?:Free\s+)?Mock\s+Test\s*$/i, '')
+      .trim();
+  }
+  
+  return cleaned;
 }
 
 const Paper2PYQ = () => {
@@ -116,8 +151,8 @@ const Paper2PYQ = () => {
             grouped[set.year].push({
               id: set.id,
               subject: activeSubject,
-              cycle: cleanExamTitle(set.subtitle),
-              desktopTitle: set.subtitle,
+              cycle: cleanExamTitle(set.subtitle, activeSubject, set.year),
+              desktopTitle: cleanExamTitle(set.subtitle, activeSubject, set.year),
               questions: set.questionsCount,
               title: set.title
             })
