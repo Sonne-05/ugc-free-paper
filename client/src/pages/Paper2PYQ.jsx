@@ -188,7 +188,6 @@ const Paper2PYQ = () => {
                               <td className="pyq-table__td">
                                 <div className="pyq-card-meta">
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <span className="subject-badge">{paper.subject}</span>
                                      <span className="pyq-card-title pyq-card-title--desktop">
                                        {paper.desktopTitle}
                                      </span>
