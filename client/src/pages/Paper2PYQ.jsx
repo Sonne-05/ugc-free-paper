@@ -63,55 +63,29 @@ const getSortValue = (paper) => {
 const cleanExamTitle = (subtitle, subject, year) => {
   if (!subtitle) return '';
   let cleaned = subtitle;
+
+  // Build a list of potential prefixes to remove from the start
+  const prefixes = [];
+  if (subject && year) {
+    prefixes.push(`${subject} ${year}`);
+    const normSub = subject.replace(/\s+language$/i, '').trim();
+    prefixes.push(`${normSub} ${year}`);
+  }
   
-  // Remove "Free Mock Test" or similar suffixes
-  cleaned = cleaned.replace(/\s*[-–—:]*\s*(?:Free\s+)?Mock\s+Test\s*$/i, '');
-  
-  // Remove the full subject name and its variations
-  if (subject) {
-    const normSub = subject.toLowerCase().replace(/\s+language$/i, '').trim();
-    const firstWord = normSub.split(/\s+/)[0];
-    
-    // Replace full subject name (optionally followed by year or "Language")
-    const subRegex = new RegExp(`(?:${normSub}|${subject})(?:\\s+language)?(?:\\s+${year})?`, 'gi');
-    cleaned = cleaned.replace(subRegex, '');
-    
-    // Replace the first word of the subject name (like "Sindhi")
-    if (firstWord && firstWord.length > 2) {
-      const wordRegex = new RegExp(`\\b${firstWord}\\b`, 'gi');
-      cleaned = cleaned.replace(wordRegex, '');
+  // Sort prefixes by length descending to match the longest prefix first
+  prefixes.sort((a, b) => b.length - a.length);
+
+  for (const prefix of prefixes) {
+    // Escape regex characters in the prefix
+    const escapedPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp('^' + escapedPrefix + '\\s*', 'i');
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, '');
+      break; // Only strip the longest matching prefix
     }
   }
-  
-  // Also remove standalone year
-  if (year) {
-    const yearRegex = new RegExp(`\\b${year}\\b`, 'g');
-    cleaned = cleaned.replace(yearRegex, '');
-  }
 
-  // General cleanups for paper names
-  cleaned = cleaned
-    .replace(/UGC\s+NET\s+Paper\s+(1|I|II|2|one|two)/gi, '')
-    .replace(/UGC\s+NET/gi, '')
-    .replace(/UGC-NET/gi, '')
-    .replace(/Paper\s+(1|I|II|2|one|two)/gi, '')
-    .trim();
-    
-  // Clean up duplicate spaces and double separators
-  cleaned = cleaned.replace(/\s+/g, ' ');
-  cleaned = cleaned.replace(/[-–—:\s]+[-–—:\s]+/g, '-');
-  
-  // Clean up any remaining leading/trailing hyphens, colons, or punctuation
-  cleaned = cleaned.replace(/^[-–—:\s,]+|[-–—:\s,]+$/g, '').trim();
-  
-  // If it ended up empty, fallback to the original subtitle cleaned slightly
-  if (!cleaned) {
-    cleaned = subtitle
-      .replace(/\s*[-–—:]*\s*(?:Free\s+)?Mock\s+Test\s*$/i, '')
-      .trim();
-  }
-  
-  return cleaned;
+  return cleaned.trim() || subtitle;
 }
 
 const Paper2PYQ = () => {
