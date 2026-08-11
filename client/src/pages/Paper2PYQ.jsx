@@ -133,7 +133,7 @@ const Paper2PYQ = () => {
             </div>
 
             <div className="pyq-page__content">
-              <table className="pyq-table">
+              <table className="pyq-table pyq-table--subject">
                 <thead>
                   <tr>
                     <th className="pyq-table__th col-cycle">Subject & Cycle</th>

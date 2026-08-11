@@ -131,7 +131,7 @@ const Paper1PYQ = () => {
             </div>
 
             <div className="pyq-page__content">
-              <table className="pyq-table">
+              <table className="pyq-table pyq-table--year">
                 <thead>
                   <tr>
                     <th className="pyq-table__th col-cycle">Exam Cycle & Shift</th>

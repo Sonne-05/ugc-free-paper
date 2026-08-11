@@ -196,7 +196,7 @@ const Paper1UnitPYQ = () => {
             </div>
 
             <div className="pyq-page__content">
-              <table className="pyq-table">
+              <table className="pyq-table pyq-table--unit">
                 <thead>
                   <tr>
                     <th className="pyq-table__th" style={{ width: '80px', textAlign: 'center' }}>Unit</th>

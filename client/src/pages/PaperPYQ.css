@@ -425,4 +425,186 @@
   }
 }
 
+/* Responsive layout adjustments for mobile/tablet devices */
+@media (max-width: 768px) {
+  .pyq-page {
+    padding: 90px 16px 60px !important;
+  }
+
+  .pyq-page__title {
+    font-size: 1.8rem !important;
+    margin-bottom: 6px !important;
+  }
+
+  .pyq-page__subtitle {
+    font-size: 0.95rem !important;
+    margin-bottom: 24px !important;
+  }
+
+  .pyq-page__intro {
+    margin-bottom: 24px !important;
+    padding-bottom: 16px !important;
+  }
+
+  /* Table layout modifications to make it card-based */
+  .pyq-table, 
+  .pyq-table tbody, 
+  .pyq-table__tr, 
+  .pyq-table__td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .pyq-table thead {
+    display: none !important;
+  }
+
+  .pyq-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Style row as an elegant card */
+  .pyq-table__tr {
+    background: var(--bg-card, #ffffff) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius, 12px) !important;
+    padding: 16px !important;
+    box-shadow: var(--shadow) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    text-align: left !important;
+  }
+
+  .pyq-table__tr:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border-color: var(--primary) !important;
+    background-color: var(--bg-card) !important;
+  }
+
+  /* Reset paddings and border for columns */
+  .pyq-table__td {
+    padding: 0 !important;
+    border: none !important;
+    text-align: left !important;
+  }
+
+  /* Unit-wise specific card customizations */
+  .pyq-table--unit .pyq-table__td:nth-child(1) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+    color: var(--primary) !important;
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    align-self: flex-start !important;
+    margin-bottom: 2px !important;
+  }
+  .pyq-table--unit .pyq-table__td:nth-child(1)::before {
+    content: "Unit " !important;
+  }
+
+  .pyq-table--unit .pyq-table__td:nth-child(2) {
+    display: block !important;
+  }
+
+  .pyq-table--unit .pyq-table__td:nth-child(3) {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  .pyq-table--unit .pyq-table__btn {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 0.95rem !important;
+    display: block !important;
+  }
+
+  /* Year-wise and subject-wise specific card customizations */
+  .pyq-table--year .pyq-table__td:nth-child(1),
+  .pyq-table--subject .pyq-table__td:nth-child(1) {
+    display: block !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    color: var(--text) !important;
+  }
+
+  .pyq-table--year .pyq-table__td:nth-child(2),
+  .pyq-table--subject .pyq-table__td:nth-child(2) {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  .pyq-table--year .pyq-table__btn,
+  .pyq-table--subject .pyq-table__btn {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 0.95rem !important;
+    display: block !important;
+  }
+
+  /* Keep the ads rows clean and prevent card styling from breaking ads */
+  .pyq-table__in-feed-ad-row {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 8px 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+  .pyq-table__in-feed-ad-td {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Year rows grouping dividers */
+  .pyq-table__year-row {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 16px 0 4px 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+  .pyq-table__year-td {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  .pyq-table__year-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+  .pyq-table__year-title {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* Horizontal suggested blogs grid for tablet screens (600px - 1023px) */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .pyq-page__suggested-blogs-mobile .suggested-blogs__list {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+  }
+}
+
 
