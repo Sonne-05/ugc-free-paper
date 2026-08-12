@@ -291,43 +291,21 @@ async function main() {
         let rawStr = String(q.qIndex || '').trim();
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
-        
-        let dbQIndex = pdfQNum;
-        const maxAllowedQuestions = isPaperII ? 100 : 50;
-
-        if (!isNaN(pdfQNum)) {
-          if (isPaperII) {
-            if (pdfQNum > 100 && pdfQNum <= 150) dbQIndex = pdfQNum - 50;
-            else if (pdfQNum > 100 && pdfQNum <= 200) dbQIndex = pdfQNum - 100;
-            else dbQIndex = pdfQNum;
-          } else {
-            if (pdfQNum > 50 && pdfQNum <= 100) dbQIndex = pdfQNum - 50;
-            else dbQIndex = pdfQNum;
-          }
-        }
 
         let updatedQ = {
           ...q,
-          qIndex: dbQIndex,
+          qIndex: pdfQNum,
           pdfQNum: pdfQNum,
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-          correct: undefined, // Do not add answer key
-          explanation: ""     // Do not add explanation
+          correct: undefined,
+          explanation: ""
         };
-
-        if (!isPaperII) {
-          if (dbQIndex >= 1 && dbQIndex <= 5) updatedQ.type = 'di';
-          else if (dbQIndex >= 46 && dbQIndex <= 50) updatedQ.type = 'comprehension';
-        } else {
-          if (dbQIndex >= 91 && dbQIndex <= 100) updatedQ.type = 'comprehension';
-        }
-        
         parsedQuestions.push(updatedQ);
       });
-      
+
       console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
       completedOcrCount++;
-      
+
       // Save checkpoint after every page
       processedPages.add(pageNum);
       try {
@@ -349,7 +327,38 @@ async function main() {
       }
     }
 
-    // Deduplicate and smart fallback index assignment (ensure NO questions are discarded)
+    // Automatically detect if this PDF uses shifted numbering (e.g. Q51..Q150 for Paper II, or Q51..Q100 for Paper I)
+    const validPdfNums = parsedQuestions.map(q => q.pdfQNum).filter(n => !isNaN(n) && n > 0 && n <= 300);
+    const maxPdfNum = validPdfNums.length > 0 ? Math.max(...validPdfNums) : 0;
+    const minPdfNum = validPdfNums.length > 0 ? Math.min(...validPdfNums) : 0;
+
+    const needsShift50 = (isPaperII && maxPdfNum > 100 && minPdfNum >= 51) || (!isPaperII && maxPdfNum > 50 && minPdfNum >= 51);
+    const needsShift100 = (isPaperII && maxPdfNum > 150 && minPdfNum >= 101);
+
+    if (needsShift50) {
+      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 50}...`);
+    } else if (needsShift100) {
+      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 100}...`);
+    }
+
+    // Apply normalized qIndex
+    parsedQuestions.forEach(q => {
+      let dbQIndex = q.pdfQNum;
+      if (!isNaN(q.pdfQNum)) {
+        if (needsShift50) dbQIndex = q.pdfQNum - 50;
+        else if (needsShift100) dbQIndex = q.pdfQNum - 100;
+      }
+      q.qIndex = dbQIndex;
+
+      if (!isPaperII) {
+        if (dbQIndex >= 1 && dbQIndex <= 5) q.type = 'di';
+        else if (dbQIndex >= 46 && dbQIndex <= 50) q.type = 'comprehension';
+      } else {
+        if (dbQIndex >= 91 && dbQIndex <= 100) q.type = 'comprehension';
+      }
+    });
+
+    // Deduplicate and smart fallback index assignment
     const questionMap = new Map();
     const maxAllowedQuestions = isPaperII ? 100 : 50;
     const unindexedQueue = [];
@@ -362,10 +371,7 @@ async function main() {
           const existing = questionMap.get(q.qIndex);
           const existingScore = (existing.text || '').length + (existing.explanation || '').length + (existing.options || []).join('').length;
           const newScore = (q.text || '').length + (q.explanation || '').length + (q.options || []).join('').length;
-          
-          if (newScore > existingScore) {
-            questionMap.set(q.qIndex, q);
-          }
+          if (newScore > existingScore) questionMap.set(q.qIndex, q);
         }
       } else {
         unindexedQueue.push(q);
@@ -373,7 +379,7 @@ async function main() {
     });
 
     if (unindexedQueue.length > 0) {
-      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with 6-digit IDs or non-standard numbering into open slots...`);
+      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with non-standard numbering into open slots...`);
       let queueIdx = 0;
       for (let slot = 1; slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length; slot++) {
         if (!questionMap.has(slot)) {
