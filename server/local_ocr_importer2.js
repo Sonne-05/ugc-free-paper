@@ -68,8 +68,9 @@ function parseAnswerKey(text) {
       const aLower = aStr.toLowerCase();
       const a = optionMap[aLower];
       
-      if (!isNaN(q) && q >= 1 && q <= 200 && a !== undefined) {
+      if (!isNaN(q) && q >= 1 && q <= 9999999 && a !== undefined) {
         mapping[q] = a;
+        mapping[String(q)] = a;
       }
     }
   }
@@ -87,6 +88,7 @@ for (const k in envConfig) {
 const QuestionSchema = new mongoose.Schema({
   setId: mongoose.Schema.Types.ObjectId,
   qIndex: Number,
+  ntaQuestionId: String,
   unit: String,
   type: { type: String, enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'] },
   text: String,
