@@ -235,8 +235,8 @@ You MUST extract the questions and option texts in the following language/format
 
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels.
-2. Extract exactly 4 options matching the Target Language Rule.
-3. Identify the question number/index (e.g. Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
+2. Extract exactly 4 options matching the Target Language Rule. Options may be labeled (1), (2), (3), (4) or (A), (B), (C), (D) or A., B., C., D. Always extract the 4 options in order as the 4 items in the "options" array (where item 0 = Option 1/A, item 1 = Option 2/B, item 2 = Option 3/C, item 3 = Option 4/D).
+3. Identify the question number/index (e.g. 1., 2., 3., Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
