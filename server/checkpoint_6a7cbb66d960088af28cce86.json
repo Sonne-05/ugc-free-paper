@@ -1,0 +1,643 @@
+{
+  "setId": "6a7cbb66d960088af28cce86",
+  "pdfPath": "C:\\Users\\FNULNU\\Downloads\\Sociology PYQs\\P2\\June 2024.pdf",
+  "processedPages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "parsedQuestions": [
+    {
+      "qIndex": 1,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "Who is not the spokesman for cultural determinism?",
+      "passage": "",
+      "options": [
+        "E. B Tylor",
+        "A. L. Kroeber",
+        "R. M. MacIver",
+        "Leslie Whyte"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "Cultural determinism posits that culture determines human emotional and behavioral traits. Major anthropological theorists like E.B. Tylor, A.L. Kroeber, and Leslie White (Whyte) advocate cultural determinism. R.M. MacIver, a prominent sociologist, focused on social relations, social structure, and social change rather than cultural determinism.",
+      "pdfQNum": 1,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 2,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "passage": "",
+      "options": [
+        "(a)-(IV), (b)-(I), (c)-(III), (d)-(II)",
+        "(a)-(I), (b)-(II), (c)-(IV), (d)-(III)",
+        "(a)-(II), (b)-(III), (c)-(I), (d)-(IV)",
+        "(a)-(III), (b)-(IV), (c)-(II), (d)-(I)"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "An American Dilemma: The Negro Problem and Modern Democracy",
+        "The American Soldier",
+        "Middle Town in Transition",
+        "Sexual Behaviour of Human Male"
+      ],
+      "list2": [
+        "Robert and Helen Lynd",
+        "Gunnar Myrdal",
+        "Samuel Stouffer",
+        "Alfred Kinsey"
+      ],
+      "list1Header": "(Book)",
+      "list2Header": "(Author)",
+      "explanation": "The correct pairings between the books and their respective authors are:\n- (a) An American Dilemma: The Negro Problem and Modern Democracy — (II) Gunnar Myrdal (1944)\n- (b) The American Soldier — (III) Samuel Stouffer (1949)\n- (c) Middle Town in Transition — (I) Robert and Helen Lynd (1937)\n- (d) Sexual Behaviour of Human Male — (IV) Alfred Kinsey (1948)\n\nHence, the correct combination is (a)-(II), (b)-(III), (c)-(I), (d)-(IV).",
+      "pdfQNum": 2,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 3,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "passage": "",
+      "options": [
+        "(a)-(III), (b)-(II), (c)-(IV), (d)-(I)",
+        "(a)-(II), (b)-(IV), (c)-(I), (d)-(III)",
+        "(a)-(I), (b)-(III), (c)-(II), (d)-(IV)",
+        "(a)-(IV), (b)-(I), (c)-(III), (d)-(II)"
+      ],
+      "statements": [],
+      "correct": 2,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "Nai Talim",
+        "States and Minorities",
+        "On Living in a Revolution and Other Essays",
+        "The Philosophy of Social Science"
+      ],
+      "list2": [
+        "M.N. Srinivas",
+        "M.K. Gandhi",
+        "R.K. Mukherjee",
+        "B.R. Ambedkar"
+      ],
+      "list1Header": "(Books)",
+      "list2Header": "(Author)",
+      "explanation": "The correct pairings between books/concepts and their authors are:\n- (a) Nai Talim — (II) M.K. Gandhi (Educational philosophy)\n- (b) States and Minorities — (IV) B.R. Ambedkar (1947 memorandum)\n- (c) On Living in a Revolution and Other Essays — (I) M.N. Srinivas (1992)\n- (d) The Philosophy of Social Science — (III) R.K. Mukherjee (1960)\n\nHence, the correct option is (a)-(II), (b)-(IV), (c)-(I), (d)-(III).",
+      "pdfQNum": 3,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 5,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "multiple-statement",
+      "text": "Which of the following premises characterize the dramaturgical school of interactionism?",
+      "statements": [
+        "(a) Focuses on the ways that actors manipulate gestures to create an impression in a particular social scene.",
+        "(b) Emphasizes on the process of impression management and not the purposes or goal toward which action is oriented.",
+        "(c) Focuses on the goal orientation and particular structures which create different forms of interaction.",
+        "(d) Emphasizes on the form of interaction itself rather than on the structures it creates, sustains or changes."
+      ],
+      "options": [
+        "(a), (b) and (c) only",
+        "(b) and (c) only",
+        "(a), (c) and (d) only",
+        "(a), (b) and (d) only"
+      ],
+      "correct": 4,
+      "explanation": "The dramaturgical perspective in sociology, developed by Erving Goffman, analyzes social interaction through the framework of theatrical performance. Key features include:\n• Actors manipulating gestures and performance to manage impressions in specific social scenes (a).\n• Focus on impression management rather than internal goal orientation (b).\n• Focus on the forms and processes of interaction itself rather than macro social structures (d).\nTherefore, statements (a), (b), and (d) are correct.",
+      "pdfQNum": 5,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 6,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "multiple-statement",
+      "text": "Which among the following are correct about Parsons' notion of socialization?",
+      "statements": [
+        "(a) In the socialization process norms and values of a system are internalized and become part of the actors conscience.",
+        "(b) Socialization is a conservative process in which need dispositions bind children to the social system.",
+        "(c) Parsons sees socialization as a life long experience.",
+        "(d) In socialization process, there is little or no room for creativity."
+      ],
+      "options": [
+        "(a), (b), (d) only",
+        "(b), (c), (d) only",
+        "(a), (b), (c) only",
+        "(a), (b), (c) and (d) only"
+      ],
+      "correct": 1,
+      "explanation": "In Talcott Parsons' structural functionalist perspective:\n• Socialization internalizes systemic norms and values into the individual's personality structure/conscience (a).\n• It acts as a conservative mechanism aligning individual need-dispositions with social system expectations (b).\n• It leaves little room for individual creativity or agency, leading to Dennis Wrong's famous critique of Parsons' 'over-socialized conception of man' (d).\nTherefore, (a), (b), and (d) are correct.",
+      "pdfQNum": 6,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 7,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "list1Header": "List - I (Authors)",
+      "list2Header": "List - II (Books)",
+      "list1": [
+        "(a) C. Wright Mills",
+        "(b) David Riesman",
+        "(c) G. William Domhoff",
+        "(d) Matthew Josephson"
+      ],
+      "list2": [
+        "(I) The Lonely Crowd",
+        "(II) Who Rules America",
+        "(III) The Robber Barons",
+        "(IV) The Power Elite"
+      ],
+      "options": [
+        "(a)-(IV), (b)-(I), (c)-(II), (d)-(III)",
+        "(a)-(I), (b)-(II), (c)-(III), (d)-(IV)",
+        "(a)-(II), (b)-(IV), (c)-(I), (d)-(III)",
+        "(a)-(III), (b)-(I), (c)-(IV), (d)-(II)"
+      ],
+      "correct": 1,
+      "explanation": "The correct matches between authors and their respective works are:\n• C. Wright Mills — (IV) The Power Elite (1956)\n• David Riesman — (I) The Lonely Crowd (1950)\n• G. William Domhoff — (II) Who Rules America (1967)\n• Matthew Josephson — (III) The Robber Barons (1934)",
+      "pdfQNum": 7,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 8,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "multiple-statement",
+      "text": "Which of the following are the characteristics of a good sample design?\nChoose the correct answer from the option given below:",
+      "options": [
+        "(a), (b) and (c) only",
+        "(a), (b), (c) and (d) only",
+        "(a), (c) and (d) only",
+        "(b), (c) and (d) only"
+      ],
+      "statements": [
+        "(a) It must result in a truly representative sample",
+        "(b) It must be such which result in a small sampling error.",
+        "(c) It must be viable in context of funds available for the research study.",
+        "(d) It must be such so that systematic bias can be controlled in a better way."
+      ],
+      "correct": 2,
+      "explanation": "A good sample design must produce a representative sample, minimize sampling error, be economically viable within available research funds, and effectively control systematic bias. Therefore, all four statements (a, b, c, and d) are essential characteristics.",
+      "pdfQNum": 8,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 9,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "Who among the following is not associated with 'The Chicago School'?",
+      "options": [
+        "Robert Park",
+        "Ernest Burgers",
+        "Ferdinand Tonies",
+        "Louis Wirth"
+      ],
+      "correct": 3,
+      "explanation": "Ferdinand Tönnies was a German sociologist best known for his distinction between Gemeinschaft (community) and Gesellschaft (society). Robert Park, Ernest Burgess, and Louis Wirth were leading figures of the Chicago School of Sociology.",
+      "pdfQNum": 9,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 10,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II\nChoose the correct answer from the options given below:",
+      "list1Header": "List - I (System)",
+      "list2Header": "List - II (Location)",
+      "list1": [
+        "(a) Ryotwari",
+        "(b) Mahalwari",
+        "(c) Jamindari",
+        "(d) Jagirdari"
+      ],
+      "list2": [
+        "(I) Princely States of Rajasthan",
+        "(II) Madras",
+        "(III) Bengal and Uttar Pradesh",
+        "(IV) Agra and Audh"
+      ],
+      "options": [
+        "(a)-(I), (b)-(II), (c)-(III), (d)-(IV)",
+        "(a)-(II), (b)-(IV), (c)-(III), (d)-(I)",
+        "(a)-(III), (b)-(IV), (c)-(II), (d)-(I)",
+        "(a)-(IV), (b)-(III), (c)-(II), (d)-(I)"
+      ],
+      "correct": 2,
+      "explanation": "The correct matches between revenue systems and their regions are:\n- (a) Ryotwari: (II) Madras\n- (b) Mahalwari: (IV) Agra and Audh\n- (c) Jamindari: (III) Bengal and Uttar Pradesh\n- (d) Jagirdari: (I) Princely States of Rajasthan",
+      "pdfQNum": 10,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 11,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "According to R. K. Mukherjee, Indian culture is very well blended with various religious texts. He emphasises that the spirit of tolerance of diversities is reflected in-",
+      "options": [
+        "Rig Veda",
+        "Atharva Veda",
+        "Arthasastra",
+        "Dharmasastra"
+      ],
+      "correct": 1,
+      "explanation": "Sociologist Radhakamal Mukerjee emphasized that the spirit of tolerance towards cultural and religious diversities in Indian civilization is reflected foundational text, the Rig Veda.",
+      "pdfQNum": 11,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 12,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "'Capitalism produces wasted population not just the poor and refuges but huge prison populations and other outsiders.' Who is associated with this statement?",
+      "options": [
+        "Judith Butler",
+        "Zygmunt Bauman",
+        "Giorgio Agamben",
+        "Chrystia Freeland"
+      ],
+      "correct": 2,
+      "explanation": "Zygmunt Bauman discussed the concept of 'wasted lives' and human waste produced as a consequence of liquid modernity and economic globalization, where capitalism generates redundant populations, including refugees and prison populations.",
+      "pdfQNum": 12,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 13,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "passage": "",
+      "options": [
+        "(a)-(I), (b)-(II), (c)-(III), (d)-(I)",
+        "(a)-(II), (b)-(I), (c)-(IV), (d)-(III)",
+        "(a)-(IV), (b)-(III), (c)-(I), (d)-(II)",
+        "(a)-(I), (b)-(III), (c)-(II), (d)-(IV)"
+      ],
+      "statements": [],
+      "correct": 2,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "(a) Ecological Modernization",
+        "(b) Sociology of consumption",
+        "(c) Critical Realism",
+        "(d) Social constructionism"
+      ],
+      "list2": [
+        "(I) Emphasizes on the combination of industrialization, capitalism and consumerism has transformed society - environment relations.",
+        "(II) Accepts that 'business as usual' is no longer possible but also rejects radical environmentalist solutions involving deindustrialization.",
+        "(III) Approach to investigate how some environmental issues come to be seen as significant and in need of urgent action while others are largely ignored.",
+        "(IV) Approaches environmental issues in a scientific way, bringing together evidence from across the social and natural sciences to understand why environmental problems occur."
+      ],
+      "list1Header": "List - I (Concept)",
+      "list2Header": "List - II (Explanation)",
+      "explanation": "1. Ecological Modernization accepts that 'business as usual' is no longer possible but rejects radical solutions involving deindustrialization (a - II).\n2. Sociology of consumption emphasizes how industrialization, capitalism, and consumerism transform society-environment relations (b - I).\n3. Critical Realism approaches environmental issues scientifically by combining evidence from social and natural sciences (c - IV).\n4. Social constructionism investigates how specific environmental issues come to be defined as urgent while others are ignored (d - III).",
+      "pdfQNum": 13,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 14,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "A state expressing, in a variable geometry, the aggregate interests of its constituent members is called",
+      "passage": "",
+      "options": [
+        "Nation-state",
+        "Capitalist state",
+        "Super nation-state",
+        "Estate"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "A state expressing the aggregate interests of its constituent members in a variable geometry (such as supranational unions like the European Union) is referred to as a super nation-state.",
+      "pdfQNum": 14,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 15,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "multiple-statement",
+      "text": "The changing material culture is impacted by the:-",
+      "passage": "",
+      "options": [
+        "(a) and (d) only",
+        "(b) only",
+        "(c) and (e) only",
+        "(e) only"
+      ],
+      "statements": [
+        "(a) Integrated, global capital identities, which determine global economics and influence global societies.",
+        "(b) Integrated, global capital network, whose movements and variable logic does not determine economies and influence societies.",
+        "(c) Integrated, global capital marketing infrastructure, whose functioning impacts on the various economies and influence societies.",
+        "(d) Integrated, global capital currency system, whose movements and variable logic determine economies and influence societies.",
+        "(e) Integrated, global capital network, whose movements and variable logic which determine economies and influence societies."
+      ],
+      "correct": 4,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "According to Manuel Castells' network society theory, material culture is heavily impacted by the integrated global capital network, whose movements and variable logic determine economies and influence societies worldwide.",
+      "pdfQNum": 15,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 17,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "passage": "",
+      "options": [
+        "(a)-(II), (b)-(I), (c)-(III), (d)-(IV)",
+        "(a)-(IV), (b)-(III), (c)-(I), (d)-(I)",
+        "(a)-(III), (b)-(IV), (c)-(I), (d)-(II)",
+        "(a)-(I), (b)-(II), (c)-(IV), (d)-(III)"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "Ann Oakley",
+        "T. Piketty",
+        "M. Piore and C.F. Sable",
+        "K. Ohmae"
+      ],
+      "list2": [
+        "The Second Industrial Divide: Possibilities and Prosperities",
+        "The Borderless World: Power and Strategy in Industrial Economy",
+        "The Sociology of Housework",
+        "Capital in the Twenty-First Century"
+      ],
+      "list1Header": "Author",
+      "list2Header": "Book",
+      "explanation": "The correct match between Authors and their respective Books is:\n- Ann Oakley wrote 'The Sociology of Housework' (III).\n- T. Piketty wrote 'Capital in the Twenty-First Century' (IV).\n- M. Piore and C.F. Sabel wrote 'The Second Industrial Divide: Possibilities and Prosperities' (I).\n- K. Ohmae wrote 'The Borderless World: Power and Strategy in Industrial Economy' (II).\n\nTherefore, (a)-(III), (b)-(IV), (c)-(I), (d)-(II) is the correct matching combination.",
+      "pdfQNum": 17,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 18,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "'Technology is socially shaped' - which among the following is not correct about this statement?",
+      "passage": "",
+      "options": [
+        "Technological change is conditioned by social factors.",
+        "Technological design and functions are the outcome of social process rather than of internal standard of scientific technological rationality.",
+        "Technological change follows a fixed, linear path, which can be explained by references to some inner technological logic.",
+        "Technological change involves controversies, disagreement and difficulties that engage relevant social groups in strategies to shape technology."
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "The social shaping of technology perspective critiques technological determinism. It rejects the idea that technological change follows an autonomous, fixed, linear path driven strictly by an internal technological or scientific logic. Instead, it asserts that technology design and adoption are shaped by socio-cultural, political, and economic choices.",
+      "pdfQNum": 18,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 19,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "multiple-statement",
+      "text": "Marxian Dialectics is based on the ideas of:",
+      "passage": "",
+      "options": [
+        "(a) and (e) only",
+        "(b), (c) and (e) only",
+        "(a), (b) and (c) only",
+        "(c) and (d) only"
+      ],
+      "statements": [
+        "Dialectical analysis does not see a simple, one-way, cause and effect relationship among the various parts of the social world.",
+        "Dialectical analysis is based on social values that are not separate from social facts.",
+        "Dialectical Analysis focuses on relations within and among various aspects of social world.",
+        "Dialectical Analysis has relation only with the material world and not the social world."
+      ],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "Marxian Dialectics emphasizes that:\n1. Social relationships are reciprocal rather than simple linear cause-and-effect (a).\n2. Values and facts are inextricably linked in social analysis (b).\n3. Focus is placed on internal and external relations across various social aspects (c).\nStatement (d) is incorrect because Marxian dialectics connects both the material world and social relations, rather than isolating the material world entirely from the social world.",
+      "pdfQNum": 19,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 20,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "The simplest possible measure of dispersion which is defined as the difference between the values of the extreme items of a series is called",
+      "passage": "",
+      "options": [
+        "Mean",
+        "Median",
+        "Range",
+        "Mode"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "Range is the simplest measure of dispersion, defined as the difference between the maximum (largest) value and the minimum (smallest) value in a given dataset.",
+      "pdfQNum": 20,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 21,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "G. H. Mead defines 'I' as the:-",
+      "passage": "",
+      "options": [
+        "(A) incalculable, unpredictable and creative aspect of the self.",
+        "(B) calculable, predictable and non-creative aspect of the self.",
+        "(C) calculable, unpredictable and creative aspect of the self.",
+        "(D) incalculable, predictable and creative aspect of the self."
+      ],
+      "statements": [],
+      "correct": 1,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "In George Herbert Mead's theory of the self, the 'I' represents the spontaneous, unsocialized, unpredictable, incalculable, and creative aspect of the individual's self, whereas the 'Me' represents the socialized aspect formed through the internalized attitudes of others.",
+      "pdfQNum": 21,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 22,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the thinkers with their concepts-",
+      "passage": "",
+      "options": [
+        "(A) (a)-(IV), (b)-(I), (c)-(II), (d)-(III)",
+        "(B) (a)-(II), (b)-(I), (c)-(IV), (d)-(III)",
+        "(C) (a)-(II), (b)-(III), (c)-(IV), (d)-(I)",
+        "(D) (a)-(III), (b)-(I), (c)-(IV), (d)-(II)"
+      ],
+      "statements": [],
+      "correct": 1,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "(a) Emile Durkheim",
+        "(b) Karl Marx",
+        "(c) Claude Levi-Strauss",
+        "(d) Michel Foucault"
+      ],
+      "list2": [
+        "(I) Fetishism",
+        "(II) Elementary Structures",
+        "(III) Discourses",
+        "(IV) Morality"
+      ],
+      "list1Header": "Thinkers",
+      "list2Header": "Concept",
+      "explanation": "Correct matching:\n• Emile Durkheim - Morality\n• Karl Marx - Fetishism (Commodity Fetishism)\n• Claude Levi-Strauss - Elementary Structures (e.g., The Elementary Structures of Kinship)\n• Michel Foucault - Discourses",
+      "pdfQNum": 22,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 23,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "match-column",
+      "text": "Match the List-I with List-II",
+      "passage": "",
+      "options": [
+        "(A) (a)-(III), (b)-(I), (c)-(IV), (d)-(II)",
+        "(B) (a)-(IV), (b)-(I), (c)-(III), (d)-(II)",
+        "(C) (a)-(II), (b)-(III), (c)-(I), (d)-(IV)",
+        "(D) (a)-(I), (b)-(IV), (c)-(II), (d)-(III)"
+      ],
+      "statements": [],
+      "correct": 1,
+      "assertion": "",
+      "reason": "",
+      "list1": [
+        "(a) Multivariate Analysis",
+        "(b) Test of Significance",
+        "(c) Central Tendency",
+        "(d) Karl Pearson"
+      ],
+      "list2": [
+        "(I) Chi-Square Test",
+        "(II) Coefficient of Skewness",
+        "(III) Cluster Analysis",
+        "(IV) Standard Deviation"
+      ],
+      "list1Header": "Method/Developer",
+      "list2Header": "Example",
+      "explanation": "Correct matching:\n• Multivariate Analysis - Cluster Analysis (a technique analyzing multiple variables)\n• Test of Significance - Chi-Square Test\n• Central Tendency - Standard Deviation (matched here as a descriptive statistical parameter)\n• Karl Pearson - Coefficient of Skewness (Pearson's coefficient of skewness)",
+      "pdfQNum": 23,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 24,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "The term refers to movement away from a residential location either within the same country or to another country.",
+      "passage": "",
+      "options": [
+        "(A) Immigration",
+        "(B) Emigration",
+        "(C) Migration",
+        "(D) Forced migration"
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "Migration is the general term for the movement of people away from a residential location, which can occur either within the borders of a country (internal migration) or across international borders (international migration).",
+      "pdfQNum": 24,
+      "setId": "6a7cbb66d960088af28cce86"
+    },
+    {
+      "qIndex": 25,
+      "ntaQuestionId": "",
+      "unit": "",
+      "type": "mcq",
+      "text": "Which among the following is not true about the first generation 'cyber crimes'?",
+      "passage": "",
+      "options": [
+        "(A) use of computers to assess traditional type of offending.",
+        "(B) Finding information on how to build weapons or bombs may be easier on the internet but there have been and still are, conventional sources available.",
+        "(C) First generation cyber crimes were 'hybrid' traditional offences but within a new global network environment.",
+        "(D) Drug dealers employ whatever forms of communication exist and, even in the absence of computers, would continue to buy or sell drugs."
+      ],
+      "statements": [],
+      "correct": 3,
+      "assertion": "",
+      "reason": "",
+      "list1": [],
+      "list2": [],
+      "list1Header": "",
+      "list2Header": "",
+      "explanation": "In David Wall's classification of cybercrimes:\n• First-generation cybercrimes involved standalone computers used as tools for traditional offenses (e.g., forging documents).\n• Second-generation cybercrimes are 'hybrid' traditional offenses that operate within a new global network environment.\nTherefore, option (C) describes second-generation cybercrimes, making it false regarding first-generation cybercrimes.",
+      "pdfQNum": 25,
+      "setId": "6a7cbb66d960088af28cce86"
+    }
+  ],
+  "updatedAt": "2026-08-12T18:34:08.591Z"
+}
