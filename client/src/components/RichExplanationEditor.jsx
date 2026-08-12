@@ -23,10 +23,11 @@ const formats = [
   'clean'
 ];
 
-const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write detailed explanation...', questionContext }) => {
+const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placeholder = 'Write detailed explanation...', questionContext }) => {
   const [showHtml, setShowHtml] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [autoSelectedBadge, setAutoSelectedBadge] = useState(null);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -36,6 +37,32 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
     return () => clearInterval(timer);
   }, [cooldownSeconds]);
 
+  const processAccumulatedText = (text) => {
+    // Check for [[CORRECT_OPTION: X]] tag
+    const match = text.match(/\[\[CORRECT_OPTION:\s*([0-4])\]\]/i);
+    if (match) {
+      const optionNum = parseInt(match[1], 10);
+      setAutoSelectedBadge(optionNum);
+      if (onCorrectChange && typeof onCorrectChange === 'function') {
+        onCorrectChange(optionNum);
+      }
+    }
+
+    // Clean up option tag and markdown code block wrappers
+    let cleaned = text.replace(/\[\[CORRECT_OPTION:\s*[0-4]\]\]/gi, '');
+    cleaned = cleaned.replace(/^\[\[CORRECT_OPTION.*?(?=\n|<|$)/i, '');
+    cleaned = cleaned.trim();
+
+    if (cleaned.startsWith('```html')) {
+      cleaned = cleaned.replace(/^```html\s*/, '');
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```\s*/, '');
+    }
+    cleaned = cleaned.replace(/\s*```$/, '');
+
+    return cleaned;
+  };
+
   const handleAiExplain = async () => {
     if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
       alert('Please fill in the question text first before generating an explanation.');
@@ -43,6 +70,7 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
     }
 
     setIsGenerating(true);
+    setAutoSelectedBadge(null);
     onChange(''); // Clear existing explanation
     try {
       const response = await fetch(`${API_BASE_URL}/api/questions/explain`, {
@@ -88,16 +116,7 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
                 const content = parsed.choices?.[0]?.delta?.content || '';
                 if (content) {
                   accumulatedText += content;
-                  
-                  // Clean up markdown wrappers on-the-fly
-                  let cleaned = accumulatedText.trim();
-                  if (cleaned.startsWith('```html')) {
-                    cleaned = cleaned.replace(/^```html\s*/, '');
-                  } else if (cleaned.startsWith('```')) {
-                    cleaned = cleaned.replace(/^```\s*/, '');
-                  }
-                  cleaned = cleaned.replace(/\s*```$/, '');
-                  
+                  const cleaned = processAccumulatedText(accumulatedText);
                   onChange(cleaned);
                 }
               } catch (e) {
@@ -118,13 +137,7 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
             const content = parsed.choices?.[0]?.delta?.content || '';
             if (content) {
               accumulatedText += content;
-              let cleaned = accumulatedText.trim();
-              if (cleaned.startsWith('```html')) {
-                cleaned = cleaned.replace(/^```html\s*/, '');
-              } else if (cleaned.startsWith('```')) {
-                cleaned = cleaned.replace(/^```\s*/, '');
-              }
-              cleaned = cleaned.replace(/\s*```$/, '');
+              const cleaned = processAccumulatedText(accumulatedText);
               onChange(cleaned);
             }
           } catch (_) {}
@@ -166,6 +179,22 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
       }}>
         <span>Explanation Editor (MS Word Style)</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {autoSelectedBadge !== null && (
+            <span style={{
+              background: '#dcfce7',
+              color: '#15803d',
+              border: '1px solid #86efac',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              fontSize: '0.72rem',
+              fontWeight: '700',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              ✅ Auto-Selected: Option {autoSelectedBadge === 0 ? 'Dropped' : autoSelectedBadge}
+            </span>
+          )}
           {cooldownSeconds > 0 && (
             <span style={{ color: '#d97706', fontSize: '0.72rem', fontWeight: '700' }}>
               ⚠️ Rate limit: wait {cooldownSeconds}s
@@ -194,10 +223,10 @@ const RichExplanationEditor = ({ value = '', onChange, placeholder = 'Write deta
                 opacity: isGenerating ? 0.7 : 1,
                 boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 3px rgba(79, 70, 229, 0.2)'
               }}
-              title={cooldownSeconds > 0 ? `Rate limit cooldown active. Please wait ${cooldownSeconds}s` : "Automatically generate explanation using AI"}
+              title={cooldownSeconds > 0 ? `Rate limit cooldown active. Please wait ${cooldownSeconds}s` : "Solve question using AI model, set correct option, and generate explanation"}
             >
               <span>{isGenerating ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '✨')}</span>
-              <span>{isGenerating ? 'Generating...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Explain')}</span>
+              <span>{isGenerating ? 'Solving & Explaining...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Explain')}</span>
             </button>
           )}
           <button

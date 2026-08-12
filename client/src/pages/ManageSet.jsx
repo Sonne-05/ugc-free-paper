@@ -1244,6 +1244,11 @@ const DataInterpretationGroup = ({
                         next[qIdx] = { ...next[qIdx], explanation: val }
                         setQuestions(next)
                       }}
+                      onCorrectChange={(correctVal) => {
+                        const next = [...questions]
+                        next[qIdx] = { ...next[qIdx], correct: correctVal }
+                        setQuestions(next)
+                      }}
                       questionContext={{
                         text: dq.text,
                         options: dq.options,
@@ -1721,6 +1726,13 @@ const ReadingComprehensionGroup = ({
                         setQuestions(prev => {
                           const next = [...prev]
                           next[qIdx] = { ...next[qIdx], explanation: val }
+                          return next
+                        })
+                      }}
+                      onCorrectChange={(correctVal) => {
+                        setQuestions(prev => {
+                          const next = [...prev]
+                          next[qIdx] = { ...next[qIdx], correct: correctVal }
                           return next
                         })
                       }}
@@ -2870,6 +2882,13 @@ const QuestionSlot = ({
                             return next
                           })
                         }}
+                        onCorrectChange={(correctVal) => {
+                          setSlotDiQuestions(prev => {
+                            const next = [...prev]
+                            next[qIdx] = { ...next[qIdx], correct: correctVal }
+                            return next
+                          })
+                        }}
                         questionContext={{
                           text: sq.text,
                           options: sq.options,
@@ -3000,6 +3019,7 @@ const QuestionSlot = ({
                   placeholder="Enter detailed explanation of the concept and why this option is correct"
                   value={qExplanation}
                   onChange={(val) => setQExplanation(val)}
+                  onCorrectChange={(val) => setQCorrect(val)}
                   questionContext={{
                     text: qText,
                     options: qOpts,
@@ -4469,6 +4489,13 @@ const ManageSet = () => {
                   return next
                 })
               }}
+              onCorrectChange={(correctVal) => {
+                setDiQuestions(prev => {
+                  const next = [...prev]
+                  next[qIdx] = { ...next[qIdx], correct: correctVal }
+                  return next
+                })
+              }}
               questionContext={{
                 text: dq.text,
                 options: dq.options,
@@ -4535,6 +4562,7 @@ const ManageSet = () => {
         placeholder="Enter detailed explanation of the concept and why this option is correct"
         value={newQExplanation}
         onChange={(val) => setNewQExplanation(val)}
+        onCorrectChange={(val) => setNewQCorrect(val)}
         questionContext={{
           text: newQText,
           options: newQOpts,
