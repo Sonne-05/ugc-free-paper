@@ -236,7 +236,7 @@ You MUST extract the questions and option texts in the following language/format
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels.
 2. Extract exactly 4 options matching the Target Language Rule.
-3. Identify the question number/index (e.g. Q51, Question Number: 51, or Question 51). Also extract the 6-digit NTA Question ID (e.g. 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
+3. Identify the question number/index (e.g. Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
@@ -424,6 +424,8 @@ async function main() {
       const pageText = textContent.items.map(item => item.str).join(' ');
       const hasHeader = /Question/i.test(pageText) || 
                         /Q\s*[\.\:\d]/i.test(pageText) || 
+                        /Sl\s*\.\s*No/i.test(pageText) || 
+                        /QBID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 

@@ -208,6 +208,8 @@ async function main() {
       const pageText = textContent.items.map(item => item.str).join(' ');
       const hasHeader = /Question/i.test(pageText) || 
                         /Q\s*[\.\:\d]/i.test(pageText) || 
+                        /Sl\s*\.\s*No/i.test(pageText) || 
+                        /QBID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 
