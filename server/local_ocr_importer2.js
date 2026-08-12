@@ -296,6 +296,7 @@ async function main() {
           ...q,
           qIndex: pdfQNum,
           pdfQNum: pdfQNum,
+          ntaQuestionId: q.ntaQuestionId || '',
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
           correct: undefined,
           explanation: ""

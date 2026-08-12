@@ -510,45 +510,22 @@ async function main() {
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
         
-        let dbQIndex = pdfQNum;
-        const maxAllowedQuestions = isPaperII ? 100 : 50;
-
-        if (!isNaN(pdfQNum)) {
-          if (isPaperII) {
-            if (pdfQNum > 100 && pdfQNum <= 150) dbQIndex = pdfQNum - 50;
-            else if (pdfQNum > 100 && pdfQNum <= 200) dbQIndex = pdfQNum - 100;
-            else dbQIndex = pdfQNum;
-          } else {
-            if (pdfQNum > 50 && pdfQNum <= 100) dbQIndex = pdfQNum - 50;
-            else dbQIndex = pdfQNum;
-          }
-        }
-
         let updatedQ = {
           ...q,
-          qIndex: dbQIndex,
+          qIndex: pdfQNum,
           pdfQNum: pdfQNum,
+          ntaQuestionId: q.ntaQuestionId || '',
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID)
         };
 
-        // Handle forced DI/comprehension ranges matching website logic
-        if (!isPaperII) {
-          if (dbQIndex >= 1 && dbQIndex <= 5) updatedQ.type = 'di';
-          else if (dbQIndex >= 46 && dbQIndex <= 50) updatedQ.type = 'comprehension';
-        } else {
-          if (dbQIndex >= 91 && dbQIndex <= 95) updatedQ.type = 'comprehension';
-          else if (dbQIndex >= 96 && dbQIndex <= 100) updatedQ.type = 'comprehension';
-        }
-
-        // Override correct answer with official key if provided
+        // Override correct answer with official key if provided (by ntaQuestionId or pdfQNum)
+        // Note: dbQIndex-based lookup happens in post-processing after range normalization
         if (answerKeyMap) {
           let correctAns = undefined;
           if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
             correctAns = answerKeyMap[q.ntaQuestionId];
           } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
             correctAns = answerKeyMap[pdfQNum];
-          } else if (!isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
-            correctAns = answerKeyMap[dbQIndex];
           }
           if (correctAns !== undefined) {
             updatedQ.correct = correctAns;
@@ -583,6 +560,44 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, spacingDelay));
       }
     }
+
+    // Automatically detect if this PDF uses shifted numbering (e.g. Q51..Q150 for Paper II, or Q51..Q100 for Paper I)
+    const validPdfNums = parsedQuestions.map(q => q.pdfQNum).filter(n => !isNaN(n) && n > 0 && n <= 300);
+    const maxPdfNum = validPdfNums.length > 0 ? Math.max(...validPdfNums) : 0;
+    const minPdfNum = validPdfNums.length > 0 ? Math.min(...validPdfNums) : 0;
+
+    const needsShift50 = (isPaperII && maxPdfNum > 100 && minPdfNum >= 51) || (!isPaperII && maxPdfNum > 50 && minPdfNum >= 51);
+    const needsShift100 = (isPaperII && maxPdfNum > 150 && minPdfNum >= 101);
+
+    if (needsShift50) {
+      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 50}...`);
+    } else if (needsShift100) {
+      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 100}...`);
+    }
+
+    // Apply normalized qIndex
+    parsedQuestions.forEach(q => {
+      let dbQIndex = q.pdfQNum;
+      if (!isNaN(q.pdfQNum)) {
+        if (needsShift50) dbQIndex = q.pdfQNum - 50;
+        else if (needsShift100) dbQIndex = q.pdfQNum - 100;
+      }
+      q.qIndex = dbQIndex;
+
+      // Handle forced DI/comprehension ranges matching website logic
+      if (!isPaperII) {
+        if (dbQIndex >= 1 && dbQIndex <= 5) q.type = 'di';
+        else if (dbQIndex >= 46 && dbQIndex <= 50) q.type = 'comprehension';
+      } else {
+        if (dbQIndex >= 91 && dbQIndex <= 95) q.type = 'comprehension';
+        else if (dbQIndex >= 96 && dbQIndex <= 100) q.type = 'comprehension';
+      }
+
+      // If answer key provided and question still has no correct answer, try lookup by normalized dbQIndex
+      if (answerKeyMap && q.correct === undefined && !isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
+        q.correct = answerKeyMap[dbQIndex];
+      }
+    });
 
     // Deduplicate and smart fallback index assignment (ensure NO questions are discarded)
     const questionMap = new Map();
