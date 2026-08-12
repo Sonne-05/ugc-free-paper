@@ -444,7 +444,7 @@ async function main() {
                         /प्रश्न/i.test(pageText) || 
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
-      const qNumMatches = Array.from(pageText.matchAll(/\b(\d{1,3})\.\s/g)).map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 300);
+      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No\s*[\.\:]?\s*|Q\s*[\.\:]\s*|Question\s*(?:Number|Id|Bank\s*ID)?\s*[:\.]?\s*|\b)(\d{1,3})(?:\.|\s|$)/gi)).map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 300);
       const uniqueQNums = Array.from(new Set(qNumMatches));
       const expectedCount = uniqueQNums.length;
       if (hasHeader) ocrPages.push({ pageNum, page, expectedCount });
