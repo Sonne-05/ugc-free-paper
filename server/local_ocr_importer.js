@@ -74,8 +74,9 @@ function parseAnswerKey(text) {
       const aLower = aStr.toLowerCase();
       const a = optionMap[aLower];
       
-      if (!isNaN(q) && q >= 1 && q <= 200 && a !== undefined) {
+      if (!isNaN(q) && q >= 1 && q <= 9999999 && a !== undefined) {
         mapping[q] = a;
+        mapping[String(q)] = a;
       }
     }
   }
@@ -93,6 +94,7 @@ for (const k in envConfig) {
 const QuestionSchema = new mongoose.Schema({
   setId: mongoose.Schema.Types.ObjectId,
   qIndex: Number,
+  ntaQuestionId: String,
   unit: String,
   type: { type: String, enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'] },
   text: String,
@@ -234,7 +236,7 @@ You MUST extract the questions and option texts in the following language/format
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels.
 2. Extract exactly 4 options matching the Target Language Rule.
-3. Identify the question number/index (e.g. Q51, Question Number: 51, or Question 51).
+3. Identify the question number/index (e.g. Q51, Question Number: 51, or Question 51). Also extract the 6-digit NTA Question ID (e.g. 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
@@ -255,6 +257,7 @@ Schema:
   "questions": [
     {
       "qIndex": number,
+      "ntaQuestionId": "string (e.g. 926341 or empty string if not visible)",
       "unit": "",
       "type": "mcq" | "assertion-reason" | "match-column" | "comprehension" | "multiple-statement" | "di",
       "text": "Clean question text in target script...",
@@ -536,7 +539,9 @@ async function main() {
         // Override correct answer with official key if provided
         if (answerKeyMap) {
           let correctAns = undefined;
-          if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
+          if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
+            correctAns = answerKeyMap[q.ntaQuestionId];
+          } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
             correctAns = answerKeyMap[pdfQNum];
           } else if (!isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
             correctAns = answerKeyMap[dbQIndex];
