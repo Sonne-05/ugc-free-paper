@@ -426,8 +426,24 @@ async function main() {
     const data = new Uint8Array(fs.readFileSync(PDF_PATH));
     const pdfDoc = await pdfjs.getDocument({ data }).promise;
     const totalPages = pdfDoc.numPages;
-
     console.log(`PDF Loaded. Total pages: ${totalPages}. Scanning pages...`);
+
+    // Detect if this is a bilingual (English + Hindi) PDF — each question appears twice
+    // Sample first few pages to check for Hindi characters
+    let isBilingualPdf = false;
+    for (let samplePage = 1; samplePage <= Math.min(5, totalPages); samplePage++) {
+      const sp = await pdfDoc.getPage(samplePage);
+      const stc = await sp.getTextContent();
+      const sampleText = stc.items.map(i => i.str).join(' ');
+      if (/[\u0900-\u097F]/.test(sampleText)) { // Devanagari Unicode range
+        isBilingualPdf = true;
+        break;
+      }
+    }
+    if (isBilingualPdf) {
+      console.log(`📖 Detected bilingual PDF (English + Hindi). Each question appears in both languages.`);
+    }
+
     const ocrPages = [];
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       const page = await pdfDoc.getPage(pageNum);
@@ -444,9 +460,18 @@ async function main() {
                         /प्रश्न/i.test(pageText) || 
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
-      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No\s*[\.\:]?\s*|Q\s*[\.\:]\s*|Question\s*(?:Number|Id|Bank\s*ID)?\s*[:\.]?\s*|\b)(\d{1,3})(?:\.|\s|$)/gi)).map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 300);
+      
+      // Strict serial-number regex: only match explicit "Sl. No. X", "Q.X", or "X." at line start
+      // This avoids counting option labels (A/B/C/D as 1/2/3/4) and Hindi duplicates
+      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[\.:]\s*)(\d{1,3})\b/gi))
+        .map(m => parseInt(m[1], 10))
+        .filter(n => n >= 1 && n <= 300);
       const uniqueQNums = Array.from(new Set(qNumMatches));
-      const expectedCount = uniqueQNums.length;
+      // For bilingual PDFs, each Sl. No. appears twice (English + Hindi), so halve the count
+      let expectedCount = uniqueQNums.length;
+      if (isBilingualPdf && expectedCount > 0) {
+        expectedCount = Math.ceil(expectedCount / 2);
+      }
       if (hasHeader) ocrPages.push({ pageNum, page, expectedCount });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
