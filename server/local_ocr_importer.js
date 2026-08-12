@@ -223,7 +223,12 @@ async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLangu
   const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const textPrompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
-Look at the provided PDF page image and extract all multiple choice questions visible on it.
+Look at the provided PDF page image and extract ALL multiple choice questions visible on it from top to bottom.
+
+CRITICAL THOROUGHNESS RULE:
+- Scan the ENTIRE image from top to bottom. Do NOT skip any question!
+- A typical exam page contains 4 to 6 questions. Make sure you extract EVERY SINGLE QUESTION visible on the page.
+- If a question starts near the top (e.g. options continued from previous page or question text) or near the bottom, extract it!
 
 Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
@@ -295,29 +300,23 @@ Schema:
     if (!response.ok) {
       const errText = await response.text();
       if ((response.status === 429 || response.status === 503) && retryCount < 30) {
-        // Parse retryDelay from Google's 429 response body (e.g. "retryDelay": "53s")
-        // This is a per-key/per-project cooldown — apply it ONLY to this specific key
         const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
         const retryDelaySecs = retryDelayMatch ? parseInt(retryDelayMatch[1]) : 0;
 
         if (retryDelaySecs > 5) {
-          // Key is in Google-enforced cooldown — mark it, other keys remain usable
           keyCooldownUntil[keyIndex] = Date.now() + (retryDelaySecs * 1000) + 2000;
           console.warn(`[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling this key for ${retryDelaySecs}s. Switching to next available key...`);
         } else {
-          // No retryDelay — just saturate the key's sliding window so it won't be reused immediately
           const slotsToFill = PER_KEY_RPM - keyHistory[keyIndex].length;
           for (let s = 0; s < slotsToFill; s++) keyHistory[keyIndex].push(Date.now());
           console.warn(`[AI OCR] Key #${keyIndex + 1} rate limited (${response.status}) on Page ${pageNum}. Switching to next available key (Retry ${retryCount + 1}/30)...`);
         }
 
-        // getAvailableKeyIndex() will skip cooled-down keys and wait only if ALL are unavailable
         return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
       }
       throw new Error(`API error: ${response.status} - ${errText}`);
     }
 
-    // Record this successful request in the per-key sliding window
     recordRequest(keyIndex);
 
     const data = await response.json();
@@ -326,7 +325,16 @@ Schema:
     
     try {
       const parsed = JSON.parse(cleaned);
-      return parsed.questions || parsed;
+      const resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      
+      // If 0 questions returned on a page but retryCount < 2, retry once more to avoid missing questions
+      if (resQuestions.length === 0 && retryCount < 2) {
+        console.warn(`[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR call (${retryCount + 1}/2)...`);
+        await new Promise(r => setTimeout(r, 2000));
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+      }
+      
+      return resQuestions;
     } catch (jsonErr) {
       if (retryCount < 30) {
         console.warn(`[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`);
@@ -484,8 +492,8 @@ async function main() {
 
       console.log(`\n--- Processing Page ${pageNum} (${completedOcrCount + 1}/${totalOcrPages}) ---`);
       
-      // Render page to canvas
-      const viewport = page.getViewport({ scale: 1.5 });
+      // Render page to canvas with higher resolution (2.0x scale for crystal clear OCR)
+      const viewport = page.getViewport({ scale: 2.0 });
       const canvas = createCanvas(viewport.width, viewport.height);
       const context = canvas.getContext('2d');
       await page.render({ canvasContext: context, viewport }).promise;
