@@ -461,18 +461,24 @@ async function main() {
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
       
-      // Strict serial-number regex: only match explicit "Sl. No. X", "Q.X", or "X." at line start
-      // This avoids counting option labels (A/B/C/D as 1/2/3/4) and Hindi duplicates
+      // Strict serial-number regex: only match explicit "Sl. No. X" or "Q.X" patterns
+      // This avoids counting option labels and Hindi duplicates
       const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[\.:]\s*)(\d{1,3})\b/gi))
         .map(m => parseInt(m[1], 10))
         .filter(n => n >= 1 && n <= 300);
       const uniqueQNums = Array.from(new Set(qNumMatches));
-      // For bilingual PDFs, each Sl. No. appears twice (English + Hindi), so halve the count
+      // For bilingual PDFs, each Sl. No. appears twice (English + Hindi), so deduplicate
+      // uniqueQNums already deduplicates — the Set ensures each Sl. No. appears once regardless of language
       let expectedCount = uniqueQNums.length;
       if (isBilingualPdf && expectedCount > 0) {
         expectedCount = Math.ceil(expectedCount / 2);
       }
-      if (hasHeader) ocrPages.push({ pageNum, page, expectedCount });
+      // Store the actual PDF Sl. No. values found on this page — used later to override AI qIndex
+      // For bilingual, take only first half (English side) which are the same numbers repeated
+      const pageSlNos = isBilingualPdf
+        ? uniqueQNums.slice(0, Math.ceil(uniqueQNums.length / 2))
+        : uniqueQNums;
+      if (hasHeader) ocrPages.push({ pageNum, page, expectedCount, pageSlNos });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
     
@@ -543,8 +549,36 @@ async function main() {
         process.exit(1);
       }
 
+      // --- PDF Sl. No. Override ---
+      // The PDF text layer's Sl. No. values are ground truth.
+      // If the page has known Sl. No. values from pre-scan, assign them in order
+      // to the AI-extracted questions (sorted by their AI-reported qIndex).
+      // This ensures Q1 in PDF always becomes qIndex=1 in DB, regardless of AI errors.
+      const { pageSlNos } = ocrPages[i];
+      if (pageSlNos && pageSlNos.length > 0 && pageQuestions.length > 0) {
+        // Sort AI questions by their own reported qIndex so order is preserved
+        const sorted = [...pageQuestions].sort((a, b) => {
+          const ai = parseInt(String(a.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
+          const bi = parseInt(String(b.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
+          return ai - bi;
+        });
+        // Assign PDF Sl. No. values in order
+        sorted.forEach((q, idx) => {
+          if (idx < pageSlNos.length) {
+            const pdfNum = pageSlNos[idx];
+            const aiNum = parseInt(String(q.qIndex || '').match(/\d+/)?.[0] || 'NaN', 10);
+            if (!isNaN(aiNum) && aiNum !== pdfNum) {
+              console.log(`  📌 [Sl.No Fix] Page ${pageNum}: AI said Q${aiNum}, PDF says Q${pdfNum} → using PDF value`);
+            }
+            q.qIndex = pdfNum;
+          }
+        });
+        // Replace pageQuestions with the corrected sorted array
+        pageQuestions.splice(0, pageQuestions.length, ...sorted);
+      }
+
       pageQuestions.forEach(q => {
-        // Robustly parse digits from qIndex (handles "Q1", "Q. 51", "Question 101", etc.)
+        // Robustly parse digits from qIndex (now already set from PDF Sl. No. above)
         let rawStr = String(q.qIndex || '').trim();
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
@@ -558,7 +592,6 @@ async function main() {
         };
 
         // Override correct answer with official key if provided (by ntaQuestionId or pdfQNum)
-        // Note: dbQIndex-based lookup happens in post-processing after range normalization
         if (answerKeyMap) {
           let correctAns = undefined;
           if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
