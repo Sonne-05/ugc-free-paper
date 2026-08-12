@@ -2273,9 +2273,10 @@ const QuestionSlot = ({
           return
         }
       }
-      const questions = slotDiQuestions.map(sq => ({
+      const questions = slotDiQuestions.map((sq, sqIdx) => ({
         type: qType,
         unit: qUnit || (qType === 'di' ? 'Unit 7: Data Interpretation' : 'Unit 3: Comprehension'),
+        qIndex: index + sqIdx,
         text: sq.text,
         options: sq.options,
         correct: sq.correct,
@@ -2290,15 +2291,18 @@ const QuestionSlot = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ setId, questions })
         })
+        const data = await res.json()
         if (res.ok) {
           setSaveSuccess(true)
-          if (typeof onSave === 'function') onSave()
+          if (typeof onSave === 'function') {
+            onSave(data.inserted || data.insertedQuestions || data, data.updatedSet)
+          }
         } else {
-          alert('Failed to save passage questions')
+          alert('Failed to save passage questions: ' + (data.message || 'Unknown error'))
         }
       } catch (err) {
         console.error(err)
-        alert('Error saving passage questions')
+        alert('Error saving passage questions: ' + err.message)
       } finally {
         setIsSaving(false)
       }
@@ -3472,9 +3476,11 @@ const ManageSet = () => {
         return
       }
 
-      const questions = diQuestions.map(dq => ({
+      const startSlot = getFirstEmptySlotIndex(editingSetQuestions, newSetPaperType, newSetCount)
+      const questions = diQuestions.map((dq, dqIdx) => ({
         type: newQType,
         unit: dq.unit || newQUnit || (newQType === 'di' ? 'Unit 7: Data Interpretation' : 'Unit 3: Comprehension'),
+        qIndex: startSlot + dqIdx,
         text: dq.text,
         options: dq.options,
         correct: dq.correct,
@@ -4887,7 +4893,7 @@ const ManageSet = () => {
                               const qIndex = idx + 6
                               const question = editingSetQuestions.find(q => q.qIndex === qIndex)
                               return (
-                                <QuestionSlot
+                        <QuestionSlot
                                   key={qIndex}
                                   index={qIndex}
                                   question={question}
@@ -4895,14 +4901,20 @@ const ManageSet = () => {
                                   pyqSets={pyqSets}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
-                                  onSave={(savedQ, updatedSet) => {
+                                  onSave={(savedData, updatedSet) => {
                                     setEditingSetQuestions(prev => {
-                                      const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
-                                      if (exists) {
-                                        return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
-                                      } else {
-                                        return [...prev, savedQ]
-                                      }
+                                      const savedList = Array.isArray(savedData) ? savedData : [savedData]
+                                      let next = [...prev]
+                                      savedList.forEach(savedItem => {
+                                        if (!savedItem) return
+                                        const idx = next.findIndex(q => (q.id || q._id) === (savedItem.id || savedItem._id) || (savedItem.qIndex && q.qIndex === savedItem.qIndex))
+                                        if (idx >= 0) {
+                                          next[idx] = savedItem
+                                        } else {
+                                          next.push(savedItem)
+                                        }
+                                      })
+                                      return next
                                     })
                                     if (updatedSet) {
                                       setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
@@ -4961,19 +4973,25 @@ const ManageSet = () => {
                                   pyqSets={pyqSets}
                                  API_BASE_URL={API_BASE_URL}
                                  year={newSetYear}
-                                 onSave={(savedQ, updatedSet) => {
-                                   setEditingSetQuestions(prev => {
-                                     const exists = prev.some(q => (q.id || q._id) === (savedQ.id || savedQ._id))
-                                     if (exists) {
-                                       return prev.map(q => (q.id || q._id) === (savedQ.id || savedQ._id) ? savedQ : q)
-                                     } else {
-                                        return [...prev, savedQ]
-                                     }
-                                   })
-                                   if (updatedSet) {
-                                     setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
-                                   }
-                                 }}
+                                 onSave={(savedData, updatedSet) => {
+                                    setEditingSetQuestions(prev => {
+                                      const savedList = Array.isArray(savedData) ? savedData : [savedData]
+                                      let next = [...prev]
+                                      savedList.forEach(savedItem => {
+                                        if (!savedItem) return
+                                        const idx = next.findIndex(q => (q.id || q._id) === (savedItem.id || savedItem._id) || (savedItem.qIndex && q.qIndex === savedItem.qIndex))
+                                        if (idx >= 0) {
+                                          next[idx] = savedItem
+                                        } else {
+                                          next.push(savedItem)
+                                        }
+                                      })
+                                      return next
+                                    })
+                                    if (updatedSet) {
+                                      setPyqSets(prev => prev.map(s => (s.id || s._id) === editingSetId ? { ...s, questionsLoaded: updatedSet.questionsLoaded } : s))
+                                    }
+                                  }}
                                  onDelete={(deletedId, updatedSet) => {
                                    setEditingSetQuestions(prev => prev.filter(q => (q.id || q._id) !== deletedId))
                                    if (updatedSet) {
