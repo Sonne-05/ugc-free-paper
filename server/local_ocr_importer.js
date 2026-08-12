@@ -288,7 +288,7 @@ Schema:
             { inlineData: { mimeType: 'image/png', data: base64Image } }
           ]
         }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+        generationConfig: { responseMimeType: "application/json", temperature: 0.1, maxOutputTokens: 8192 }
       })
     });
 
@@ -515,10 +515,12 @@ async function main() {
 
         if (!isNaN(pdfQNum)) {
           if (isPaperII) {
-            if (pdfQNum >= 51 && pdfQNum <= 150) dbQIndex = pdfQNum - 50;
-            else if (pdfQNum >= 101 && pdfQNum <= 200) dbQIndex = pdfQNum - 100;
+            if (pdfQNum > 100 && pdfQNum <= 150) dbQIndex = pdfQNum - 50;
+            else if (pdfQNum > 100 && pdfQNum <= 200) dbQIndex = pdfQNum - 100;
+            else dbQIndex = pdfQNum;
           } else {
-            if (pdfQNum >= 51 && pdfQNum <= 100) dbQIndex = pdfQNum - 50;
+            if (pdfQNum > 50 && pdfQNum <= 100) dbQIndex = pdfQNum - 50;
+            else dbQIndex = pdfQNum;
           }
         }
 
