@@ -215,8 +215,7 @@ function cleanJsonString(str) {
 }
 
 // 4. API Call to Gemini
-async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount = 0) {
-  // Pick the key with the most available capacity (waits automatically if all are exhausted)
+async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0) {
   const keyIndex = await getAvailableKeyIndex();
   const apiKey = apiKeys[keyIndex];
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -226,9 +225,9 @@ async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLangu
 Look at the provided PDF page image and extract ALL multiple choice questions visible on it from top to bottom.
 
 CRITICAL THOROUGHNESS RULE:
-- Scan the ENTIRE image from top to bottom. Do NOT skip any question!
-- A typical exam page contains 4 to 6 questions. Make sure you extract EVERY SINGLE QUESTION visible on the page.
-- If a question starts near the top (e.g. options continued from previous page or question text) or near the bottom, extract it!
+- Scan the ENTIRE image from top to bottom, especially the very bottom margin. Do NOT skip any question!
+- ${expectedCount > 0 ? `Visual pre-scan detected approximately ${expectedCount} questions on this page. Make sure you extract ALL ${expectedCount} questions!` : 'Extract EVERY SINGLE QUESTION visible on the page (usually 4 to 6 questions).'}
+- If a question starts near the top or near the bottom margin, extract it!
 
 Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
@@ -312,7 +311,7 @@ Schema:
           console.warn(`[AI OCR] Key #${keyIndex + 1} rate limited (${response.status}) on Page ${pageNum}. Switching to next available key (Retry ${retryCount + 1}/30)...`);
         }
 
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
       }
       throw new Error(`API error: ${response.status} - ${errText}`);
     }
@@ -327,11 +326,15 @@ Schema:
       const parsed = JSON.parse(cleaned);
       const resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
       
-      // If 0 questions returned on a page but retryCount < 2, retry once more to avoid missing questions
-      if (resQuestions.length === 0 && retryCount < 2) {
+      // If extracted count is less than expected count, retry up to 2 times for full extraction
+      if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
+        console.warn(`[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR call (${retryCount + 1}/2)...`);
+        await new Promise(r => setTimeout(r, 2000));
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      } else if (resQuestions.length === 0 && retryCount < 2) {
         console.warn(`[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR call (${retryCount + 1}/2)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
       }
       
       return resQuestions;
@@ -339,7 +342,7 @@ Schema:
       if (retryCount < 30) {
         console.warn(`[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
       }
       throw jsonErr;
     }
@@ -441,7 +444,10 @@ async function main() {
                         /प्रश्न/i.test(pageText) || 
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
-      if (hasHeader) ocrPages.push({ pageNum, page });
+      const qNumMatches = Array.from(pageText.matchAll(/\b(\d{1,3})\.\s/g)).map(m => parseInt(m[1], 10)).filter(n => n >= 1 && n <= 300);
+      const uniqueQNums = Array.from(new Set(qNumMatches));
+      const expectedCount = uniqueQNums.length;
+      if (hasHeader) ocrPages.push({ pageNum, page, expectedCount });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
     
@@ -452,7 +458,7 @@ async function main() {
         console.log(`Adding all ${totalPages} pages for OCR processing...`);
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
           const page = await pdfDoc.getPage(pageNum);
-          ocrPages.push({ pageNum, page });
+          ocrPages.push({ pageNum, page, expectedCount: 0 });
         }
       }
     }
@@ -481,7 +487,7 @@ async function main() {
     const totalOcrPages = ocrPages.length;
 
     for (let i = 0; i < ocrPages.length; i++) {
-      const { pageNum, page } = ocrPages[i];
+      const { pageNum, page, expectedCount } = ocrPages[i];
 
       // Skip page if already in checkpoint
       if (processedPages.has(pageNum)) {
@@ -500,12 +506,12 @@ async function main() {
       const imgBuffer = canvas.toBuffer('image/png');
       const base64Image = imgBuffer.toString('base64');
       
-      console.log(`Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.`);
+      console.log(`Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.${expectedCount > 0 ? ` (Pre-scan detected ~${expectedCount} questions)` : ''}`);
       console.log(`Sending to Gemini API...`);
       
       let pageQuestions = [];
       try {
-        pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, isPaperII, LANGUAGE);
+        pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, isPaperII, LANGUAGE, expectedCount || 0);
       } catch (err) {
         console.error(`\n❌ Error: Page ${pageNum} failed to process after all retries:`, err.message);
         console.error(`💾 Progress saved in checkpoint! Run the command again with Set ID ${TARGET_SET_ID} to resume from Page ${pageNum}.`);
