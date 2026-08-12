@@ -1528,14 +1528,7 @@ app.post('/api/questions/explain', async (req, res) => {
       userPrompt += `\n`;
     }
 
-    if (correct !== undefined && correct !== null && correct !== 0) {
-      userPrompt += `Currently selected option in draft: Option ${correct}\n`;
-      if (options && options[correct - 1]) {
-        userPrompt += `Currently selected value in draft: ${options[correct - 1]}\n`;
-      }
-    }
-
-    let systemPrompt = 'You are an expert educator and solver specializing in UGC NET exam preparation. YOUR TASK: 1. Solve the question carefully and determine which option (1, 2, 3, or 4) is the correct answer. 2. CRITICAL FIRST LINE: Your response MUST start on the very first line with [[CORRECT_OPTION: X]] where X is 1, 2, 3, or 4 corresponding to the correct option index (or 0 if no option is correct / dropped). 3. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: - A clear step-by-step walkthrough of the concept or calculation. - A specific section justifying why option X is right. - A brief explanation of why the other options are incorrect.';
+    let systemPrompt = 'You are an expert educator and solver specializing in UGC NET exam preparation. YOUR TASK: 1. Solve the question completely independently from scratch based purely on the question text, statements, lists, and options, without relying on or biasing towards any prior selection. Determine which option (1, 2, 3, or 4) is truly the correct answer (correcting any previously wrong selection). 2. CRITICAL FIRST LINE: Your response MUST start on the very first line with [[CORRECT_OPTION: X]] where X is 1, 2, 3, or 4 corresponding to the true correct option index (or 0 if no option is correct / dropped). 3. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: - A clear step-by-step walkthrough of the concept or calculation. - A specific section justifying why option X is right. - A brief explanation of why the other options are incorrect.';
     systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content directly after the [[CORRECT_OPTION: X]] line. Focus on explaining the concept, the correct answer, and briefly why the other options are incorrect. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
 
     // Auto-detect target language from question content to properly support Hindi/Sindhi language sets

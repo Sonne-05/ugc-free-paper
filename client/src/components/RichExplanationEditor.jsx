@@ -38,8 +38,8 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
   }, [cooldownSeconds]);
 
   const processAccumulatedText = (text) => {
-    // Check for [[CORRECT_OPTION: X]] tag
-    const match = text.match(/\[\[CORRECT_OPTION:\s*([0-4])\]\]/i);
+    // Robustly check for any variations of [[CORRECT_OPTION: X]] or [[CORRECT_OPTION: Option X]]
+    const match = text.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*(?:Option\s*)?([0-4])\s*\]\]/i);
     if (match) {
       const optionNum = parseInt(match[1], 10);
       setAutoSelectedBadge(optionNum);
@@ -48,9 +48,9 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       }
     }
 
-    // Clean up option tag and markdown code block wrappers
-    let cleaned = text.replace(/\[\[CORRECT_OPTION:\s*[0-4]\]\]/gi, '');
-    cleaned = cleaned.replace(/^\[\[CORRECT_OPTION.*?(?=\n|<|$)/i, '');
+    // Completely strip any [[CORRECT...]] tag or line from text
+    let cleaned = text.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
+    cleaned = cleaned.replace(/^\[\[CORRECT.*?(?=\n|<|$)/gi, '');
     cleaned = cleaned.trim();
 
     if (cleaned.startsWith('```html')) {
