@@ -419,9 +419,15 @@ async function main() {
       const page = await pdfDoc.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => item.str).join(' ');
-      const hasHeader = /Question\s*Number\s*:\s*\d+/i.test(pageText) || 
-                        /Question\s*Id\s*:\s*\d+/i.test(pageText) || 
-                        /Q\s*\.\s*\d+/i.test(pageText);
+      const hasHeader = /Question/i.test(pageText) || 
+                        /Q\s*[\.\:\d]/i.test(pageText) || 
+                        /Option/i.test(pageText) || 
+                        /Answer/i.test(pageText) || 
+                        /Statement/i.test(pageText) || 
+                        /List/i.test(pageText) || 
+                        /प्रश्न/i.test(pageText) || 
+                        /विकल्प/i.test(pageText) ||
+                        pageText.trim().length > 80;
       if (hasHeader) ocrPages.push({ pageNum, page });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
@@ -494,29 +500,37 @@ async function main() {
       }
 
       pageQuestions.forEach(q => {
-        // Normalize indices (e.g. Q51-150 becomes relative Q1-100)
-        const pdfQNum = parseInt(q.qIndex, 10);
-        const dbQIndex = (isPaperII && pdfQNum >= 51 && pdfQNum <= 150) ? pdfQNum - 50 : pdfQNum;
+        // Robustly parse digits from qIndex (handles "Q1", "Q. 51", "Question 101", etc.)
+        let rawStr = String(q.qIndex || '').trim();
+        let matchDigits = rawStr.match(/\d+/);
+        let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
         
+        let dbQIndex = pdfQNum;
+        const maxAllowedQuestions = isPaperII ? 100 : 50;
+
+        if (!isNaN(pdfQNum)) {
+          if (isPaperII) {
+            if (pdfQNum >= 51 && pdfQNum <= 150) dbQIndex = pdfQNum - 50;
+            else if (pdfQNum >= 101 && pdfQNum <= 200) dbQIndex = pdfQNum - 100;
+          } else {
+            if (pdfQNum >= 51 && pdfQNum <= 100) dbQIndex = pdfQNum - 50;
+          }
+        }
+
         let updatedQ = {
           ...q,
           qIndex: dbQIndex,
+          pdfQNum: pdfQNum,
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID)
         };
 
-        // Handle forced DI/comprehension ranges matching your website logic
+        // Handle forced DI/comprehension ranges matching website logic
         if (!isPaperII) {
-          if (dbQIndex >= 1 && dbQIndex <= 5) {
-            updatedQ.type = 'di';
-          } else if (dbQIndex >= 46 && dbQIndex <= 50) {
-            updatedQ.type = 'comprehension';
-          }
+          if (dbQIndex >= 1 && dbQIndex <= 5) updatedQ.type = 'di';
+          else if (dbQIndex >= 46 && dbQIndex <= 50) updatedQ.type = 'comprehension';
         } else {
-          if (dbQIndex >= 91 && dbQIndex <= 95) {
-            updatedQ.type = 'comprehension';
-          } else if (dbQIndex >= 96 && dbQIndex <= 100) {
-            updatedQ.type = 'comprehension';
-          }
+          if (dbQIndex >= 91 && dbQIndex <= 95) updatedQ.type = 'comprehension';
+          else if (dbQIndex >= 96 && dbQIndex <= 100) updatedQ.type = 'comprehension';
         }
 
         // Override correct answer with official key if provided
@@ -524,7 +538,7 @@ async function main() {
           let correctAns = undefined;
           if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
             correctAns = answerKeyMap[pdfQNum];
-          } else if (answerKeyMap[dbQIndex] !== undefined) {
+          } else if (!isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
             correctAns = answerKeyMap[dbQIndex];
           }
           if (correctAns !== undefined) {
@@ -554,43 +568,55 @@ async function main() {
         console.warn(`⚠️  Warning: Failed to write checkpoint file for page ${pageNum}:`, cpSaveErr.message);
       }
 
-      // Small spacing delay between requests to keep the IP connection throughput smooth (pacing is primarily handled by rateLimiterCheck)
+      // Small spacing delay between requests to keep the IP connection throughput smooth
       if (i < ocrPages.length - 1) {
-        const spacingDelay = 1500; // 1.5 seconds minimum spacing
+        const spacingDelay = 1500;
         await new Promise(resolve => setTimeout(resolve, spacingDelay));
       }
     }
 
-    // Deduplicate and filter out-of-bounds question indices
+    // Deduplicate and smart fallback index assignment (ensure NO questions are discarded)
     const questionMap = new Map();
     const maxAllowedQuestions = isPaperII ? 100 : 50;
+    const unindexedQueue = [];
 
     parsedQuestions.forEach(q => {
-      // Validate index range
-      if (q.qIndex < 1 || q.qIndex > maxAllowedQuestions) {
-        console.warn(`[Deduplicator] Skipping out-of-bounds question with qIndex=${q.qIndex}`);
-        return;
-      }
-
-      if (!questionMap.has(q.qIndex)) {
-        questionMap.set(q.qIndex, q);
-      } else {
-        // If a duplicate is found, keep the version with more complete text and metadata content
-        const existing = questionMap.get(q.qIndex);
-        const existingScore = (existing.text || '').length + (existing.explanation || '').length + (existing.options || []).join('').length;
-        const newScore = (q.text || '').length + (q.explanation || '').length + (q.options || []).join('').length;
-        
-        if (newScore > existingScore) {
-          console.log(`[Deduplicator] Overwriting duplicate qIndex ${q.qIndex} with more complete version.`);
+      // If qIndex is valid within range 1..maxAllowedQuestions
+      if (!isNaN(q.qIndex) && q.qIndex >= 1 && q.qIndex <= maxAllowedQuestions) {
+        if (!questionMap.has(q.qIndex)) {
           questionMap.set(q.qIndex, q);
         } else {
-          console.log(`[Deduplicator] Keeping existing duplicate qIndex ${q.qIndex} version.`);
+          // If duplicate, keep the version with more complete text
+          const existing = questionMap.get(q.qIndex);
+          const existingScore = (existing.text || '').length + (existing.explanation || '').length + (existing.options || []).join('').length;
+          const newScore = (q.text || '').length + (q.explanation || '').length + (q.options || []).join('').length;
+          
+          if (newScore > existingScore) {
+            questionMap.set(q.qIndex, q);
+          }
         }
+      } else {
+        // Out of bounds or 6-digit Question ID — collect in unindexedQueue for smart gap filling
+        unindexedQueue.push(q);
       }
     });
 
-    const finalQuestions = Array.from(questionMap.values());
-    console.log(`Original parsed count: ${parsedQuestions.length}. Deduplicated clean count: ${finalQuestions.length}`);
+    // Fill missing index gaps (1..maxAllowedQuestions) using unindexedQueue
+    if (unindexedQueue.length > 0) {
+      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with 6-digit IDs or non-standard numbering into open slots...`);
+      let queueIdx = 0;
+      for (let slot = 1; slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length; slot++) {
+        if (!questionMap.has(slot)) {
+          const item = unindexedQueue[queueIdx++];
+          item.qIndex = slot;
+          questionMap.set(slot, item);
+          console.log(`   [Auto-Indexed] Assigned question to Q${slot}`);
+        }
+      }
+    }
+
+    const finalQuestions = Array.from(questionMap.values()).sort((a, b) => a.qIndex - b.qIndex);
+    console.log(`Original parsed count: ${parsedQuestions.length}. Clean imported count: ${finalQuestions.length}`);
 
     if (finalQuestions.length > 0) {
       console.log(`Cleaning old questions for Set ${TARGET_SET_ID}...`);
