@@ -600,6 +600,10 @@ Here is the raw text for the questions:\n\n`;
       if (correctAns === undefined && q.pdfQNum !== undefined) {
         correctAns = answerKeyMap[q.qIndex];
       }
+      // Format E: look up by qId (e.g., "qid:1406")
+      if (correctAns === undefined && q.qId) {
+        correctAns = answerKeyMap[`qid:${q.qId}`];
+      }
       if (correctAns !== undefined) {
         answersHint += `\n- Q${q.qIndex}: Option ${correctAns}`;
       }
@@ -717,6 +721,51 @@ function notifyJobListeners(jobId, data) {
 // Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
 function parseAnswerKey(text) {
   const mapping = {};
+
+  // --- Format E Answer Key: "[Question ID = X]...[Option ID = Y]" style (OCR bilingual PDFs) ---
+  // In these PDFs, the answer key lists correct option IDs. Each question's option IDs are
+  // sequential (e.g., Q1 has option IDs 5621-5624, Q2 has 5625-5628, etc.)
+  // Pattern: N)\n[correct answer text]\n[Question ID = XXXX]...\n1. 1 [Option ID = YYYY]\n...
+  const qIdOptionPattern = /\[Question ID\s*=\s*(\d+)\].*?\n(?:.*?\n)*?1\.\s*1\s*\[Option ID\s*=\s*(\d+)\]/g;
+  const formatEMatches = [];
+  let fmatch;
+  while ((fmatch = qIdOptionPattern.exec(text)) !== null) {
+    formatEMatches.push({ questionId: fmatch[1], firstOptionId: parseInt(fmatch[2], 10), index: fmatch.index });
+  }
+
+  if (formatEMatches.length > 0) {
+    // Build a map of questionId -> firstOptionId
+    const qIdToFirstOption = {};
+    for (const m of formatEMatches) {
+      qIdToFirstOption[m.questionId] = m.firstOptionId;
+    }
+
+    // Now find correct answer: look for "[Question ID = X]" followed by a single [Option ID = Y] (the correct one)
+    // In answer key PDFs, only the correct option is listed: "[Question ID = X][Question Description = ...]\n1. Y [Option ID = Z]"
+    const correctPattern = /\[Question ID\s*=\s*(\d+)\].*?(\d+)\.\s*(\d+)\s*\[Option ID\s*=\s*(\d+)\]/gs;
+    let cp;
+    while ((cp = correctPattern.exec(text)) !== null) {
+      const questionId = cp[1];
+      const listedOptionNum = parseInt(cp[3], 10); // 1, 2, 3, or 4
+      if (listedOptionNum >= 1 && listedOptionNum <= 4 && qIdToFirstOption[questionId] !== undefined) {
+        // Map questionId to qNum using the formatEMatches positional index
+        const matchEntry = formatEMatches.find(m => m.questionId === questionId);
+        if (matchEntry) {
+          // Use the listed option number directly as the correct answer
+          // (In Format E answer key: "1. 3 [Option ID = Z]" means option 3 is correct)
+          // We store by questionId and resolve to qNum later
+          mapping[`qid:${questionId}`] = listedOptionNum;
+        }
+      }
+    }
+
+    // If we got qid-keyed mappings, return them (caller will resolve by qId)
+    if (Object.keys(mapping).some(k => k.startsWith('qid:'))) {
+      return mapping;
+    }
+  }
+
+  // --- Standard Answer Key Parsing (line-by-line "qNum answer" pairs) ---
   const lines = text.split('\n');
   
   for (const line of lines) {
@@ -948,6 +997,53 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
       }
       if (matchesList.length > 0) {
         console.log(`[Job ${jobId}] Format D resolved ${matchesList.length} questions (SI. No. range: ${matchesList[0].qNum}–${matchesList[matchesList.length - 1].qNum}).`);
+      }
+    }
+
+    // If Formats A, B, C, D all found 0 matches, try Format E (OCR bilingual PDF: "N)" numbering + "[Question ID = X]")
+    // Example: "1)\nQuestion text\n1.. Option\n...\n[Question ID = 1406][Question Description = ...]"
+    if (matchesList.length === 0) {
+      console.log(`[Job ${jobId}] No Format A/B/C/D headers found. Trying Format E (OCR bilingual: N) + [Question ID = X])...`);
+      // Match "N)" at start of line (question number), then find the [Question ID = X] that follows in that block
+      const qNumRegex = /^(\d+)\)\s*$/gm;
+      const qIdRegex = /\[Question ID\s*=\s*(\d+)\]/g;
+
+      // Build list of all question number positions
+      const qNumPositions = [];
+      let qnm;
+      while ((qnm = qNumRegex.exec(text)) !== null) {
+        const qNum = parseInt(qnm[1], 10);
+        if (qNum >= 1 && qNum <= 200) {
+          qNumPositions.push({ index: qnm.index, qNum });
+        }
+      }
+
+      // Build list of all [Question ID = X] positions
+      const qIdPositions = [];
+      let qidm;
+      qIdRegex.lastIndex = 0;
+      while ((qidm = qIdRegex.exec(text)) !== null) {
+        qIdPositions.push({ index: qidm.index, qId: qidm[1] });
+      }
+
+      console.log(`[Job ${jobId}] Format E: found ${qNumPositions.length} "N)" headers and ${qIdPositions.length} [Question ID] markers.`);
+
+      if (qNumPositions.length > 0 && qIdPositions.length > 0) {
+        // For each "N)" position, find the nearest [Question ID = X] that comes AFTER it (before the next "N)")
+        for (let i = 0; i < qNumPositions.length; i++) {
+          const cur = qNumPositions[i];
+          const nextQNumIdx = i + 1 < qNumPositions.length ? qNumPositions[i + 1].index : text.length;
+          // Find the first [Question ID = X] between cur.index and nextQNumIdx
+          const matchingQId = qIdPositions.find(q => q.index > cur.index && q.index < nextQNumIdx);
+          if (matchingQId) {
+            matchesList.push({ index: cur.index, qNum: cur.qNum, qId: matchingQId.qId });
+          }
+        }
+
+        if (matchesList.length > 0) {
+          matchesList.sort((a, b) => a.index - b.index);
+          console.log(`[Job ${jobId}] Format E resolved ${matchesList.length} questions (range: Q${matchesList[0].qNum}–Q${matchesList[matchesList.length - 1].qNum}).`);
+        }
       }
     }
 
@@ -1213,6 +1309,10 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
             correctAns = answerKeyMap[pdfQNum];
           } else if (answerKeyMap[q.qIndex] !== undefined) {
             correctAns = answerKeyMap[q.qIndex];
+          }
+          // Format E: look up by qId (e.g., "qid:1406")
+          if (correctAns === undefined && matchedInputQ && matchedInputQ.qId) {
+            correctAns = answerKeyMap[`qid:${matchedInputQ.qId}`];
           }
           if (correctAns !== undefined) {
             q.correct = correctAns;
