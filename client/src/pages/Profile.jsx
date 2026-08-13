@@ -2515,12 +2515,12 @@ const Profile = () => {
                                           {year}
                                         </td>
                                       )}
-                                      <td>#{set.id}</td>
-                                      <td>
+                                      <td className="table-cell-id" title={`#${set.id}`}>#{set.id ? (String(set.id).length > 8 ? `${String(set.id).substring(0, 8)}…` : set.id) : ''}</td>
+                                      <td className="table-cell-title">
                                         <strong style={{ display: 'block' }}>{set.title}</strong>
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
-                                      <td>
+                                      <td className="table-cell-status">
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                           <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
@@ -2534,13 +2534,15 @@ const Profile = () => {
                                           </div>
                                         </div>
                                       </td>
-                                      <td style={{ textAlign: 'right' }}>
-                                        <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                        {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                          <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                        ) : (
-                                          <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
-                                        )}
+                                      <td className="table-cell-actions">
+                                        <div className="table-btn-group">
+                                          <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                          {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                            <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                          ) : (
+                                            <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                          )}
+                                        </div>
                                       </td>
                                     </tr>
                                   ))
@@ -2569,10 +2571,10 @@ const Profile = () => {
                         <table className="admin-table" style={{ marginBottom: 0 }}>
                           <thead>
                             <tr>
-                              <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
-                              <th style={{ width: '80px' }}>ID</th>
+                              <th style={{ width: '70px', textAlign: 'center' }}>Year</th>
+                              <th style={{ width: '90px' }}>ID</th>
                               <th>Exam Set Title</th>
-                              <th>Status / Questions</th>
+                              <th>Status / Qs</th>
                               <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
@@ -2606,12 +2608,12 @@ const Profile = () => {
                                           {year}
                                         </td>
                                       )}
-                                      <td>#{set.id}</td>
-                                      <td>
+                                      <td className="table-cell-id" title={`#${set.id}`}>#{set.id ? (String(set.id).length > 8 ? `${String(set.id).substring(0, 8)}…` : set.id) : ''}</td>
+                                      <td className="table-cell-title">
                                         <strong style={{ display: 'block' }}>{set.title}</strong>
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
-                                      <td>
+                                      <td className="table-cell-status">
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                           <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
@@ -2625,13 +2627,15 @@ const Profile = () => {
                                           </div>
                                         </div>
                                       </td>
-                                      <td style={{ textAlign: 'right' }}>
-                                        <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
-                                        {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
-                                          <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
-                                        ) : (
-                                          <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
-                                        )}
+                                      <td className="table-cell-actions">
+                                        <div className="table-btn-group">
+                                          <button className="table-btn table-btn--edit" onClick={() => handleEditSet(set.id || set._id)}>Manage Questions</button>
+                                          {(!set.createdBy || set.createdBy === localStorage.getItem('userId')) ? (
+                                            <button className="table-btn table-btn--delete" onClick={() => handleDeleteSet(set.id || set._id)}>Delete Set</button>
+                                          ) : (
+                                            <button className="table-btn table-btn--delete" style={{ opacity: 0.4, cursor: 'not-allowed' }} title="Only the creator of this set can delete it" disabled>Delete Set</button>
+                                          )}
+                                        </div>
                                       </td>
                                     </tr>
                                   ))
