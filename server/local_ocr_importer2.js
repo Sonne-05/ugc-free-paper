@@ -114,48 +114,245 @@ const PyqSetSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', QuestionSchema);
 const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
-// 3. API Call to Colab Server
-async function callColabOcrServer(colabUrl, base64Image, pageNum, isPaperII, importLanguage, retryCount = 0) {
-  const endpoint = colabUrl.replace(/\/$/, '') + '/ocr';
-  
+// 3. Multi-key rotation + per-key rate limiting
+// Add keys: GROQ_OCR_KEY_1, GROQ_OCR_KEY_2, ... GROQ_OCR_KEY_N in .env
+// Falls back to GROQ_OCR_API_KEY and GROQ_API_KEY if numbered keys not found
+function loadGroqKeys() {
+  const keys = [];
+  for (let i = 1; i <= 20; i++) {
+    const k = process.env[`GROQ_OCR_KEY_${i}`];
+    if (k && k.trim()) keys.push(k.trim());
+  }
+  // Also include legacy keys
+  if (process.env.GROQ_OCR_API_KEY && !keys.includes(process.env.GROQ_OCR_API_KEY.trim())) {
+    keys.push(process.env.GROQ_OCR_API_KEY.trim());
+  }
+  if (process.env.GROQ_API_KEY && !keys.includes(process.env.GROQ_API_KEY.trim())) {
+    keys.push(process.env.GROQ_API_KEY.trim());
+  }
+  return keys;
+}
+
+const GROQ_KEYS = loadGroqKeys();
+let currentKeyIndex = 0;
+let exhaustedKeyCount = 0; // tracks consecutive 429s across all keys
+const keyHistories = {}; // per-key request timestamps
+const KEY_RPM = 2; // safe RPM per key
+
+function getCurrentKey() {
+  return GROQ_KEYS[currentKeyIndex];
+}
+
+function rotateToNextKey() {
+  currentKeyIndex = (currentKeyIndex + 1) % GROQ_KEYS.length;
+  console.log(`  [Key Rotation] Switched to key ${currentKeyIndex + 1}/${GROQ_KEYS.length}`);
+}
+
+async function waitForGroqRateLimit() {
+  const key = getCurrentKey();
+  if (!keyHistories[key]) keyHistories[key] = [];
+  const history = keyHistories[key];
+  const now = Date.now();
+  const windowMs = 60000;
+  while (history.length > 0 && now - history[0] >= windowMs) history.shift();
+  if (history.length >= KEY_RPM) {
+    const waitMs = history[0] + windowMs - Date.now() + 500;
+    if (waitMs > 0) {
+      console.log(`  [Rate Limiter] Key ${currentKeyIndex + 1} at RPM cap. Waiting ${(waitMs / 1000).toFixed(1)}s...`);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+    }
+    return waitForGroqRateLimit();
+  }
+  history.push(Date.now());
+  exhaustedKeyCount = 0; // reset on successful slot acquisition
+}
+
+// 4. Upload base64 image to imgbb and get a public URL (auto-deletes in 5 minutes)
+async function uploadImageToImgbb(base64Image) {
+  const IMGBB_API_KEY = process.env.IMGBB_API_KEY || '';
+  if (!IMGBB_API_KEY) {
+    throw new Error('IMGBB_API_KEY is not set in .env. Add your key from https://imgbb.com/signup → API tab.');
+  }
+
+  const formData = new URLSearchParams();
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64Image);
+  formData.append('expiration', '300'); // auto-delete after 5 minutes
+
+  const response = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`imgbb upload failed (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(`imgbb upload error: ${JSON.stringify(data)}`);
+  }
+
+  return data.data.url; // public URL, valid for 5 minutes then auto-deleted
+}
+
+function cleanJsonString(str) {
+  // 1. Strip <think>...</think> blocks (Qwen reasoning)
+  let cleaned = str.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // 2. Strip markdown code fences
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  // 3. Try to extract the first JSON object or array via regex
+  const jsonMatch = cleaned.match(/({[\s\S]*}|\[[\s\S]*\])/);
+  if (jsonMatch) cleaned = jsonMatch[1];
+  return cleaned;
+}
+
+// 5. API Call to Groq Qwen 3.6 27B Vision
+async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0) {
+  const groqKey = getCurrentKey();
+  if (!groqKey) throw new Error('No Groq API keys found in .env');
+
+  // Upload image to imgbb to get a public URL (Groq requires public URLs, not base64)
+  let imageUrl;
   try {
-    const response = await fetch(endpoint, {
+    imageUrl = await uploadImageToImgbb(base64Image);
+    console.log(`  [imgbb] Page ${pageNum} uploaded. URL: ${imageUrl}`);
+  } catch (uploadErr) {
+    if (retryCount < 5) {
+      console.warn(`  [imgbb] Upload failed on Page ${pageNum}: ${uploadErr.message}. Retrying (${retryCount + 1}/5)...`);
+      await new Promise(r => setTimeout(r, 3000));
+      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+    }
+    throw uploadErr;
+  }
+
+  await waitForGroqRateLimit();
+
+  const textPrompt = [
+    'Extract ALL MCQ questions from this UGC NET ' + (isPaperII ? 'Paper II' : 'Paper I') + ' page.',
+    'Language: ' + importLanguage + (expectedCount > 0 ? '. Expect ~' + expectedCount + ' questions.' : '.'),
+    '',
+    'Rules:',
+    '- Extract every question top-to-bottom. Do not skip any.',
+    '- Extract only text in the specified language (ignore other languages on bilingual pages).',
+    '- qIndex: question number on page. ntaQuestionId: QBID/Question Id if shown, else empty string.',
+    '- options: always 4 items [A,B,C,D]. correct: 1-4. unit: always empty string.',
+    '- type: mcq | assertion-reason | match-column | multiple-statement | comprehension | di',
+    '  - assertion-reason: fill assertion, reason fields.',
+    '  - match-column: fill list1[], list2[], list1Header, list2Header.',
+    '  - multiple-statement: fill statements[].',
+    '  - comprehension/di: fill passage field.',
+    '- explanation: brief, in ' + (importLanguage.includes('Hindi') ? 'Hindi' : importLanguage.includes('Sindhi') ? 'Sindhi' : 'English') + '.',
+    '',
+    'Output ONLY valid JSON, no markdown:',
+    '{"questions":[{"qIndex":1,"ntaQuestionId":"","unit":"","type":"mcq","text":"","options":["","","",""],"correct":1,"explanation":"","passage":"","statements":[],"assertion":"","reason":"","list1":[],"list2":[],"list1Header":"","list2Header":""}]}'
+  ].join('\n');
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Bypass-Tunnel-Remainder': 'true' // Bypass ngrok / localtunnel warning page if needed
+        'Authorization': `Bearer ${groqKey}`
       },
       body: JSON.stringify({
-        image: base64Image,
-        pageNum: pageNum,
-        isPaperII: isPaperII,
-        language: importLanguage
+        model: 'qwen/qwen3.6-27b',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: textPrompt }
+          ]
+        }],
+        temperature: 0.1,
+        max_tokens: 4096,
+        reasoning_effort: 'none'
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Colab Server error (${response.status}): ${errText.substring(0, 150)}`);
+      if ((response.status === 429 || response.status === 503) && retryCount < 30) {
+        if (response.status === 429 && GROQ_KEYS.length > 1) {
+          // Track how many consecutive 429s we've seen
+          exhaustedKeyCount++;
+          if (exhaustedKeyCount >= GROQ_KEYS.length) {
+            // ALL keys are rate limited — wait 60s for them to reset
+            exhaustedKeyCount = 0;
+            currentKeyIndex = 0; // reset back to key 1
+            console.warn(`[Groq] ⚠️  ALL ${GROQ_KEYS.length} keys rate limited on Page ${pageNum}. Waiting 60s for reset...`);
+            await new Promise(r => setTimeout(r, 60000));
+          } else {
+            rotateToNextKey();
+            console.warn(`[Groq] Rate limited on Page ${pageNum}. Rotated to key ${currentKeyIndex + 1}/${GROQ_KEYS.length}. (Retry ${retryCount + 1})`);
+          }
+        } else {
+          const waitSecs = response.status === 429 ? 60 : 10;
+          console.warn(`[Groq] Rate limited (${response.status}) on Page ${pageNum}. Waiting ${waitSecs}s... (Retry ${retryCount + 1})`);
+          await new Promise(r => setTimeout(r, waitSecs * 1000));
+        }
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      }
+      throw new Error(`Groq API error: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
-    return data.questions || [];
-  } catch (error) {
-    if (retryCount < 5) {
-      const waitSec = (retryCount + 1) * 3;
-      console.warn(`[Colab OCR] Network/Server glitch on Page ${pageNum}. Retrying in ${waitSec}s (${retryCount + 1}/5)... Error: ${error.message}`);
-      await new Promise(res => setTimeout(res, waitSec * 1000));
-      return callColabOcrServer(colabUrl, base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+    const rawText = data.choices?.[0]?.message?.content || '{}';
+
+    const cleaned = cleanJsonString(rawText);
+
+    try {
+      const parsed = JSON.parse(cleaned);
+      const resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+
+      // Retry if fewer questions than expected
+      if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
+        console.warn(`[Groq OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying (${retryCount + 1}/2)...`);
+        await new Promise(r => setTimeout(r, 2000));
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      } else if (resQuestions.length === 0 && retryCount < 2) {
+        console.warn(`[Groq OCR] 0 questions extracted on Page ${pageNum}. Retrying (${retryCount + 1}/2)...`);
+        await new Promise(r => setTimeout(r, 2000));
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      }
+
+      return resQuestions;
+    } catch (jsonErr) {
+      if (retryCount < 5) {
+        console.warn(`[Groq OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/5)...`);
+        await new Promise(r => setTimeout(r, 10000));
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      }
+      throw jsonErr;
     }
-    throw error;
+  } catch (err) {
+    if (retryCount < 5 && (err.message.includes('fetch') || err.message.includes('timeout'))) {
+      console.warn(`[Groq OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/5)...`);
+      await new Promise(r => setTimeout(r, 5000));
+      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+    }
+    throw err;
   }
 }
 
-// 4. Main Importer Routine
+// 6. Main Importer Routine
 async function main() {
   console.log("=================================================");
-  console.log("   UGC NET Local Importer v2 (Google Colab AI)   ");
+  console.log("   UGC NET Local Importer v2 (Groq Qwen Vision) ");
   console.log("=================================================\n");
+
+  // Validate required keys upfront
+  if (GROQ_KEYS.length === 0) {
+    console.error("❌ Error: No Groq API keys found. Add GROQ_OCR_KEY_1, GROQ_OCR_KEY_2... or GROQ_OCR_API_KEY in .env");
+    process.exit(1);
+  }
+  console.log(`🔑 Loaded ${GROQ_KEYS.length} Groq key(s) for rotation.`);
+  if (!process.env.IMGBB_API_KEY) {
+    console.error("❌ Error: IMGBB_API_KEY is not set in your .env file.");
+    console.error("   Get your key: imgbb.com → Login → API tab → copy the key");
+    process.exit(1);
+  }
 
   const PDF_PATH = await askQuestion("Enter the absolute path to your PDF file: ");
   if (!fs.existsSync(PDF_PATH)) {
@@ -169,11 +366,12 @@ async function main() {
     process.exit(1);
   }
 
-  const LANGUAGE = await askQuestion("Enter Target Language (e.g. English, Hindi, Sindhi): ");
+  const LANGUAGE = await askQuestion("Enter Target Language (e.g. English, Hindi, Sindhi, Sindhi (Devanagari)): ");
 
-  let COLAB_URL = process.env.COLAB_API_URL || '';
-  if (!COLAB_URL) {
-    COLAB_URL = await askQuestion("Enter your Colab Tunnel URL (e.g. https://xxxx.ngrok-free.app or https://xxxx.loca.lt): ");
+  const ANSWER_KEY_PATH = await askQuestion("Enter the absolute path to your Answer Key PDF file (optional, press Enter to skip): ");
+  if (ANSWER_KEY_PATH && !fs.existsSync(ANSWER_KEY_PATH)) {
+    console.error(`Error: Answer Key PDF file does not exist at path: "${ANSWER_KEY_PATH}"`);
+    process.exit(1);
   }
 
   try {
@@ -187,7 +385,7 @@ async function main() {
     }
     const isPaperII = targetSet.paperType === 'Paper II';
     console.log(`Target Set Title: "${targetSet.title}" (Paper Type: ${targetSet.paperType || 'Paper I'})`);
-    console.log(`Colab AI Server: ${COLAB_URL}`);
+    console.log(`AI Engine: Groq Qwen 3.6 27B Vision (standalone — no Colab needed)`);
 
     // Resolve PDF.js and Canvas dependencies
     const canvasPkg = require('@napi-rs/canvas');
@@ -197,19 +395,57 @@ async function main() {
     const workerPath = path.resolve('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = url.pathToFileURL(workerPath).href;
 
+    // Load and parse answer key PDF if provided
+    let answerKeyMap = null;
+    if (ANSWER_KEY_PATH) {
+      console.log("Loading Answer Key PDF document...");
+      const keyData = new Uint8Array(fs.readFileSync(ANSWER_KEY_PATH));
+      const keyPdfDoc = await pdfjs.getDocument({ data: keyData }).promise;
+      let keyText = "";
+      for (let pageNum = 1; pageNum <= keyPdfDoc.numPages; pageNum++) {
+        const page = await keyPdfDoc.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        keyText += pageText + "\n";
+      }
+      answerKeyMap = parseAnswerKey(keyText);
+      const mappedCount = Object.keys(answerKeyMap).length;
+      console.log(`Successfully mapped ${mappedCount} answers from key.`);
+      if (mappedCount === 0) {
+        console.warn("⚠️  Warning: No valid question/answer mappings could be parsed from the Answer Key PDF.");
+      }
+    }
+
     console.log("Loading local PDF document...");
     const data = new Uint8Array(fs.readFileSync(PDF_PATH));
     const pdfDoc = await pdfjs.getDocument({ data }).promise;
     const totalPages = pdfDoc.numPages;
 
     console.log(`PDF Loaded. Total pages: ${totalPages}. Scanning pages...`);
+
+    // Detect if this is a bilingual (English + Hindi) PDF
+    let isBilingualPdf = false;
+    for (let samplePage = 1; samplePage <= Math.min(5, totalPages); samplePage++) {
+      const sp = await pdfDoc.getPage(samplePage);
+      const stc = await sp.getTextContent();
+      const sampleText = stc.items.map(i => i.str).join(' ');
+      if (/[\u0900-\u097F]/.test(sampleText)) { // Devanagari Unicode range
+        isBilingualPdf = true;
+        break;
+      }
+    }
+    if (isBilingualPdf) {
+      console.log(`📖 Detected bilingual PDF (English + Hindi). Each question appears in both languages.`);
+    }
+
     const ocrPages = [];
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       const page = await pdfDoc.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => item.str).join(' ');
       const hasHeader = /Question/i.test(pageText) || 
-                        /Q\s*[\.\:\d]/i.test(pageText) || 
+                        /Objective\s+Question/i.test(pageText) ||
+                        /Q\s*[\.:\d]/i.test(pageText) || 
                         /Sl\s*\.\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
@@ -219,7 +455,28 @@ async function main() {
                         /प्रश्न/i.test(pageText) || 
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
-      if (hasHeader) ocrPages.push({ pageNum, page });
+
+      const slMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[.:]\s*)(\d{1,3})\b/gi))
+        .map(m => parseInt(m[1], 10));
+
+      const objMatches = Array.from(pageText.matchAll(/Objective\s+Question\s+([oO\d]{1,3})\s+(\d{5,8})/gi))
+        .map(m => {
+          let raw = m[1].replace(/[oO]/g, '5');
+          return parseInt(raw, 10);
+        });
+
+      const qNumMatches = [...slMatches, ...objMatches].filter(n => !isNaN(n) && n >= 1 && n <= 300);
+      const uniqueQNums = Array.from(new Set(qNumMatches));
+
+      let expectedCount = uniqueQNums.length;
+      if (isBilingualPdf && expectedCount > 0) {
+        expectedCount = Math.ceil(expectedCount / 2);
+      }
+      const pageSlNos = isBilingualPdf
+        ? uniqueQNums.slice(0, Math.ceil(uniqueQNums.length / 2))
+        : uniqueQNums;
+
+      if (hasHeader) ocrPages.push({ pageNum, page, expectedCount, pageSlNos });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
     
@@ -229,7 +486,7 @@ async function main() {
       if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
           const page = await pdfDoc.getPage(pageNum);
-          ocrPages.push({ pageNum, page });
+          ocrPages.push({ pageNum, page, expectedCount: 0, pageSlNos: [] });
         }
       }
     }
@@ -258,7 +515,7 @@ async function main() {
     const totalOcrPages = ocrPages.length;
 
     for (let i = 0; i < ocrPages.length; i++) {
-      const { pageNum, page } = ocrPages[i];
+      const { pageNum, page, expectedCount, pageSlNos } = ocrPages[i];
 
       if (processedPages.has(pageNum)) {
         console.log(`\n--- Page ${pageNum} (${completedOcrCount}/${totalOcrPages}) ---`);
@@ -268,23 +525,43 @@ async function main() {
 
       console.log(`\n--- Processing Page ${pageNum} (${completedOcrCount + 1}/${totalOcrPages}) ---`);
       
-      const viewport = page.getViewport({ scale: 2.0 });
+      const viewport = page.getViewport({ scale: 1.5 });
       const canvas = createCanvas(viewport.width, viewport.height);
       const context = canvas.getContext('2d');
       await page.render({ canvasContext: context, viewport }).promise;
       const imgBuffer = canvas.toBuffer('image/png');
       const base64Image = imgBuffer.toString('base64');
       
-      console.log(`Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.`);
-      console.log(`Sending to Colab AI Server...`);
+      console.log(`Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.${expectedCount > 0 ? ` (Pre-scan detected ~${expectedCount} questions)` : ''}`);
+      console.log(`Sending to Groq Qwen 3.6 27B Vision...`);
       
       let pageQuestions = [];
       try {
-        pageQuestions = await callColabOcrServer(COLAB_URL, base64Image, pageNum, isPaperII, LANGUAGE);
+        pageQuestions = await callGroqQwenVision(base64Image, pageNum, isPaperII, LANGUAGE, expectedCount || 0);
       } catch (err) {
         console.error(`\n❌ Error: Page ${pageNum} failed to process after all retries:`, err.message);
         console.error(`💾 Progress saved in checkpoint! Run the command again with Set ID ${TARGET_SET_ID} to resume from Page ${pageNum}.`);
         process.exit(1);
+      }
+
+      // --- PDF Sl. No. Ground-Truth Override ---
+      if (pageSlNos && pageSlNos.length > 0 && pageQuestions.length > 0) {
+        const sorted = [...pageQuestions].sort((a, b) => {
+          const ai = parseInt(String(a.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
+          const bi = parseInt(String(b.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
+          return ai - bi;
+        });
+        sorted.forEach((q, idx) => {
+          if (idx < pageSlNos.length) {
+            const pdfNum = pageSlNos[idx];
+            const aiNum = parseInt(String(q.qIndex || '').match(/\d+/)?.[0] || 'NaN', 10);
+            if (!isNaN(aiNum) && aiNum !== pdfNum) {
+              console.log(`  📌 [Sl.No Fix] Page ${pageNum}: AI said Q${aiNum}, PDF says Q${pdfNum} → using PDF value`);
+            }
+            q.qIndex = pdfNum;
+          }
+        });
+        pageQuestions.splice(0, pageQuestions.length, ...sorted);
       }
 
       pageQuestions.forEach(q => {
@@ -298,9 +575,21 @@ async function main() {
           pdfQNum: pdfQNum,
           ntaQuestionId: q.ntaQuestionId || '',
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-          correct: undefined,
-          explanation: ""
+          explanation: q.explanation || ""
         };
+
+        if (answerKeyMap) {
+          let correctAns = undefined;
+          if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
+            correctAns = answerKeyMap[q.ntaQuestionId];
+          } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
+            correctAns = answerKeyMap[pdfQNum];
+          }
+          if (correctAns !== undefined) {
+            updatedQ.correct = correctAns;
+          }
+        }
+
         parsedQuestions.push(updatedQ);
       });
 
@@ -324,11 +613,11 @@ async function main() {
       }
 
       if (i < ocrPages.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 30000)); // 30s between pages to avoid 429
       }
     }
 
-    // Automatically detect if this PDF uses shifted numbering (e.g. Q51..Q150 for Paper II, or Q51..Q100 for Paper I)
+    // Automatically detect if this PDF uses shifted numbering
     const validPdfNums = parsedQuestions.map(q => q.pdfQNum).filter(n => !isNaN(n) && n > 0 && n <= 300);
     const maxPdfNum = validPdfNums.length > 0 ? Math.max(...validPdfNums) : 0;
     const minPdfNum = validPdfNums.length > 0 ? Math.min(...validPdfNums) : 0;
@@ -355,7 +644,12 @@ async function main() {
         if (dbQIndex >= 1 && dbQIndex <= 5) q.type = 'di';
         else if (dbQIndex >= 46 && dbQIndex <= 50) q.type = 'comprehension';
       } else {
-        if (dbQIndex >= 91 && dbQIndex <= 100) q.type = 'comprehension';
+        if (dbQIndex >= 91 && dbQIndex <= 95) q.type = 'comprehension';
+        else if (dbQIndex >= 96 && dbQIndex <= 100) q.type = 'comprehension';
+      }
+
+      if (answerKeyMap && q.correct === undefined && !isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
+        q.correct = answerKeyMap[dbQIndex];
       }
     });
 

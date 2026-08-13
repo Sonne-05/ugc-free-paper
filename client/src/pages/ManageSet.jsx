@@ -4606,7 +4606,7 @@ const ManageSet = () => {
       <div className="manage-set-header">
         <h1>{setId ? `Manage Exam Set #${setId}` : 'Manage Exam Sets'}</h1>
         <p>{setId ? 'Edit set details and manage questions' : 'Select or create a set to manage questions'}</p>
-        <button className="btn-back" onClick={() => navigate('/profile')}>&larr; Back to Profile</button>
+        <button className="btn-back" onClick={() => navigate('/profile#pyq')}>&larr; Back to Profile</button>
       </div>
       <div className="manage-set-layout">
         <div className="manage-set-left">

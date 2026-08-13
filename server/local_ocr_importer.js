@@ -229,13 +229,18 @@ CRITICAL THOROUGHNESS RULE:
 - ${expectedCount > 0 ? `Visual pre-scan detected approximately ${expectedCount} questions on this page. Make sure you extract ALL ${expectedCount} questions!` : 'Extract EVERY SINGLE QUESTION visible on the page (usually 4 to 6 questions).'}
 - If a question starts near the top or near the bottom margin, extract it!
 
+${importLanguage === 'English' ? `⚠️  CRITICAL LANGUAGE ENFORCEMENT — ENGLISH ONLY MODE ACTIVE:
+This PDF contains BOTH English (Roman/Latin script) and Hindi (Devanagari script: क, ख, ग...) text.
+You MUST extract ONLY the ENGLISH text. Any Devanagari/Hindi characters in your output = TASK FAILURE.
+Every single field (text, options, statements, list items, assertion, reason) must be in English only.
+` : ''}
 Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
-- If "English" is selected: Extract only the English version of the questions. If the text has both English and Hindi/Sindhi versions, ignore the Hindi/Sindhi text and extract only the English text.
+- If "English" is selected: Extract ONLY the English Roman-script text. Skip/ignore ALL Hindi Devanagari text completely, even if it appears right next to the English text on the same line.
 - If "Hindi" is selected: Extract only the Hindi version of the questions (in Devanagari script).
-- If "Sindhi" is selected: Extract only the Sindhi version of the questions.
+- If "Sindhi" is selected: Extract the Sindhi version of the questions and options exactly as displayed (whether in Devanagari script such as "स्त्री लेखिकाऊनि में वधि में वधि नाविल लिखिया आहिनि -" or Perso-Arabic script). If both Devanagari and Perso-Arabic versions are shown, extract the Devanagari script version (or include both).
 - If "Bilingual (English & Hindi)" is selected: Keep the question text bilingual (extract both the English and Hindi versions, showing the English text first and Hindi text below it). Do the same for option values (English option first, Hindi translation below it).
-- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it). Do the same for option values (English option first, Sindhi translation below it).
+- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it in Devanagari or Arabic script). Do the same for option values (English option first, Sindhi translation below it).
 
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels. If a question started on the previous page and finishes at the top of this page (e.g. table continuation or options (A), (B), (C), (D) at top of page), extract it as a complete question using its question number.
