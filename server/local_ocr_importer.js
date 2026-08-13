@@ -230,17 +230,24 @@ CRITICAL THOROUGHNESS RULE:
 - If a question starts near the top or near the bottom margin, extract it!
 
 ${importLanguage === 'English' ? `⚠️  CRITICAL LANGUAGE ENFORCEMENT — ENGLISH ONLY MODE ACTIVE:
-This PDF contains BOTH English (Roman/Latin script) and Hindi (Devanagari script: क, ख, ग...) text.
-You MUST extract ONLY the ENGLISH text. Any Devanagari/Hindi characters in your output = TASK FAILURE.
+This PDF contains BOTH English (Roman/Latin script) and Hindi/Sindhi text.
+You MUST extract ONLY the ENGLISH text. Any Devanagari or Perso-Arabic/Urdu characters in your output = TASK FAILURE.
 Every single field (text, options, statements, list items, assertion, reason) must be in English only.
+` : ''}
+${(importLanguage === 'Sindhi' || importLanguage.includes('Sindhi')) ? `⚠️  CRITICAL SINDHI DEVANAGARI SCRIPT ENFORCEMENT ACTIVE:
+This PDF contains Sindhi questions printed in BOTH Devanagari script (e.g. "'ईजाद' लफ़्ज़ जी माना -") AND Perso-Arabic / Urdu script (e.g. "'پھريون ئي جھگڙو' ڪھاڻي آھي :").
+You MUST extract ONLY the DEVANAGARI script version of Sindhi text.
+DO NOT extract any Perso-Arabic script, Urdu script, or Arabic-alphabet text (e.g. پھريون, جھگڙو, ڪھاڻي, گوورڊن, etc.).
+EVERY SINGLE FIELD (text, options, statements, list items, assertion, reason, explanation) MUST BE WRITTEN IN DEVANAGARI SCRIPT SINDHI ONLY!
+Any Perso-Arabic or Urdu script characters in your JSON output = STRICT TASK FAILURE.
 ` : ''}
 Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
-- If "English" is selected: Extract ONLY the English Roman-script text. Skip/ignore ALL Hindi Devanagari text completely, even if it appears right next to the English text on the same line.
+- If "English" is selected: Extract ONLY the English Roman-script text. Skip/ignore ALL Hindi/Sindhi text completely, even if it appears right next to the English text on the same line.
 - If "Hindi" is selected: Extract only the Hindi version of the questions (in Devanagari script).
-- If "Sindhi" is selected: Extract the Sindhi version of the questions and options exactly as displayed (whether in Devanagari script such as "स्त्री लेखिकाऊनि में वधि में वधि नाविल लिखिया आहिनि -" or Perso-Arabic script). If both Devanagari and Perso-Arabic versions are shown, extract the Devanagari script version (or include both).
+- If "Sindhi" is selected: Extract ONLY the Sindhi text written in DEVANAGARI script (e.g. "'ईजाद' लफ़्ज़ जी माना -", "(1) ग़लत", "(2) ठाहूको", "(3) सही", "(4) नईं शइ ठहणु"). IGNORE and SKIP completely all Perso-Arabic / Urdu script text (right-to-left Arabic script) and English text.
 - If "Bilingual (English & Hindi)" is selected: Keep the question text bilingual (extract both the English and Hindi versions, showing the English text first and Hindi text below it). Do the same for option values (English option first, Hindi translation below it).
-- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it in Devanagari or Arabic script). Do the same for option values (English option first, Sindhi translation below it).
+- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English text and the Sindhi DEVANAGARI script version). Do NOT include any Perso-Arabic/Urdu script text. Do the same for option values (English option first, Sindhi translation below it).
 
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels. If a question started on the previous page and finishes at the top of this page (e.g. table continuation or options (A), (B), (C), (D) at top of page), extract it as a complete question using its question number.
@@ -268,7 +275,7 @@ Instructions:
 6. Set the 'unit' property to an empty string "".
 7. Generate a detailed explanation:
     - If the Target Language is "Hindi" or contains "Hindi" (e.g. Bilingual (English & Hindi)): You MUST generate the explanation entirely in Hindi (in Devanagari script).
-    - If the Target Language is "Sindhi" or contains "Sindhi" (e.g. Bilingual (English & Sindhi)): You MUST generate the explanation entirely in Sindhi (using the Arabic script or Devanagari script, matching the script used in the question text).
+    - If the Target Language is "Sindhi" or contains "Sindhi" (e.g. Bilingual (English & Sindhi)): You MUST generate the explanation entirely in Sindhi using DEVANAGARI script ONLY (do NOT use Perso-Arabic/Urdu script).
     - Otherwise, generate the explanation in English.
 8. Output ONLY a JSON object matching the following schema:
 
@@ -340,8 +347,35 @@ Schema:
     
     try {
       const parsed = JSON.parse(cleaned);
-      const resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      let resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
       
+      // If Sindhi is requested, sanitize output to remove any residual Perso-Arabic/Urdu script characters (\u0600-\u06FF, etc.)
+      if (importLanguage && importLanguage.includes('Sindhi')) {
+        const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+        const cleanField = (val) => {
+          if (typeof val === 'string') {
+            return val.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+          }
+          if (Array.isArray(val)) {
+            return val.map(item => typeof item === 'string' ? item.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : item);
+          }
+          return val;
+        };
+
+        resQuestions = resQuestions.map(q => ({
+          ...q,
+          text: cleanField(q.text),
+          options: cleanField(q.options),
+          statements: cleanField(q.statements),
+          list1: cleanField(q.list1),
+          list2: cleanField(q.list2),
+          assertion: cleanField(q.assertion),
+          reason: cleanField(q.reason),
+          passage: cleanField(q.passage),
+          explanation: cleanField(q.explanation)
+        }));
+      }
+
       // If extracted count is less than expected count, retry up to 2 times for full extraction
       if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
         console.warn(`[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR call (${retryCount + 1}/2)...`);

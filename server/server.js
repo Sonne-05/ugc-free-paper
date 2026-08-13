@@ -536,9 +536,9 @@ Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
 - If "English" is in the selected target language (e.g. English Only): Extract only the English version of the questions. If the text has both English and Hindi/Sindhi versions, ignore the Hindi/Sindhi text and extract only the English text.
 - If "Hindi" is in the selected target language (e.g. Hindi Only): Extract only the Hindi version of the questions (in Devanagari script).
-- If "Sindhi" is in the selected target language (e.g. Sindhi Only): Extract only the Sindhi version of the questions.
+- If "Sindhi" is in the selected target language: Extract ONLY the Sindhi text written in DEVANAGARI script (e.g. "'ईजाद' लफ़्ज़ जी माना -"). IGNORE and SKIP completely all Perso-Arabic / Urdu script text (e.g. right-to-left Arabic characters like "'پھريون ئي جھگڙو' ڪھاڻي آھي :"). Do NOT include any Perso-Arabic/Urdu characters in your output under any circumstances.
 - If "Bilingual (English & Hindi)" is selected: Keep the question text bilingual (extract both the English and Hindi versions, showing the English text first and Hindi text below it). Do the same for option values (English option first, Hindi translation below it).
-- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English and Sindhi versions, showing the English text first and Sindhi text below it). Do the same for option values (English option first, Sindhi translation below it).
+- If "Bilingual (English & Sindhi)" is selected: Keep the question text bilingual (extract both the English text and the Sindhi DEVANAGARI script version). Do NOT include any Perso-Arabic/Urdu script text. Do the same for option values (English option first, Sindhi translation below it).
 
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical. Only filter out system noise (e.g. page numbers, header/footer URLs, marks info like 'Correct Marks : 2 Wrong Marks : 0', or 'Question Id : ...').
