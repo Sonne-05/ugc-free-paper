@@ -253,8 +253,10 @@ Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels. If a question started on the previous page and finishes at the top of this page (e.g. table continuation or options (A), (B), (C), (D) at top of page), extract it as a complete question using its question number.
 2. Extract exactly 4 options matching the Target Language Rule. Options may be labeled (1), (2), (3), (4) or (A), (B), (C), (D) or A., B., C., D. Always extract the 4 options in order as the 4 items in the "options" array (where item 0 = Option 1/A, item 1 = Option 2/B, item 2 = Option 3/C, item 3 = Option 4/D).
 3. Identify the question number/index (the small serial number like 1, 2, 3...50 or 1..100). It can appear in ANY of these formats:
+   - "3) Definite procedures..." or "3 ) Definite..." → serial=3 (question number followed by parenthesis)
    - "Sl. No.1" or "Sl. No. 1" followed by "QBID:1101001" → serial=1, bank ID=1101001
    - "Sl. No.1\nQBID:1521001" — here 1 is the question number; 1521001 is the bank ID
+   - "[Question ID = 1408][Question Description = 103_71_SCY_SEP22_S2_Q03]" → extract "1408" into "ntaQuestionId", filter out Question Description text
    - "[Question ID = 1407]" or "Question ID = 1407" → extract "1407" into "ntaQuestionId"
    - "Objective Question  1   2051" — here 1 is the serial number; 2051 is the Client Question ID
    - "Objective Question  15   2065" — serial=15, clientID=2065
@@ -262,10 +264,11 @@ Instructions:
    - "Question Number : 1 Question Id : 5330728243" — here 1 is the question number; 5330728243 is the NTA bank ID
    Use the small sequential number (1, 2, 3...) as "qIndex". Extract the longer bank/client/NTA ID into the "ntaQuestionId" field:
    - From "QBID:1101001" → ntaQuestionId = "1101001"
-   - From "[Question ID = 1407]" → ntaQuestionId = "1407"
+   - From "[Question ID = 1408]" → ntaQuestionId = "1408"
    - From "Objective Question X   ClientID" → ntaQuestionId = the 4-digit ClientID (e.g. "2051")
    - From "Question Id : 5330728243" → ntaQuestionId = "5330728243"
    - From any other "Question Id : X" or "NTA Question ID : X" → ntaQuestionId = that number
+   Note: Filter out metadata footers like "[Question Description = ...]", "[Option ID = ...]", "1. 1 [Option ID = 5629]" — extract ONLY the true question text and 4 option texts!
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
@@ -506,8 +509,11 @@ async function main() {
                         /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
                         /Question\s+ID\s*=/i.test(pageText) || 
+                        /Question\s+Description\s*=/i.test(pageText) || 
+                        /Option\s+ID\s*=/i.test(pageText) || 
                         /Objective\s+Question/i.test(pageText) || 
                         /Client\s+Question\s+ID/i.test(pageText) || 
+                        /\b\d{1,3}\s*\)\s+/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 
@@ -518,6 +524,8 @@ async function main() {
 
       // Collect all candidate serial numbers from explicit question-serial markers
       const serialPatterns = [
+        // "3)" or "3 )" format (number followed by right parenthesis)
+        /\b(\d{1,3})\s*\)\s+/gi,
         // "Sl. No. X" or "Sl. No.X"
         /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
         // "Question Number : X"

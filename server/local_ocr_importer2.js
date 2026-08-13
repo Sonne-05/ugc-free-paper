@@ -242,10 +242,12 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
     '  - If Sindhi: extract ONLY Sindhi text written in DEVANAGARI script. Skip/ignore all Perso-Arabic/Urdu script and English text.',
     '  - If Bilingual: extract English first, followed by Devanagari text below it.',
     '- Question ID Formats:',
+    '  - "3) Definite procedures..." → qIndex=3',
     '  - "Sl. No.1 QBID:1101001" → qIndex=1, ntaQuestionId="1101001"',
-    '  - "[Question ID = 1407]" → ntaQuestionId="1407"',
+    '  - "[Question ID = 1408][Question Description = ...]" → ntaQuestionId="1408"',
     '  - "Objective Question  1   2051" → qIndex=1, ntaQuestionId="2051"',
     '  - "Question Number : 1 Question Id : 5330728243" → qIndex=1, ntaQuestionId="5330728243"',
+    '  Note: Filter out metadata footers like "[Question Description = ...]" and "[Option ID = ...]" from text.',
     '- options: always 4 items [A,B,C,D]. correct: 1-4. unit: always empty string.',
     '- type: mcq | assertion-reason | match-column | multiple-statement | comprehension | di',
     '  - assertion-reason: fill assertion, reason fields.',
@@ -484,8 +486,11 @@ async function main() {
                         /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
                         /Question\s+ID\s*=/i.test(pageText) || 
+                        /Question\s+Description\s*=/i.test(pageText) || 
+                        /Option\s+ID\s*=/i.test(pageText) || 
                         /Objective\s+Question/i.test(pageText) || 
                         /Client\s+Question\s+ID/i.test(pageText) || 
+                        /\b\d{1,3}\s*\)\s+/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 
@@ -495,6 +500,7 @@ async function main() {
                         pageText.trim().length > 80;
 
       const serialPatterns = [
+        /\b(\d{1,3})\s*\)\s+/gi,
         /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
         /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
         /\bQ\s*[\.:](\d{1,3})\b/gi,
