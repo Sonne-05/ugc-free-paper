@@ -245,7 +245,7 @@ You MUST extract the questions and option texts in the following language/format
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels. If a question started on the previous page and finishes at the top of this page (e.g. table continuation or options (A), (B), (C), (D) at top of page), extract it as a complete question using its question number.
 2. Extract exactly 4 options matching the Target Language Rule. Options may be labeled (1), (2), (3), (4) or (A), (B), (C), (D) or A., B., C., D. Always extract the 4 options in order as the 4 items in the "options" array (where item 0 = Option 1/A, item 1 = Option 2/B, item 2 = Option 3/C, item 3 = Option 4/D).
-3. Identify the question number/index (e.g. 1., 2., 3., Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341') into the "ntaQuestionId" field if present.
+3. Identify the question number/index (e.g. 1., 2., 3., Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341' or 22742719380 from 'Question Id : 22742719380') into the "ntaQuestionId" field if present.
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
@@ -466,14 +466,14 @@ async function main() {
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
       
-      // Strict serial-number regex: only match explicit "Sl. No. X" or "Q.X" patterns
+      // Strict serial-number regex: only match explicit "Sl. No. X", "Q.X", or "Question Number : X" patterns
       // This avoids counting option labels and Hindi duplicates
-      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[\.:]\s*)(\d{1,3})\b/gi))
+      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[\.:]\s*|Question\s*Number\s*[\.:]*\s*)(\d{1,3})\b/gi))
         .map(m => parseInt(m[1], 10))
         .filter(n => n >= 1 && n <= 300);
       const uniqueQNums = Array.from(new Set(qNumMatches));
-      // For bilingual PDFs, each Sl. No. appears twice (English + Hindi), so deduplicate
-      // uniqueQNums already deduplicates — the Set ensures each Sl. No. appears once regardless of language
+      // For bilingual PDFs, each number appears twice (English + Hindi), so deduplicate
+      // uniqueQNums already deduplicates — the Set ensures each number appears once regardless of language
       let expectedCount = uniqueQNums.length;
       if (isBilingualPdf && expectedCount > 0) {
         expectedCount = Math.ceil(expectedCount / 2);

@@ -2415,12 +2415,12 @@ const Profile = () => {
 
                 {/* 4.1 ACTIVE PYQ SETS SECTION */}
                 <div className="creator-section" style={{ marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>
+                  <div className="pyq-filter-bar">
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
                       Active PYQ Sets Database
                     </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="pyq-filter-controls">
+                      <div className="pyq-filter-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Paper:</label>
                         <select 
                           className="pane-select" 
@@ -2437,7 +2437,7 @@ const Profile = () => {
                         </select>
                       </div>
                       {(selectedFilterPaperType === 'All' || selectedFilterPaperType === 'Paper II') && uniqueSetSubjects.length > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="pyq-filter-group">
                           <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Subject:</label>
                           <select 
                             className="pane-select" 
@@ -2452,7 +2452,7 @@ const Profile = () => {
                           </select>
                         </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="pyq-filter-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Year:</label>
                         <select 
                           className="pane-select" 
@@ -2481,6 +2481,7 @@ const Profile = () => {
                           No active Paper I sets.
                         </p>
                       ) : (
+                        <div className="admin-table-container" style={{ marginBottom: 0 }}>
                         <table className="admin-table" style={{ marginBottom: 0 }}>
                           <thead>
                             <tr>
@@ -2550,6 +2551,7 @@ const Profile = () => {
                             })()}
                           </tbody>
                         </table>
+                        </div>
                       )}
                     </div>
                   )}
@@ -2566,6 +2568,7 @@ const Profile = () => {
                           No active Paper II sets.
                         </p>
                       ) : (
+                        <div className="admin-table-container" style={{ marginBottom: 0 }}>
                         <table className="admin-table" style={{ marginBottom: 0 }}>
                           <thead>
                             <tr>
@@ -2639,6 +2642,7 @@ const Profile = () => {
                             })()}
                           </tbody>
                         </table>
+                        </div>
                       )}
                     </div>
                   )}
@@ -2726,7 +2730,7 @@ const Profile = () => {
                       </label>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="pyq-btn-row">
                       <button type="submit" className="pane-btn pane-btn--primary">
                         {editingSetId ? 'Update Set Details' : 'Create Exam Set'}
                       </button>
