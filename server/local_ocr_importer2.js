@@ -230,20 +230,28 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
   await waitForGroqRateLimit();
 
   const textPrompt = [
-    'Extract ALL MCQ questions from this UGC NET ' + (isPaperII ? 'Paper II' : 'Paper I') + ' page.',
-    'Language: ' + importLanguage + (expectedCount > 0 ? '. Expect ~' + expectedCount + ' questions.' : '.'),
+    'Extract ALL MCQ questions from this UGC NET ' + (isPaperII ? 'Paper II' : 'Paper I') + ' page from top to bottom.',
+    'Language mode: ' + importLanguage + (expectedCount > 0 ? '. Expect ~' + expectedCount + ' questions.' : '.'),
     '',
+    (importLanguage.includes('Sindhi') ? '⚠️  CRITICAL SINDHI DEVANAGARI SCRIPT ENFORCEMENT ACTIVE:\nExtract ONLY Devanagari script Sindhi (e.g. "\'ईजाद\' लफ़्ज़ जी माना -"). DO NOT extract any Perso-Arabic/Urdu script text (\'پھريون ئي جھگڙو\'). Any Perso-Arabic/Urdu script in output = TASK FAILURE.\n' : ''),
     'Rules:',
     '- Extract every question top-to-bottom. Do not skip any.',
-    '- Extract only text in the specified language (ignore other languages on bilingual pages).',
-    '- qIndex: question number on page. ntaQuestionId: QBID/Question Id if shown, else empty string.',
+    '- Target Language Rule:',
+    '  - If English: extract ONLY English Roman text. Skip Devanagari/Hindi/Sindhi.',
+    '  - If Hindi: extract ONLY Hindi text in Devanagari script.',
+    '  - If Sindhi: extract ONLY Sindhi text written in DEVANAGARI script. Skip/ignore all Perso-Arabic/Urdu script and English text.',
+    '  - If Bilingual: extract English first, followed by Devanagari text below it.',
+    '- Question ID Formats:',
+    '  - "Sl. No.1 QBID:1101001" → qIndex=1, ntaQuestionId="1101001"',
+    '  - "Objective Question  1   2051" → qIndex=1, ntaQuestionId="2051"',
+    '  - "Question Number : 1 Question Id : 5330728243" → qIndex=1, ntaQuestionId="5330728243"',
     '- options: always 4 items [A,B,C,D]. correct: 1-4. unit: always empty string.',
     '- type: mcq | assertion-reason | match-column | multiple-statement | comprehension | di',
     '  - assertion-reason: fill assertion, reason fields.',
     '  - match-column: fill list1[], list2[], list1Header, list2Header.',
     '  - multiple-statement: fill statements[].',
     '  - comprehension/di: fill passage field.',
-    '- explanation: brief, in ' + (importLanguage.includes('Hindi') ? 'Hindi' : importLanguage.includes('Sindhi') ? 'Sindhi' : 'English') + '.',
+    '- explanation: detailed explanation in target language (Devanagari script only if Sindhi/Hindi).',
     '',
     'Output ONLY valid JSON, no markdown:',
     '{"questions":[{"qIndex":1,"ntaQuestionId":"","unit":"","type":"mcq","text":"","options":["","","",""],"correct":1,"explanation":"","passage":"","statements":[],"assertion":"","reason":"","list1":[],"list2":[],"list1Header":"","list2Header":""}]}'
@@ -304,7 +312,34 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
 
     try {
       const parsed = JSON.parse(cleaned);
-      const resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      let resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+
+      // If Sindhi is requested, sanitize output to remove any residual Perso-Arabic/Urdu script characters (\u0600-\u06FF, etc.)
+      if (importLanguage && importLanguage.includes('Sindhi')) {
+        const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+        const cleanField = (val) => {
+          if (typeof val === 'string') {
+            return val.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+          }
+          if (Array.isArray(val)) {
+            return val.map(item => typeof item === 'string' ? item.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : item);
+          }
+          return val;
+        };
+
+        resQuestions = resQuestions.map(q => ({
+          ...q,
+          text: cleanField(q.text),
+          options: cleanField(q.options),
+          statements: cleanField(q.statements),
+          list1: cleanField(q.list1),
+          list2: cleanField(q.list2),
+          assertion: cleanField(q.assertion),
+          reason: cleanField(q.reason),
+          passage: cleanField(q.passage),
+          explanation: cleanField(q.explanation)
+        }));
+      }
 
       // Retry if fewer questions than expected
       if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
@@ -444,10 +479,11 @@ async function main() {
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map(item => item.str).join(' ');
       const hasHeader = /Question/i.test(pageText) || 
-                        /Objective\s+Question/i.test(pageText) ||
-                        /Q\s*[\.:\d]/i.test(pageText) || 
-                        /Sl\s*\.\s*No/i.test(pageText) || 
+                        /Q\s*[\.\:\d]/i.test(pageText) || 
+                        /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
+                        /Objective\s+Question/i.test(pageText) || 
+                        /Client\s+Question\s+ID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 
@@ -456,16 +492,22 @@ async function main() {
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
 
-      const slMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[.:]\s*)(\d{1,3})\b/gi))
-        .map(m => parseInt(m[1], 10));
+      const serialPatterns = [
+        /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
+        /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
+        /\bQ\s*[\.:](\d{1,3})\b/gi,
+        /Client\s+Question\s+ID\s+(\d{1,3})\b/gi,
+        /Objective\s+Question\s+(\d{1,3})\b/gi,
+      ];
 
-      const objMatches = Array.from(pageText.matchAll(/Objective\s+Question\s+([oO\d]{1,3})\s+(\d{5,8})/gi))
-        .map(m => {
-          let raw = m[1].replace(/[oO]/g, '5');
-          return parseInt(raw, 10);
-        });
+      const qNumMatches = [];
+      for (const pat of serialPatterns) {
+        for (const m of pageText.matchAll(pat)) {
+          const n = parseInt(m[1], 10);
+          if (n >= 1 && n <= 300) qNumMatches.push(n);
+        }
+      }
 
-      const qNumMatches = [...slMatches, ...objMatches].filter(n => !isNaN(n) && n >= 1 && n <= 300);
       const uniqueQNums = Array.from(new Set(qNumMatches));
 
       let expectedCount = uniqueQNums.length;
@@ -569,19 +611,26 @@ async function main() {
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
 
+        let ntaId = q.ntaQuestionId || '';
+        if (!isNaN(pdfQNum) && pdfQNum >= 1000 && !ntaId) {
+          ntaId = String(pdfQNum);
+          pdfQNum = NaN;
+        }
+
         let updatedQ = {
           ...q,
           qIndex: pdfQNum,
           pdfQNum: pdfQNum,
-          ntaQuestionId: q.ntaQuestionId || '',
+          ntaQuestionId: ntaId,
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-          explanation: q.explanation || ""
+          explanation: q.explanation || "",
+          _arrivalIndex: parsedQuestions.length
         };
 
         if (answerKeyMap) {
           let correctAns = undefined;
-          if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
-            correctAns = answerKeyMap[q.ntaQuestionId];
+          if (ntaId && answerKeyMap[ntaId] !== undefined) {
+            correctAns = answerKeyMap[ntaId];
           } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
             correctAns = answerKeyMap[pdfQNum];
           }
@@ -674,14 +723,15 @@ async function main() {
     });
 
     if (unindexedQueue.length > 0) {
-      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with non-standard numbering into open slots...`);
+      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with bank IDs or non-standard numbering into open slots (in PDF sequence order)...`);
+      unindexedQueue.sort((a, b) => (a._arrivalIndex ?? 0) - (b._arrivalIndex ?? 0));
       let queueIdx = 0;
       for (let slot = 1; slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length; slot++) {
         if (!questionMap.has(slot)) {
           const item = unindexedQueue[queueIdx++];
           item.qIndex = slot;
           questionMap.set(slot, item);
-          console.log(`   [Auto-Indexed] Assigned question to Q${slot}`);
+          console.log(`   [Auto-Indexed] Assigned Q${slot} ← NTA/Bank ID: ${item.ntaQuestionId || item._arrivalIndex}`);
         }
       }
     }
