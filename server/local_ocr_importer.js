@@ -255,12 +255,14 @@ Instructions:
 3. Identify the question number/index (the small serial number like 1, 2, 3...50 or 1..100). It can appear in ANY of these formats:
    - "Sl. No.1" or "Sl. No. 1" followed by "QBID:1101001" → serial=1, bank ID=1101001
    - "Sl. No.1\nQBID:1521001" — here 1 is the question number; 1521001 is the bank ID
+   - "[Question ID = 1407]" or "Question ID = 1407" → extract "1407" into "ntaQuestionId"
    - "Objective Question  1   2051" — here 1 is the serial number; 2051 is the Client Question ID
    - "Objective Question  15   2065" — serial=15, clientID=2065
    - "Client Question  ID   Question Body..." is the column header — ignore it
    - "Question Number : 1 Question Id : 5330728243" — here 1 is the question number; 5330728243 is the NTA bank ID
    Use the small sequential number (1, 2, 3...) as "qIndex". Extract the longer bank/client/NTA ID into the "ntaQuestionId" field:
    - From "QBID:1101001" → ntaQuestionId = "1101001"
+   - From "[Question ID = 1407]" → ntaQuestionId = "1407"
    - From "Objective Question X   ClientID" → ntaQuestionId = the 4-digit ClientID (e.g. "2051")
    - From "Question Id : 5330728243" → ntaQuestionId = "5330728243"
    - From any other "Question Id : X" or "NTA Question ID : X" → ntaQuestionId = that number
@@ -503,6 +505,7 @@ async function main() {
                         /Q\s*[\.\:\d]/i.test(pageText) || 
                         /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
+                        /Question\s+ID\s*=/i.test(pageText) || 
                         /Objective\s+Question/i.test(pageText) || 
                         /Client\s+Question\s+ID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
@@ -512,29 +515,20 @@ async function main() {
                         /प्रश्न/i.test(pageText) || 
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
-      
-      // -----------------------------------------------------------------------
-      // Strict serial-number extraction — supports ALL question ID formats:
-      //   1. "Sl. No. X" or "Sl. No.X"   → standard NTA serial
-      //   2. "Sl. No.X\nQBID:1101001"    → serial=X, ignore QBID bank id
-      //   3. "Question Number : X"        → serial=X (ignore "Question Id : Y" which is the NTA bank id)
-      //   4. "Client Question ID X"       → treat X as serial if X <= 300
-      //   5. "Q.X" / "Q:X"               → short form
-      // We explicitly EXCLUDE QBID values and 5-digit+ IDs from serial numbers.
-      // -----------------------------------------------------------------------
 
       // Collect all candidate serial numbers from explicit question-serial markers
       const serialPatterns = [
         // "Sl. No. X" or "Sl. No.X"
         /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
-        // "Question Number : X" (must come BEFORE "Question Id" match so we get the small number)
+        // "Question Number : X"
         /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
         // "Q.X" or "Q:X" short form
         /\bQ\s*[\.:](\d{1,3})\b/gi,
+        // "[Question ID = X]" — if X <= 300, treat X as serial
+        /\[?\s*Question\s+ID\s*=\s*(\d{1,3})\b/gi,
         // "Client Question ID X" — only if X <= 300 (serial-range)
         /Client\s+Question\s+ID\s+(\d{1,3})\b/gi,
-        // "Objective Question X   ClientID" — 2023 format: serial is the FIRST number (1..300)
-        // The second number (e.g. 2051) is the bank/client ID, so we only match the first
+        // "Objective Question X   ClientID"
         /Objective\s+Question\s+(\d{1,3})\b/gi,
       ];
 

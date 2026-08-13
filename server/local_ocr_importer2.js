@@ -243,6 +243,7 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
     '  - If Bilingual: extract English first, followed by Devanagari text below it.',
     '- Question ID Formats:',
     '  - "Sl. No.1 QBID:1101001" → qIndex=1, ntaQuestionId="1101001"',
+    '  - "[Question ID = 1407]" → ntaQuestionId="1407"',
     '  - "Objective Question  1   2051" → qIndex=1, ntaQuestionId="2051"',
     '  - "Question Number : 1 Question Id : 5330728243" → qIndex=1, ntaQuestionId="5330728243"',
     '- options: always 4 items [A,B,C,D]. correct: 1-4. unit: always empty string.',
@@ -482,6 +483,7 @@ async function main() {
                         /Q\s*[\.\:\d]/i.test(pageText) || 
                         /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
+                        /Question\s+ID\s*=/i.test(pageText) || 
                         /Objective\s+Question/i.test(pageText) || 
                         /Client\s+Question\s+ID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
@@ -496,6 +498,7 @@ async function main() {
         /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
         /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
         /\bQ\s*[\.:](\d{1,3})\b/gi,
+        /\[?\s*Question\s+ID\s*=\s*(\d{1,3})\b/gi,
         /Client\s+Question\s+ID\s+(\d{1,3})\b/gi,
         /Objective\s+Question\s+(\d{1,3})\b/gi,
       ];
