@@ -245,7 +245,18 @@ You MUST extract the questions and option texts in the following language/format
 Instructions:
 1. Extract the question text exactly as instructed in the Target Language Rule above. Keep punctuation, spacing, and grammar identical to the visual text. Filter out system headers/footers or pagination labels. If a question started on the previous page and finishes at the top of this page (e.g. table continuation or options (A), (B), (C), (D) at top of page), extract it as a complete question using its question number.
 2. Extract exactly 4 options matching the Target Language Rule. Options may be labeled (1), (2), (3), (4) or (A), (B), (C), (D) or A., B., C., D. Always extract the 4 options in order as the 4 items in the "options" array (where item 0 = Option 1/A, item 1 = Option 2/B, item 2 = Option 3/C, item 3 = Option 4/D).
-3. Identify the question number/index (e.g. 1., 2., 3., Sl. No. 1, Q51, Question Number: 51, or Question 51). Also extract the Question Bank ID / NTA Question ID (e.g. 5001 from 'QBID:5001' or 926341 from 'Question Id : 926341' or 22742719380 from 'Question Id : 22742719380') into the "ntaQuestionId" field if present.
+3. Identify the question number/index (the small serial number like 1, 2, 3...50 or 1..100). It can appear in ANY of these formats:
+   - "Sl. No.1" or "Sl. No. 1" followed by "QBID:1101001" → serial=1, bank ID=1101001
+   - "Sl. No.1\nQBID:1521001" — here 1 is the question number; 1521001 is the bank ID
+   - "Objective Question  1   2051" — here 1 is the serial number; 2051 is the Client Question ID
+   - "Objective Question  15   2065" — serial=15, clientID=2065
+   - "Client Question  ID   Question Body..." is the column header — ignore it
+   - "Question Number : 1 Question Id : 5330728243" — here 1 is the question number; 5330728243 is the NTA bank ID
+   Use the small sequential number (1, 2, 3...) as "qIndex". Extract the longer bank/client/NTA ID into the "ntaQuestionId" field:
+   - From "QBID:1101001" → ntaQuestionId = "1101001"
+   - From "Objective Question X   ClientID" → ntaQuestionId = the 4-digit ClientID (e.g. "2051")
+   - From "Question Id : 5330728243" → ntaQuestionId = "5330728243"
+   - From any other "Question Id : X" or "NTA Question ID : X" → ntaQuestionId = that number
 4. Map the correct option index (1, 2, 3, or 4) by solving the question or using official key inputs.
 5. Determine the question type:
     - 'mcq': Standard single choice question with 4 options.
@@ -456,8 +467,10 @@ async function main() {
       const pageText = textContent.items.map(item => item.str).join(' ');
       const hasHeader = /Question/i.test(pageText) || 
                         /Q\s*[\.\:\d]/i.test(pageText) || 
-                        /Sl\s*\.\s*No/i.test(pageText) || 
+                        /Sl\s*\.?\s*No/i.test(pageText) || 
                         /QBID/i.test(pageText) || 
+                        /Objective\s+Question/i.test(pageText) || 
+                        /Client\s+Question\s+ID/i.test(pageText) || 
                         /Option/i.test(pageText) || 
                         /Answer/i.test(pageText) || 
                         /Statement/i.test(pageText) || 
@@ -466,11 +479,39 @@ async function main() {
                         /विकल्प/i.test(pageText) ||
                         pageText.trim().length > 80;
       
-      // Strict serial-number regex: only match explicit "Sl. No. X", "Q.X", or "Question Number : X" patterns
-      // This avoids counting option labels and Hindi duplicates
-      const qNumMatches = Array.from(pageText.matchAll(/(?:Sl\s*\.\s*No[\s\.:]*|Q\s*[\.:]\s*|Question\s*Number\s*[\.:]*\s*)(\d{1,3})\b/gi))
-        .map(m => parseInt(m[1], 10))
-        .filter(n => n >= 1 && n <= 300);
+      // -----------------------------------------------------------------------
+      // Strict serial-number extraction — supports ALL question ID formats:
+      //   1. "Sl. No. X" or "Sl. No.X"   → standard NTA serial
+      //   2. "Sl. No.X\nQBID:1101001"    → serial=X, ignore QBID bank id
+      //   3. "Question Number : X"        → serial=X (ignore "Question Id : Y" which is the NTA bank id)
+      //   4. "Client Question ID X"       → treat X as serial if X <= 300
+      //   5. "Q.X" / "Q:X"               → short form
+      // We explicitly EXCLUDE QBID values and 5-digit+ IDs from serial numbers.
+      // -----------------------------------------------------------------------
+
+      // Collect all candidate serial numbers from explicit question-serial markers
+      const serialPatterns = [
+        // "Sl. No. X" or "Sl. No.X"
+        /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
+        // "Question Number : X" (must come BEFORE "Question Id" match so we get the small number)
+        /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
+        // "Q.X" or "Q:X" short form
+        /\bQ\s*[\.:](\d{1,3})\b/gi,
+        // "Client Question ID X" — only if X <= 300 (serial-range)
+        /Client\s+Question\s+ID\s+(\d{1,3})\b/gi,
+        // "Objective Question X   ClientID" — 2023 format: serial is the FIRST number (1..300)
+        // The second number (e.g. 2051) is the bank/client ID, so we only match the first
+        /Objective\s+Question\s+(\d{1,3})\b/gi,
+      ];
+
+      const qNumMatches = [];
+      for (const pat of serialPatterns) {
+        for (const m of pageText.matchAll(pat)) {
+          const n = parseInt(m[1], 10);
+          if (n >= 1 && n <= 300) qNumMatches.push(n);
+        }
+      }
+
       const uniqueQNums = Array.from(new Set(qNumMatches));
       // For bilingual PDFs, each number appears twice (English + Hindi), so deduplicate
       // uniqueQNums already deduplicates — the Set ensures each number appears once regardless of language
@@ -582,25 +623,36 @@ async function main() {
         pageQuestions.splice(0, pageQuestions.length, ...sorted);
       }
 
-      pageQuestions.forEach(q => {
+      pageQuestions.forEach((q, pageLocalIdx) => {
         // Robustly parse digits from qIndex (now already set from PDF Sl. No. above)
         let rawStr = String(q.qIndex || '').trim();
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
-        
+
+        // If pdfQNum is a large bank ID (>= 1000) and ntaQuestionId is not set yet,
+        // promote it to ntaQuestionId and mark qIndex as NaN so it goes to gap-fill.
+        // The gap-fill will assign it in PDF sequence using pageArrivalIndex.
+        let ntaId = q.ntaQuestionId || '';
+        if (!isNaN(pdfQNum) && pdfQNum >= 1000 && !ntaId) {
+          ntaId = String(pdfQNum);
+          pdfQNum = NaN; // will be gap-filled in page-arrival sequence
+        }
+
         let updatedQ = {
           ...q,
           qIndex: pdfQNum,
           pdfQNum: pdfQNum,
-          ntaQuestionId: q.ntaQuestionId || '',
-          setId: new mongoose.Types.ObjectId(TARGET_SET_ID)
+          ntaQuestionId: ntaId,
+          setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
+          // Preserve the exact order this question appeared in the PDF (global insertion order)
+          _arrivalIndex: parsedQuestions.length
         };
 
         // Override correct answer with official key if provided (by ntaQuestionId or pdfQNum)
         if (answerKeyMap) {
           let correctAns = undefined;
-          if (q.ntaQuestionId && answerKeyMap[q.ntaQuestionId] !== undefined) {
-            correctAns = answerKeyMap[q.ntaQuestionId];
+          if (ntaId && answerKeyMap[ntaId] !== undefined) {
+            correctAns = answerKeyMap[ntaId];
           } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
             correctAns = answerKeyMap[pdfQNum];
           }
@@ -608,7 +660,7 @@ async function main() {
             updatedQ.correct = correctAns;
           }
         }
-        
+
         parsedQuestions.push(updatedQ);
       });
       
@@ -703,15 +755,20 @@ async function main() {
     });
 
     // Fill missing index gaps (1..maxAllowedQuestions) using unindexedQueue
+    // CRITICAL: Sort unindexedQueue by their _arrivalIndex so the PDF sequence is preserved!
+    // Without this, QBID / Client Question ID / Question Id questions would be inserted
+    // into slots in scan order (1,2,3...) instead of the order they appear in the PDF.
     if (unindexedQueue.length > 0) {
-      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with 6-digit IDs or non-standard numbering into open slots...`);
+      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with bank IDs or non-standard numbering into open slots (in PDF sequence order)...`);
+      // Sort by original arrival index to preserve PDF reading order
+      unindexedQueue.sort((a, b) => (a._arrivalIndex ?? 0) - (b._arrivalIndex ?? 0));
       let queueIdx = 0;
       for (let slot = 1; slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length; slot++) {
         if (!questionMap.has(slot)) {
           const item = unindexedQueue[queueIdx++];
           item.qIndex = slot;
           questionMap.set(slot, item);
-          console.log(`   [Auto-Indexed] Assigned question to Q${slot}`);
+          console.log(`   [Auto-Indexed] Assigned Q${slot} ← NTA/Bank ID: ${item.ntaQuestionId || item._arrivalIndex}`);
         }
       }
     }
