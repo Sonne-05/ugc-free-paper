@@ -1,9 +1,9 @@
-const fs = require('fs');
-const path = require('path');
-const url = require('url');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const readline = require('readline');
+const fs = require("fs");
+const path = require("path");
+const url = require("url");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const readline = require("readline");
 
 // Helper for interactive terminal input
 function askQuestion(query) {
@@ -11,41 +11,43 @@ function askQuestion(query) {
     input: process.stdin,
     output: process.stdout,
   });
-  return new Promise(resolve => rl.question(query, ans => {
-    rl.close();
-    resolve(ans.trim());
-  }));
+  return new Promise((resolve) =>
+    rl.question(query, (ans) => {
+      rl.close();
+      resolve(ans.trim());
+    }),
+  );
 }
 
 // Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
 function parseAnswerKey(text) {
   const mapping = {};
-  const lines = text.split('\n');
-  
+  const lines = text.split("\n");
+
   for (const line of lines) {
     let cleanLine = line.trim();
     if (!cleanLine) continue;
-    
+
     // Apply pre-processing string replacements for common OCR typos
     cleanLine = cleanLine
-      .replace(/\s*\|\s*/g, '1 ')        // '8 | B' -> '81 B' (replace space-pipe-space with '1 ')
-      .replace(/\]/g, '1')              // '4]' -> '41', '9]' -> '91'
-      .replace(/\bT(\d+)\b/g, '7$1')     // 'T7' -> '77'
-      .replace(/\bl(\d+)\b/g, '1$1')     // 'l5' -> '15'
-      .replace(/\bI(\d+)\b/g, '1$1')     // 'I5' -> '15'
-      .replace(/\bl\b/g, '1')            // isolated 'l' -> '1'
-      .replace(/\bI\b/g, '1')            // isolated 'I' -> '1'
-      .replace(/\big\b/g, '11');         // 'ig' -> '11'
-      
+      .replace(/\s*\|\s*/g, "1 ") // '8 | B' -> '81 B' (replace space-pipe-space with '1 ')
+      .replace(/\]/g, "1") // '4]' -> '41', '9]' -> '91'
+      .replace(/\bT(\d+)\b/g, "7$1") // 'T7' -> '77'
+      .replace(/\bl(\d+)\b/g, "1$1") // 'l5' -> '15'
+      .replace(/\bI(\d+)\b/g, "1$1") // 'I5' -> '15'
+      .replace(/\bl\b/g, "1") // isolated 'l' -> '1'
+      .replace(/\bI\b/g, "1") // isolated 'I' -> '1'
+      .replace(/\big\b/g, "11"); // 'ig' -> '11'
+
     // Split by whitespace, comma, tab, semicolon, vertical bar
     const tokens = cleanLine.split(/[\s,;|]+/);
-    
+
     // Check if there are any words with length >= 3 to avoid headers/footers
     let hasLongWord = false;
     for (const t of tokens) {
       const lower = t.toLowerCase();
       // Allow 'dropped', 'drop', 'null' as valid answer key tokens
-      if (['dropped', 'drop', 'null'].includes(lower)) {
+      if (["dropped", "drop", "null"].includes(lower)) {
         continue;
       }
       if (/[a-zA-Z]{3,}/.test(t)) {
@@ -54,74 +56,108 @@ function parseAnswerKey(text) {
       }
     }
     if (hasLongWord) continue;
-    
+
     // Clean tokens: remove Q/q from start, dots/colons from end
-    const cleanTokens = tokens.map(t => {
-      return t.replace(/^[Qq]/, '').replace(/[.:]$/, '').trim();
-    }).filter(Boolean);
-    
-    const optionMap = { 
-      'a': 1, 'b': 2, 'c': 3, 'd': 4, 
-      '1': 1, '2': 2, '3': 3, '4': 4,
-      'dropped': 0, 'drop': 0, 'null': 0, '0': 0
+    const cleanTokens = tokens
+      .map((t) => {
+        return t.replace(/^[Qq]/, "").replace(/[.:]$/, "").trim();
+      })
+      .filter(Boolean);
+
+    const optionMap = {
+      a: 1,
+      b: 2,
+      c: 3,
+      d: 4,
+      1: 1,
+      2: 2,
+      3: 3,
+      4: 4,
+      dropped: 0,
+      drop: 0,
+      null: 0,
+      0: 0,
     };
-    
+
     for (let i = 0; i < cleanTokens.length - 1; i += 2) {
       const qStr = cleanTokens[i];
-      const aStr = cleanTokens[i+1];
-      
+      const aStr = cleanTokens[i + 1];
+
       const q = parseInt(qStr, 10);
       const aLower = aStr.toLowerCase();
       const a = optionMap[aLower];
-      
+
       if (!isNaN(q) && q >= 1 && q <= 9999999 && a !== undefined) {
         mapping[q] = a;
         mapping[String(q)] = a;
       }
     }
   }
-  
+
   return mapping;
 }
 
 // 1. Load your env file manually to avoid framework process.env overrides
-const envConfig = dotenv.parse(fs.readFileSync(path.resolve('.env')));
+const envConfig = dotenv.parse(fs.readFileSync(path.resolve(".env")));
 for (const k in envConfig) {
   process.env[k] = envConfig[k];
 }
 
 // 2. Define Mongoose Schemas (matching your backend)
-const QuestionSchema = new mongoose.Schema({
-  setId: mongoose.Schema.Types.ObjectId,
-  qIndex: Number,
-  ntaQuestionId: String,
-  unit: String,
-  type: { type: String, enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'] },
-  text: String,
-  options: [String],
-  statements: [String],
-  correct: Number,
-  explanation: String,
-  assertion: String,
-  reason: String,
-  list1: [String],
-  list2: [String],
-  list1Header: String,
-  list2Header: String,
-  passage: String
-}, { collection: 'questions' });
+const QuestionSchema = new mongoose.Schema(
+  {
+    setId: mongoose.Schema.Types.ObjectId,
+    qIndex: Number,
+    ntaQuestionId: String,
+    unit: String,
+    type: {
+      type: String,
+      enum: [
+        "mcq",
+        "assertion-reason",
+        "match-column",
+        "comprehension",
+        "multiple-statement",
+        "di",
+      ],
+    },
+    text: String,
+    options: [String],
+    statements: [String],
+    correct: Number,
+    explanation: String,
+    assertion: String,
+    reason: String,
+    list1: [String],
+    list2: [String],
+    list1Header: String,
+    list2Header: String,
+    passage: String,
+  },
+  { collection: "questions" },
+);
 
-const PyqSetSchema = new mongoose.Schema({
-  title: String,
-  paperType: { type: String, enum: ['Paper I', 'Paper II'], default: 'Paper I' },
-  questionsLoaded: Number
-}, { collection: 'pyqsets' });
+const PyqSetSchema = new mongoose.Schema(
+  {
+    title: String,
+    paperType: {
+      type: String,
+      enum: ["Paper I", "Paper II"],
+      default: "Paper I",
+    },
+    questionsLoaded: Number,
+  },
+  { collection: "pyqsets" },
+);
 
-const Question = mongoose.model('Question', QuestionSchema);
-const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
+const Question = mongoose.model("Question", QuestionSchema);
+const PyqSet = mongoose.model("PyqSet", PyqSetSchema);
 
 // 3. Setup per-key rate limiter
-const apiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+const apiKeys = (process.env.GEMINI_API_KEY || "")
+  .split(",")
+  .map((k) => k.trim())
+  .filter(Boolean);
 
 // Each key belongs to a DIFFERENT Google project, so each has its own independent 20 RPM quota.
 const PER_KEY_RPM = 20;
@@ -147,7 +183,7 @@ async function getAvailableKeyIndex() {
 
   // Purge expired sliding window timestamps for every key
   for (let i = 0; i < keyHistory.length; i++) {
-    keyHistory[i] = keyHistory[i].filter(ts => now - ts < windowMs);
+    keyHistory[i] = keyHistory[i].filter((ts) => now - ts < windowMs);
   }
 
   // Find the best available key:
@@ -155,7 +191,7 @@ async function getAvailableKeyIndex() {
   let bestIndex = -1;
   let lowestUsage = Infinity;
   for (let i = 0; i < keyHistory.length; i++) {
-    if (keyCooldownUntil[i] > now) continue;        // skip: still in retryDelay cooldown
+    if (keyCooldownUntil[i] > now) continue; // skip: still in retryDelay cooldown
     const usage = keyHistory[i].length;
     if (usage < PER_KEY_RPM && usage < lowestUsage) {
       lowestUsage = usage;
@@ -183,8 +219,10 @@ async function getAvailableKeyIndex() {
 
   const waitMs = earliestAvailable - Date.now() + 300; // +300ms buffer
   if (waitMs > 0) {
-    console.log(`[Rate Limiter] All ${apiKeys.length} keys unavailable. Waiting ${(waitMs / 1000).toFixed(1)}s for next key to free up...`);
-    await new Promise(resolve => setTimeout(resolve, waitMs));
+    console.log(
+      `[Rate Limiter] All ${apiKeys.length} keys unavailable. Waiting ${(waitMs / 1000).toFixed(1)}s for next key to free up...`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
 
   // Recurse to re-evaluate after the wait
@@ -203,44 +241,63 @@ async function rateLimitCheck() {
 
 function cleanJsonString(str) {
   let cleaned = str.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned
+      .replace(/^```json\s*/i, "")
+      .replace(/```$/, "")
+      .trim();
   }
   try {
     cleaned = cleaned.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, p1) => {
-      return '"' + p1.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
+      return '"' + p1.replace(/\n/g, "\\n").replace(/\r/g, "\\r") + '"';
     });
   } catch (e) {}
   return cleaned;
 }
 
 // 4. API Call to Gemini
-async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0, ocrRetryCount = 0) {
+async function callAIChatForOcrPage(
+  base64Image,
+  pageNum,
+  isPaperII,
+  importLanguage,
+  expectedCount = 0,
+  retryCount = 0,
+  ocrRetryCount = 0,
+) {
   const keyIndex = await getAvailableKeyIndex();
   const apiKey = apiKeys[keyIndex];
-  const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-  const textPrompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
+  const textPrompt = `You are an expert UGC NET ${isPaperII ? "Paper II" : "Paper I"} exam parser.
 Look at the provided PDF page image and extract ALL multiple choice questions visible on it from top to bottom.
 
 CRITICAL THOROUGHNESS RULE:
 - Scan the ENTIRE image from top to bottom, especially the very bottom margin. Do NOT skip any question!
-- ${expectedCount > 0 ? `Visual pre-scan detected approximately ${expectedCount} questions on this page. Make sure you extract ALL ${expectedCount} questions!` : 'Extract EVERY SINGLE QUESTION visible on the page (usually 4 to 6 questions).'}
+- ${expectedCount > 0 ? `Visual pre-scan detected approximately ${expectedCount} questions on this page. Make sure you extract ALL ${expectedCount} questions!` : "Extract EVERY SINGLE QUESTION visible on the page (usually 4 to 6 questions)."}
 - If a question starts near the top or near the bottom margin, extract it!
 
-${importLanguage === 'English' ? `⚠️  CRITICAL LANGUAGE ENFORCEMENT — ENGLISH ONLY MODE ACTIVE:
+${
+  importLanguage === "English"
+    ? `⚠️  CRITICAL LANGUAGE ENFORCEMENT — ENGLISH ONLY MODE ACTIVE:
 This PDF contains BOTH English (Roman/Latin script) and Hindi/Sindhi text.
 You MUST extract ONLY the ENGLISH text. Any Devanagari or Perso-Arabic/Urdu characters in your output = TASK FAILURE.
 Every single field (text, options, statements, list items, assertion, reason) must be in English only.
-` : ''}
-${(importLanguage === 'Sindhi' || importLanguage.includes('Sindhi')) ? `⚠️  CRITICAL SINDHI DEVANAGARI SCRIPT ENFORCEMENT ACTIVE:
+`
+    : ""
+}
+${
+  importLanguage === "Sindhi" || importLanguage.includes("Sindhi")
+    ? `⚠️  CRITICAL SINDHI DEVANAGARI SCRIPT ENFORCEMENT ACTIVE:
 This PDF contains Sindhi questions printed in BOTH Devanagari script (e.g. "'ईजाद' लफ़्ज़ जी माना -") AND Perso-Arabic / Urdu script (e.g. "'پھريون ئي جھگڙو' ڪھاڻي آھي :").
 You MUST extract ONLY the DEVANAGARI script version of Sindhi text.
 DO NOT extract any Perso-Arabic script, Urdu script, or Arabic-alphabet text (e.g. پھريون, جھگڙو, ڪھاڻي, گوورڊن, etc.).
 EVERY SINGLE FIELD (text, options, statements, list items, assertion, reason, explanation) MUST BE WRITTEN IN DEVANAGARI SCRIPT SINDHI ONLY!
 Any Perso-Arabic or Urdu script characters in your JSON output = STRICT TASK FAILURE.
-` : ''}
+`
+    : ""
+}
 Target Language Rule:
 You MUST extract the questions and option texts in the following language/format: "${importLanguage}".
 - If "English" is selected: Extract ONLY the English Roman-script text. Skip/ignore ALL Hindi/Sindhi text completely, even if it appears right next to the English text on the same line.
@@ -311,35 +368,59 @@ Schema:
 
   try {
     const response = await fetch(urlEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: textPrompt },
-            { inlineData: { mimeType: 'image/png', data: base64Image } }
-          ]
-        }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.1, maxOutputTokens: 8192 }
-      })
+        contents: [
+          {
+            parts: [
+              { text: textPrompt },
+              { inlineData: { mimeType: "image/png", data: base64Image } },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.1,
+          maxOutputTokens: 8192,
+        },
+      }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      if ((response.status === 429 || response.status === 503) && retryCount < 30) {
+      if (
+        (response.status === 429 || response.status === 503) &&
+        retryCount < 30
+      ) {
         const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
-        const retryDelaySecs = retryDelayMatch ? parseInt(retryDelayMatch[1]) : 0;
+        const retryDelaySecs = retryDelayMatch
+          ? parseInt(retryDelayMatch[1])
+          : 0;
 
         if (retryDelaySecs > 5) {
-          keyCooldownUntil[keyIndex] = Date.now() + (retryDelaySecs * 1000) + 2000;
-          console.warn(`[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling this key for ${retryDelaySecs}s. Switching to next available key...`);
+          keyCooldownUntil[keyIndex] =
+            Date.now() + retryDelaySecs * 1000 + 2000;
+          console.warn(
+            `[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling this key for ${retryDelaySecs}s. Switching to next available key...`,
+          );
         } else {
           const slotsToFill = PER_KEY_RPM - keyHistory[keyIndex].length;
-          for (let s = 0; s < slotsToFill; s++) keyHistory[keyIndex].push(Date.now());
-          console.warn(`[AI OCR] Key #${keyIndex + 1} rate limited (${response.status}) on Page ${pageNum}. Switching to next available key (Retry ${retryCount + 1}/30)...`);
+          for (let s = 0; s < slotsToFill; s++)
+            keyHistory[keyIndex].push(Date.now());
+          console.warn(
+            `[AI OCR] Key #${keyIndex + 1} rate limited (${response.status}) on Page ${pageNum}. Switching to next available key (Retry ${retryCount + 1}/30)...`,
+          );
         }
 
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        return callAIChatForOcrPage(
+          base64Image,
+          pageNum,
+          isPaperII,
+          importLanguage,
+          expectedCount,
+          retryCount + 1,
+        );
       }
       throw new Error(`API error: ${response.status} - ${errText}`);
     }
@@ -347,27 +428,41 @@ Schema:
     recordRequest(keyIndex);
 
     const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     const cleaned = cleanJsonString(rawText);
-    
+
     try {
       const parsed = JSON.parse(cleaned);
-      let resQuestions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
-      
+      let resQuestions =
+        parsed.questions || (Array.isArray(parsed) ? parsed : []);
+
       // If Sindhi is requested, sanitize output to remove any residual Perso-Arabic/Urdu script characters (\u0600-\u06FF, etc.)
-      if (importLanguage && importLanguage.includes('Sindhi')) {
-        const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+      if (importLanguage && importLanguage.includes("Sindhi")) {
+        const arabicRegex =
+          /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
         const cleanField = (val) => {
-          if (typeof val === 'string') {
-            return val.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+          if (typeof val === "string") {
+            return val
+              .replace(arabicRegex, "")
+              .replace(/[ \t]+\n/g, "\n")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
           }
           if (Array.isArray(val)) {
-            return val.map(item => typeof item === 'string' ? item.replace(arabicRegex, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim() : item);
+            return val.map((item) =>
+              typeof item === "string"
+                ? item
+                    .replace(arabicRegex, "")
+                    .replace(/[ \t]+\n/g, "\n")
+                    .replace(/\n{3,}/g, "\n\n")
+                    .trim()
+                : item,
+            );
           }
           return val;
         };
 
-        resQuestions = resQuestions.map(q => ({
+        resQuestions = resQuestions.map((q) => ({
           ...q,
           text: cleanField(q.text),
           options: cleanField(q.options),
@@ -377,37 +472,85 @@ Schema:
           assertion: cleanField(q.assertion),
           reason: cleanField(q.reason),
           passage: cleanField(q.passage),
-          explanation: cleanField(q.explanation)
+          explanation: cleanField(q.explanation),
         }));
       }
 
       // FIX #1 & #2: Use a separate ocrRetryCount so count-check retries are
       // never consumed by API-error retries (429/503). Limit raised to 5 attempts.
-      if (expectedCount > 0 && resQuestions.length < expectedCount && ocrRetryCount < 5) {
-        console.warn(`[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
-        await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
-      } else if (resQuestions.length === 0 && ocrRetryCount < 5) {
-        console.warn(`[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
-        await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
+      if (
+        expectedCount > 0 &&
+        resQuestions.length < expectedCount &&
+        ocrRetryCount < 3
+      ) {
+        console.warn(
+          `[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR (attempt ${ocrRetryCount + 1}/3)...`,
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+        return callAIChatForOcrPage(
+          base64Image,
+          pageNum,
+          isPaperII,
+          importLanguage,
+          expectedCount,
+          retryCount,
+          ocrRetryCount + 1,
+        );
+      } else if (resQuestions.length === 0 && ocrRetryCount < 3) {
+        console.warn(
+          `[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR (attempt ${ocrRetryCount + 1}/3)...`,
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+        return callAIChatForOcrPage(
+          base64Image,
+          pageNum,
+          isPaperII,
+          importLanguage,
+          expectedCount,
+          retryCount,
+          ocrRetryCount + 1,
+        );
       }
-      
+
       return resQuestions;
     } catch (jsonErr) {
       if (retryCount < 30) {
-        console.warn(`[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`);
-        await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        console.warn(
+          `[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`,
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+        return callAIChatForOcrPage(
+          base64Image,
+          pageNum,
+          isPaperII,
+          importLanguage,
+          expectedCount,
+          retryCount + 1,
+        );
       }
       throw jsonErr;
     }
   } catch (err) {
-    if (retryCount < 30 && (err.message.includes('fetch') || err.message.includes('timeout') || err.message.includes('API error'))) {
-      console.warn(`[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/30)...`);
-      await new Promise(r => setTimeout(r, 5000));
+    if (
+      retryCount < 30 &&
+      (err.message.includes("fetch") ||
+        err.message.includes("timeout") ||
+        err.message.includes("API error"))
+    ) {
+      console.warn(
+        `[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/30)...`,
+      );
+      await new Promise((r) => setTimeout(r, 5000));
       // FIX #3: Pass expectedCount correctly (was missing, causing AI to lose the question-count hint on retries)
-      return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
+      return callAIChatForOcrPage(
+        base64Image,
+        pageNum,
+        isPaperII,
+        importLanguage,
+        expectedCount,
+        retryCount + 1,
+        ocrRetryCount,
+      );
     }
     throw err;
   }
@@ -416,8 +559,10 @@ Schema:
 // 5. Main execution
 async function main() {
   console.log("=== Interactive Local OCR Importer ===");
-  
-  const PDF_PATH = await askQuestion("Enter the absolute path to your PDF file: ");
+
+  const PDF_PATH = await askQuestion(
+    "Enter the absolute path to your PDF file: ",
+  );
   if (!fs.existsSync(PDF_PATH)) {
     console.error(`Error: PDF file does not exist at path: "${PDF_PATH}"`);
     process.exit(1);
@@ -429,11 +574,17 @@ async function main() {
     process.exit(1);
   }
 
-  const LANGUAGE = await askQuestion("Enter Target Language (e.g. English, Hindi, Sindhi): ");
+  const LANGUAGE = await askQuestion(
+    "Enter Target Language (e.g. English, Hindi, Sindhi): ",
+  );
 
-  const ANSWER_KEY_PATH = await askQuestion("Enter the absolute path to your Answer Key PDF file (optional, press Enter to skip): ");
+  const ANSWER_KEY_PATH = await askQuestion(
+    "Enter the absolute path to your Answer Key PDF file (optional, press Enter to skip): ",
+  );
   if (ANSWER_KEY_PATH && !fs.existsSync(ANSWER_KEY_PATH)) {
-    console.error(`Error: Answer Key PDF file does not exist at path: "${ANSWER_KEY_PATH}"`);
+    console.error(
+      `Error: Answer Key PDF file does not exist at path: "${ANSWER_KEY_PATH}"`,
+    );
     process.exit(1);
   }
 
@@ -447,15 +598,19 @@ async function main() {
     if (!targetSet) {
       throw new Error(`Target Set not found in database: ${TARGET_SET_ID}`);
     }
-    const isPaperII = targetSet.paperType === 'Paper II';
-    console.log(`Target Set Title: "${targetSet.title}" (Paper Type: ${targetSet.paperType || 'Paper I'})`);
+    const isPaperII = targetSet.paperType === "Paper II";
+    console.log(
+      `Target Set Title: "${targetSet.title}" (Paper Type: ${targetSet.paperType || "Paper I"})`,
+    );
 
     // Resolve dependencies locally
-    const canvasPkg = require('@napi-rs/canvas');
+    const canvasPkg = require("@napi-rs/canvas");
     const { createCanvas } = canvasPkg;
 
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const workerPath = path.resolve('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const workerPath = path.resolve(
+      "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+    );
     pdfjs.GlobalWorkerOptions.workerSrc = url.pathToFileURL(workerPath).href;
 
     // Load and parse answer key PDF if provided
@@ -468,14 +623,16 @@ async function main() {
       for (let pageNum = 1; pageNum <= keyPdfDoc.numPages; pageNum++) {
         const page = await keyPdfDoc.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
+        const pageText = textContent.items.map((item) => item.str).join(" ");
         keyText += pageText + "\n";
       }
       answerKeyMap = parseAnswerKey(keyText);
       const mappedCount = Object.keys(answerKeyMap).length;
       console.log(`Successfully mapped ${mappedCount} answers from key.`);
       if (mappedCount === 0) {
-        console.warn("⚠️  Warning: No valid question/answer mappings could be parsed from the Answer Key PDF.");
+        console.warn(
+          "⚠️  Warning: No valid question/answer mappings could be parsed from the Answer Key PDF.",
+        );
       }
     }
 
@@ -488,41 +645,49 @@ async function main() {
     // Detect if this is a bilingual (English + Hindi) PDF — each question appears twice
     // Sample first few pages to check for Hindi characters
     let isBilingualPdf = false;
-    for (let samplePage = 1; samplePage <= Math.min(5, totalPages); samplePage++) {
+    for (
+      let samplePage = 1;
+      samplePage <= Math.min(5, totalPages);
+      samplePage++
+    ) {
       const sp = await pdfDoc.getPage(samplePage);
       const stc = await sp.getTextContent();
-      const sampleText = stc.items.map(i => i.str).join(' ');
-      if (/[\u0900-\u097F]/.test(sampleText)) { // Devanagari Unicode range
+      const sampleText = stc.items.map((i) => i.str).join(" ");
+      if (/[\u0900-\u097F]/.test(sampleText)) {
+        // Devanagari Unicode range
         isBilingualPdf = true;
         break;
       }
     }
     if (isBilingualPdf) {
-      console.log(`📖 Detected bilingual PDF (English + Hindi). Each question appears in both languages.`);
+      console.log(
+        `📖 Detected bilingual PDF (English + Hindi). Each question appears in both languages.`,
+      );
     }
 
     const ocrPages = [];
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       const page = await pdfDoc.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join(' ');
-      const hasHeader = /Question/i.test(pageText) || 
-                        /Q\s*[\.\:\d]/i.test(pageText) || 
-                        /Sl\s*\.?\s*No/i.test(pageText) || 
-                        /QBID/i.test(pageText) || 
-                        /Question\s+ID\s*=/i.test(pageText) || 
-                        /Question\s+Description\s*=/i.test(pageText) || 
-                        /Option\s+ID\s*=/i.test(pageText) || 
-                        /Objective\s+Question/i.test(pageText) || 
-                        /Client\s+Question\s+ID/i.test(pageText) || 
-                        /\b\d{1,3}\s*\)\s+/i.test(pageText) || 
-                        /Option/i.test(pageText) || 
-                        /Answer/i.test(pageText) || 
-                        /Statement/i.test(pageText) || 
-                        /List/i.test(pageText) || 
-                        /प्रश्न/i.test(pageText) || 
-                        /विकल्प/i.test(pageText) ||
-                        pageText.trim().length > 80;
+      const pageText = textContent.items.map((item) => item.str).join(" ");
+      const hasHeader =
+        /Question/i.test(pageText) ||
+        /Q\s*[\.\:\d]/i.test(pageText) ||
+        /Sl\s*\.?\s*No/i.test(pageText) ||
+        /QBID/i.test(pageText) ||
+        /Question\s+ID\s*=/i.test(pageText) ||
+        /Question\s+Description\s*=/i.test(pageText) ||
+        /Option\s+ID\s*=/i.test(pageText) ||
+        /Objective\s+Question/i.test(pageText) ||
+        /Client\s+Question\s+ID/i.test(pageText) ||
+        /\b\d{1,3}\s*\)\s+/i.test(pageText) ||
+        /Option/i.test(pageText) ||
+        /Answer/i.test(pageText) ||
+        /Statement/i.test(pageText) ||
+        /List/i.test(pageText) ||
+        /प्रश्न/i.test(pageText) ||
+        /विकल्प/i.test(pageText) ||
+        pageText.trim().length > 80;
 
       // Collect all candidate serial numbers from explicit question-serial markers
       const serialPatterns = [
@@ -565,11 +730,15 @@ async function main() {
       if (hasHeader) ocrPages.push({ pageNum, page, expectedCount, pageSlNos });
     }
     console.log(`Pre-scan found ${ocrPages.length} question-bearing pages.`);
-    
+
     if (ocrPages.length === 0) {
-      console.log("\n⚠️  No text-bearing pages found. This PDF appears to be a scanned (image-only) document.");
-      const answer = await askQuestion("Would you like to force-process all pages instead? (y/n): ");
-      if (answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes') {
+      console.log(
+        "\n⚠️  No text-bearing pages found. This PDF appears to be a scanned (image-only) document.",
+      );
+      const answer = await askQuestion(
+        "Would you like to force-process all pages instead? (y/n): ",
+      );
+      if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes") {
         console.log(`Adding all ${totalPages} pages for OCR processing...`);
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
           const page = await pdfDoc.getPage(pageNum);
@@ -577,7 +746,7 @@ async function main() {
         }
       }
     }
-    
+
     // Checkpoint File Setup
     const checkpointFilePath = path.resolve(`checkpoint_${TARGET_SET_ID}.json`);
     let processedPages = new Set();
@@ -585,16 +754,23 @@ async function main() {
 
     if (fs.existsSync(checkpointFilePath)) {
       try {
-        const rawCheckpoint = fs.readFileSync(checkpointFilePath, 'utf8');
+        const rawCheckpoint = fs.readFileSync(checkpointFilePath, "utf8");
         const checkpointData = JSON.parse(rawCheckpoint);
         if (checkpointData && checkpointData.setId === TARGET_SET_ID) {
           processedPages = new Set(checkpointData.processedPages || []);
           parsedQuestions = checkpointData.parsedQuestions || [];
-          console.log(`\n📌 Found existing checkpoint file: "${checkpointFilePath}"`);
-          console.log(`📌 Resuming import! Already processed ${processedPages.size} pages (${parsedQuestions.length} questions loaded from checkpoint).`);
+          console.log(
+            `\n📌 Found existing checkpoint file: "${checkpointFilePath}"`,
+          );
+          console.log(
+            `📌 Resuming import! Already processed ${processedPages.size} pages (${parsedQuestions.length} questions loaded from checkpoint).`,
+          );
         }
       } catch (cpErr) {
-        console.warn("⚠️  Warning: Could not parse existing checkpoint file. Starting fresh.", cpErr.message);
+        console.warn(
+          "⚠️  Warning: Could not parse existing checkpoint file. Starting fresh.",
+          cpErr.message,
+        );
       }
     }
 
@@ -606,30 +782,49 @@ async function main() {
 
       // Skip page if already in checkpoint
       if (processedPages.has(pageNum)) {
-        console.log(`\n--- Page ${pageNum} (${completedOcrCount}/${totalOcrPages}) ---`);
-        console.log(`⏩ [Checkpoint] Skipping Page ${pageNum} (already processed in checkpoint).`);
+        console.log(
+          `\n--- Page ${pageNum} (${completedOcrCount}/${totalOcrPages}) ---`,
+        );
+        console.log(
+          `⏩ [Checkpoint] Skipping Page ${pageNum} (already processed in checkpoint).`,
+        );
         continue;
       }
 
-      console.log(`\n--- Processing Page ${pageNum} (${completedOcrCount + 1}/${totalOcrPages}) ---`);
-      
+      console.log(
+        `\n--- Processing Page ${pageNum} (${completedOcrCount + 1}/${totalOcrPages}) ---`,
+      );
+
       // Render page to canvas with higher resolution (2.0x scale for crystal clear OCR)
       const viewport = page.getViewport({ scale: 2.0 });
       const canvas = createCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext("2d");
       await page.render({ canvasContext: context, viewport }).promise;
-      const imgBuffer = canvas.toBuffer('image/png');
-      const base64Image = imgBuffer.toString('base64');
-      
-      console.log(`Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.${expectedCount > 0 ? ` (Pre-scan detected ~${expectedCount} questions)` : ''}`);
+      const imgBuffer = canvas.toBuffer("image/png");
+      const base64Image = imgBuffer.toString("base64");
+
+      console.log(
+        `Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.${expectedCount > 0 ? ` (Pre-scan detected ~${expectedCount} questions)` : ""}`,
+      );
       console.log(`Sending to Gemini API...`);
-      
+
       let pageQuestions = [];
       try {
-        pageQuestions = await callAIChatForOcrPage(base64Image, pageNum, isPaperII, LANGUAGE, expectedCount || 0);
+        pageQuestions = await callAIChatForOcrPage(
+          base64Image,
+          pageNum,
+          isPaperII,
+          LANGUAGE,
+          expectedCount || 0,
+        );
       } catch (err) {
-        console.error(`\n❌ Error: Page ${pageNum} failed to process after all retries:`, err.message);
-        console.error(`💾 Progress saved in checkpoint! Run the command again with Set ID ${TARGET_SET_ID} to resume from Page ${pageNum}.`);
+        console.error(
+          `\n❌ Error: Page ${pageNum} failed to process after all retries:`,
+          err.message,
+        );
+        console.error(
+          `💾 Progress saved in checkpoint! Run the command again with Set ID ${TARGET_SET_ID} to resume from Page ${pageNum}.`,
+        );
         process.exit(1);
       }
 
@@ -642,17 +837,28 @@ async function main() {
       if (pageSlNos && pageSlNos.length > 0 && pageQuestions.length > 0) {
         // Sort AI questions by their own reported qIndex so order is preserved
         const sorted = [...pageQuestions].sort((a, b) => {
-          const ai = parseInt(String(a.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
-          const bi = parseInt(String(b.qIndex || '0').match(/\d+/)?.[0] || '0', 10);
+          const ai = parseInt(
+            String(a.qIndex || "0").match(/\d+/)?.[0] || "0",
+            10,
+          );
+          const bi = parseInt(
+            String(b.qIndex || "0").match(/\d+/)?.[0] || "0",
+            10,
+          );
           return ai - bi;
         });
         // Assign PDF Sl. No. values in order
         sorted.forEach((q, idx) => {
           if (idx < pageSlNos.length) {
             const pdfNum = pageSlNos[idx];
-            const aiNum = parseInt(String(q.qIndex || '').match(/\d+/)?.[0] || 'NaN', 10);
+            const aiNum = parseInt(
+              String(q.qIndex || "").match(/\d+/)?.[0] || "NaN",
+              10,
+            );
             if (!isNaN(aiNum) && aiNum !== pdfNum) {
-              console.log(`  📌 [Sl.No Fix] Page ${pageNum}: AI said Q${aiNum}, PDF says Q${pdfNum} → using PDF value`);
+              console.log(
+                `  📌 [Sl.No Fix] Page ${pageNum}: AI said Q${aiNum}, PDF says Q${pdfNum} → using PDF value`,
+              );
             }
             q.qIndex = pdfNum;
           }
@@ -663,14 +869,14 @@ async function main() {
 
       pageQuestions.forEach((q, pageLocalIdx) => {
         // Robustly parse digits from qIndex (now already set from PDF Sl. No. above)
-        let rawStr = String(q.qIndex || '').trim();
+        let rawStr = String(q.qIndex || "").trim();
         let matchDigits = rawStr.match(/\d+/);
         let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
 
         // If pdfQNum is a large bank ID (>= 1000) and ntaQuestionId is not set yet,
         // promote it to ntaQuestionId and mark qIndex as NaN so it goes to gap-fill.
         // The gap-fill will assign it in PDF sequence using pageArrivalIndex.
-        let ntaId = q.ntaQuestionId || '';
+        let ntaId = q.ntaQuestionId || "";
         if (!isNaN(pdfQNum) && pdfQNum >= 1000 && !ntaId) {
           ntaId = String(pdfQNum);
           pdfQNum = NaN; // will be gap-filled in page-arrival sequence
@@ -683,7 +889,7 @@ async function main() {
           ntaQuestionId: ntaId,
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
           // Preserve the exact order this question appeared in the PDF (global insertion order)
-          _arrivalIndex: parsedQuestions.length
+          _arrivalIndex: parsedQuestions.length,
         };
 
         // Override correct answer with official key if provided (by ntaQuestionId or pdfQNum)
@@ -701,10 +907,12 @@ async function main() {
 
         parsedQuestions.push(updatedQ);
       });
-      
-      console.log(`Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`);
+
+      console.log(
+        `Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`,
+      );
       completedOcrCount++;
-      
+
       // Save checkpoint after every page
       processedPages.add(pageNum);
       try {
@@ -713,37 +921,54 @@ async function main() {
           pdfPath: PDF_PATH,
           processedPages: Array.from(processedPages),
           parsedQuestions: parsedQuestions,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
-        fs.writeFileSync(checkpointFilePath, JSON.stringify(checkpointData, null, 2), 'utf8');
-        console.log(`💾 [Checkpoint Saved] Page ${pageNum} saved to local checkpoint.`);
+        fs.writeFileSync(
+          checkpointFilePath,
+          JSON.stringify(checkpointData, null, 2),
+          "utf8",
+        );
+        console.log(
+          `💾 [Checkpoint Saved] Page ${pageNum} saved to local checkpoint.`,
+        );
       } catch (cpSaveErr) {
-        console.warn(`⚠️  Warning: Failed to write checkpoint file for page ${pageNum}:`, cpSaveErr.message);
+        console.warn(
+          `⚠️  Warning: Failed to write checkpoint file for page ${pageNum}:`,
+          cpSaveErr.message,
+        );
       }
 
       // Small spacing delay between requests to keep the IP connection throughput smooth
       if (i < ocrPages.length - 1) {
         const spacingDelay = 1500;
-        await new Promise(resolve => setTimeout(resolve, spacingDelay));
+        await new Promise((resolve) => setTimeout(resolve, spacingDelay));
       }
     }
 
     // Automatically detect if this PDF uses shifted numbering (e.g. Q51..Q150 for Paper II, or Q51..Q100 for Paper I)
-    const validPdfNums = parsedQuestions.map(q => q.pdfQNum).filter(n => !isNaN(n) && n > 0 && n <= 300);
+    const validPdfNums = parsedQuestions
+      .map((q) => q.pdfQNum)
+      .filter((n) => !isNaN(n) && n > 0 && n <= 300);
     const maxPdfNum = validPdfNums.length > 0 ? Math.max(...validPdfNums) : 0;
     const minPdfNum = validPdfNums.length > 0 ? Math.min(...validPdfNums) : 0;
 
-    const needsShift50 = (isPaperII && maxPdfNum > 100 && minPdfNum >= 51) || (!isPaperII && maxPdfNum > 50 && minPdfNum >= 51);
-    const needsShift100 = (isPaperII && maxPdfNum > 150 && minPdfNum >= 101);
+    const needsShift50 =
+      (isPaperII && maxPdfNum > 100 && minPdfNum >= 51) ||
+      (!isPaperII && maxPdfNum > 50 && minPdfNum >= 51);
+    const needsShift100 = isPaperII && maxPdfNum > 150 && minPdfNum >= 101;
 
     if (needsShift50) {
-      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 50}...`);
+      console.log(
+        `\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 50}...`,
+      );
     } else if (needsShift100) {
-      console.log(`\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 100}...`);
+      console.log(
+        `\n📌 Auto-detected shifted question range (Q${minPdfNum}..Q${maxPdfNum}). Normalizing to Q1..Q${maxPdfNum - 100}...`,
+      );
     }
 
     // Apply normalized qIndex
-    parsedQuestions.forEach(q => {
+    parsedQuestions.forEach((q) => {
       let dbQIndex = q.pdfQNum;
       if (!isNaN(q.pdfQNum)) {
         if (needsShift50) dbQIndex = q.pdfQNum - 50;
@@ -753,15 +978,20 @@ async function main() {
 
       // Handle forced DI/comprehension ranges matching website logic
       if (!isPaperII) {
-        if (dbQIndex >= 1 && dbQIndex <= 5) q.type = 'di';
-        else if (dbQIndex >= 46 && dbQIndex <= 50) q.type = 'comprehension';
+        if (dbQIndex >= 1 && dbQIndex <= 5) q.type = "di";
+        else if (dbQIndex >= 46 && dbQIndex <= 50) q.type = "comprehension";
       } else {
-        if (dbQIndex >= 91 && dbQIndex <= 95) q.type = 'comprehension';
-        else if (dbQIndex >= 96 && dbQIndex <= 100) q.type = 'comprehension';
+        if (dbQIndex >= 91 && dbQIndex <= 95) q.type = "comprehension";
+        else if (dbQIndex >= 96 && dbQIndex <= 100) q.type = "comprehension";
       }
 
       // If answer key provided and question still has no correct answer, try lookup by normalized dbQIndex
-      if (answerKeyMap && q.correct === undefined && !isNaN(dbQIndex) && answerKeyMap[dbQIndex] !== undefined) {
+      if (
+        answerKeyMap &&
+        q.correct === undefined &&
+        !isNaN(dbQIndex) &&
+        answerKeyMap[dbQIndex] !== undefined
+      ) {
         q.correct = answerKeyMap[dbQIndex];
       }
     });
@@ -771,17 +1001,27 @@ async function main() {
     const maxAllowedQuestions = isPaperII ? 100 : 50;
     const unindexedQueue = [];
 
-    parsedQuestions.forEach(q => {
+    parsedQuestions.forEach((q) => {
       // If qIndex is valid within range 1..maxAllowedQuestions
-      if (!isNaN(q.qIndex) && q.qIndex >= 1 && q.qIndex <= maxAllowedQuestions) {
+      if (
+        !isNaN(q.qIndex) &&
+        q.qIndex >= 1 &&
+        q.qIndex <= maxAllowedQuestions
+      ) {
         if (!questionMap.has(q.qIndex)) {
           questionMap.set(q.qIndex, q);
         } else {
           // If duplicate, keep the version with more complete text
           const existing = questionMap.get(q.qIndex);
-          const existingScore = (existing.text || '').length + (existing.explanation || '').length + (existing.options || []).join('').length;
-          const newScore = (q.text || '').length + (q.explanation || '').length + (q.options || []).join('').length;
-          
+          const existingScore =
+            (existing.text || "").length +
+            (existing.explanation || "").length +
+            (existing.options || []).join("").length;
+          const newScore =
+            (q.text || "").length +
+            (q.explanation || "").length +
+            (q.options || []).join("").length;
+
           if (newScore > existingScore) {
             questionMap.set(q.qIndex, q);
           }
@@ -789,7 +1029,9 @@ async function main() {
       } else {
         // FIX #5: Log out-of-range question numbers so they are traceable instead of silently dropped
         if (!isNaN(q.qIndex) && q.qIndex > maxAllowedQuestions) {
-          console.warn(`  ⚠️  [Out-of-Range] Q${q.qIndex} is outside allowed range (1–${maxAllowedQuestions}). Placing in gap-fill queue (NTA ID: ${q.ntaQuestionId || 'N/A'}).`);
+          console.warn(
+            `  ⚠️  [Out-of-Range] Q${q.qIndex} is outside allowed range (1–${maxAllowedQuestions}). Placing in gap-fill queue (NTA ID: ${q.ntaQuestionId || "N/A"}).`,
+          );
         }
         // Out of bounds or 6-digit Question ID — collect in unindexedQueue for smart gap filling
         unindexedQueue.push(q);
@@ -801,57 +1043,84 @@ async function main() {
     // Without this, QBID / Client Question ID / Question Id questions would be inserted
     // into slots in scan order (1,2,3...) instead of the order they appear in the PDF.
     if (unindexedQueue.length > 0) {
-      console.log(`\n📌 Auto-assigning ${unindexedQueue.length} questions with bank IDs or non-standard numbering into open slots (in PDF sequence order)...`);
+      console.log(
+        `\n📌 Auto-assigning ${unindexedQueue.length} questions with bank IDs or non-standard numbering into open slots (in PDF sequence order)...`,
+      );
       // Sort by original arrival index to preserve PDF reading order
-      unindexedQueue.sort((a, b) => (a._arrivalIndex ?? 0) - (b._arrivalIndex ?? 0));
+      unindexedQueue.sort(
+        (a, b) => (a._arrivalIndex ?? 0) - (b._arrivalIndex ?? 0),
+      );
       let queueIdx = 0;
-      for (let slot = 1; slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length; slot++) {
+      for (
+        let slot = 1;
+        slot <= maxAllowedQuestions && queueIdx < unindexedQueue.length;
+        slot++
+      ) {
         if (!questionMap.has(slot)) {
           const item = unindexedQueue[queueIdx++];
           item.qIndex = slot;
           questionMap.set(slot, item);
-          console.log(`   [Auto-Indexed] Assigned Q${slot} ← NTA/Bank ID: ${item.ntaQuestionId || item._arrivalIndex}`);
+          console.log(
+            `   [Auto-Indexed] Assigned Q${slot} ← NTA/Bank ID: ${item.ntaQuestionId || item._arrivalIndex}`,
+          );
         }
       }
     }
 
-    const finalQuestions = Array.from(questionMap.values()).sort((a, b) => a.qIndex - b.qIndex);
-    console.log(`Original parsed count: ${parsedQuestions.length}. Clean imported count: ${finalQuestions.length}`);
+    const finalQuestions = Array.from(questionMap.values()).sort(
+      (a, b) => a.qIndex - b.qIndex,
+    );
+    console.log(
+      `Original parsed count: ${parsedQuestions.length}. Clean imported count: ${finalQuestions.length}`,
+    );
     // FIX #4: Warn clearly if the final count is less than expected
     const missing = maxAllowedQuestions - finalQuestions.length;
     if (missing > 0) {
-      console.warn(`\n⚠️  WARNING: Import completed with only ${finalQuestions.length}/${maxAllowedQuestions} questions! ${missing} question(s) missing.`);
+      console.warn(
+        `\n⚠️  WARNING: Import completed with only ${finalQuestions.length}/${maxAllowedQuestions} questions! ${missing} question(s) missing.`,
+      );
       // Find which slots are missing and print them for easy debugging
-      const presentSlots = new Set(finalQuestions.map(q => q.qIndex));
+      const presentSlots = new Set(finalQuestions.map((q) => q.qIndex));
       const missingSlots = [];
       for (let s = 1; s <= maxAllowedQuestions; s++) {
         if (!presentSlots.has(s)) missingSlots.push(s);
       }
-      console.warn(`   Missing question numbers: ${missingSlots.join(', ')}`);
-      console.warn(`   ➡  Re-run the importer with the same Set ID to resume from checkpoint and fill missing questions.`);
+      console.warn(`   Missing question numbers: ${missingSlots.join(", ")}`);
+      console.warn(
+        `   ➡  Re-run the importer with the same Set ID to resume from checkpoint and fill missing questions.`,
+      );
     } else {
-      console.log(`✅  All ${maxAllowedQuestions} questions imported successfully!`);
+      console.log(
+        `✅  All ${maxAllowedQuestions} questions imported successfully!`,
+      );
     }
 
     if (finalQuestions.length > 0) {
       console.log(`Cleaning old questions for Set ${TARGET_SET_ID}...`);
-      await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
-      
-      console.log(`Inserting ${finalQuestions.length} newly parsed questions into database...`);
+      await Question.deleteMany({
+        setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
+      });
+
+      console.log(
+        `Inserting ${finalQuestions.length} newly parsed questions into database...`,
+      );
       await Question.insertMany(finalQuestions);
-      
-      await PyqSet.findByIdAndUpdate(TARGET_SET_ID, { questionsLoaded: finalQuestions.length });
+
+      await PyqSet.findByIdAndUpdate(TARGET_SET_ID, {
+        questionsLoaded: finalQuestions.length,
+      });
       console.log("Database updated successfully!");
 
       // Remove checkpoint file after successful save
       if (fs.existsSync(checkpointFilePath)) {
         fs.unlinkSync(checkpointFilePath);
-        console.log(`🧹 [Checkpoint Cleaned] Removed temporary checkpoint file: "${checkpointFilePath}".`);
+        console.log(
+          `🧹 [Checkpoint Cleaned] Removed temporary checkpoint file: "${checkpointFilePath}".`,
+        );
       }
     } else {
       console.log("No questions extracted.");
     }
-
   } catch (err) {
     console.error("Fatal Error:", err);
   } finally {

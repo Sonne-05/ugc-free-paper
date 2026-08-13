@@ -727,9 +727,13 @@ Submitted by User: ${userName}
         </div>
 
         <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-          <p style={{ marginBottom: '8px' }}>
-            <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(currentQ, activeQuestionIndex)}</strong>.
-          </p>
+
+          {!paperDetails?.title?.includes('Paper II') && (
+            <p style={{ marginBottom: '8px' }}>
+              <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(currentQ, activeQuestionIndex)}</strong>.
+            </p>
+          )}
+
           <p>
             <strong>Explanation:</strong> {renderTextHtml(currentQ.explanation || (currentQ.correct === 0 ? 'This question was officially dropped. Full marks are awarded to all candidates.' : `Option ${currentQ.correct} is correct. Let's analyze:
             The question tests our understanding of the core concept. By evaluating the given facts, Option ${currentQ.correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`))}
