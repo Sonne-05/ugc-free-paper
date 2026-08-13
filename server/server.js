@@ -934,6 +934,23 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
       }
     }
 
+    // If Formats A, B, C all found 0 matches, try Format D (SI. No.X + QBID:Y — used in Sindhi/OCR question bank PDFs)
+    if (matchesList.length === 0) {
+      console.log(`[Job ${jobId}] No Format A, B, or C headers found. Trying Format D (SI. No. + QBID)...`);
+      const siNoRegex = /SI\.\s*No\.(\d+)\s*\n?QBID\s*:?\s*(\d+)/g;
+      let siMatch;
+      while ((siMatch = siNoRegex.exec(text)) !== null) {
+        const qNum = parseInt(siMatch[1], 10);
+        const qId = siMatch[2];
+        if (!isNaN(qNum) && qNum >= 1 && qNum <= 200) {
+          matchesList.push({ index: siMatch.index, qNum, qId });
+        }
+      }
+      if (matchesList.length > 0) {
+        console.log(`[Job ${jobId}] Format D resolved ${matchesList.length} questions (SI. No. range: ${matchesList[0].qNum}–${matchesList[matchesList.length - 1].qNum}).`);
+      }
+    }
+
     console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
 
     // Capture comprehension blocks (passages/tables)

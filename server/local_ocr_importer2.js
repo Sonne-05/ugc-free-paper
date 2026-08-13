@@ -123,12 +123,15 @@ function loadGroqKeys() {
     const k = process.env[`GROQ_OCR_KEY_${i}`];
     if (k && k.trim()) keys.push(k.trim());
   }
-  // Also include legacy keys
-  if (process.env.GROQ_OCR_API_KEY && !keys.includes(process.env.GROQ_OCR_API_KEY.trim())) {
-    keys.push(process.env.GROQ_OCR_API_KEY.trim());
-  }
-  if (process.env.GROQ_API_KEY && !keys.includes(process.env.GROQ_API_KEY.trim())) {
-    keys.push(process.env.GROQ_API_KEY.trim());
+  // Also include legacy keys (split by comma in case of comma-separated lists)
+  const legacySources = [
+    process.env.GROQ_OCR_API_KEY,
+    ...(process.env.GROQ_API_KEY || '').split(','),
+  ];
+  for (const k of legacySources) {
+    if (k && k.trim() && !keys.includes(k.trim())) {
+      keys.push(k.trim());
+    }
   }
   return keys;
 }
@@ -209,7 +212,7 @@ function cleanJsonString(str) {
 }
 
 // 5. API Call to Groq Qwen 3.6 27B Vision
-async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0) {
+async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0, ocrRetryCount = 0) {
   const groqKey = getCurrentKey();
   if (!groqKey) throw new Error('No Groq API keys found in .env');
 
@@ -222,7 +225,8 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
     if (retryCount < 5) {
       console.warn(`  [imgbb] Upload failed on Page ${pageNum}: ${uploadErr.message}. Retrying (${retryCount + 1}/5)...`);
       await new Promise(r => setTimeout(r, 3000));
-      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      // Pass expectedCount and ocrRetryCount correctly
+      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
     }
     throw uploadErr;
   }
@@ -284,6 +288,20 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
 
     if (!response.ok) {
       const errText = await response.text();
+
+      // --- 401 Invalid API Key: skip this key permanently ---
+      if (response.status === 401) {
+        const badKey = getCurrentKey();
+        console.error(`[Groq] ❌ Key ${currentKeyIndex + 1}/${GROQ_KEYS.length} is invalid (401). Removing it from rotation.`);
+        GROQ_KEYS.splice(currentKeyIndex, 1);
+        if (GROQ_KEYS.length === 0) {
+          throw new Error(`Groq API error: All keys invalid (401). ${errText}`);
+        }
+        // currentKeyIndex now points to next key (or wraps)
+        currentKeyIndex = currentKeyIndex % GROQ_KEYS.length;
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount);
+      }
+
       if ((response.status === 429 || response.status === 503) && retryCount < 30) {
         if (response.status === 429 && GROQ_KEYS.length > 1) {
           // Track how many consecutive 429s we've seen
@@ -303,7 +321,7 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
           console.warn(`[Groq] Rate limited (${response.status}) on Page ${pageNum}. Waiting ${waitSecs}s... (Retry ${retryCount + 1})`);
           await new Promise(r => setTimeout(r, waitSecs * 1000));
         }
-        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
       }
       throw new Error(`Groq API error: ${response.status} - ${errText}`);
     }
@@ -344,15 +362,16 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
         }));
       }
 
-      // Retry if fewer questions than expected
-      if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
-        console.warn(`[Groq OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying (${retryCount + 1}/2)...`);
+      // FIX #1 & #2: Use a separate ocrRetryCount so count-check retries are
+      // never consumed by API-error retries (429/503). Limit raised to 5 attempts.
+      if (expectedCount > 0 && resQuestions.length < expectedCount && ocrRetryCount < 5) {
+        console.warn(`[Groq OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
-      } else if (resQuestions.length === 0 && retryCount < 2) {
-        console.warn(`[Groq OCR] 0 questions extracted on Page ${pageNum}. Retrying (${retryCount + 1}/2)...`);
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
+      } else if (resQuestions.length === 0 && ocrRetryCount < 5) {
+        console.warn(`[Groq OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
       }
 
       return resQuestions;
@@ -360,7 +379,7 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
       if (retryCount < 5) {
         console.warn(`[Groq OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/5)...`);
         await new Promise(r => setTimeout(r, 10000));
-        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
       }
       throw jsonErr;
     }
@@ -368,7 +387,8 @@ async function callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguag
     if (retryCount < 5 && (err.message.includes('fetch') || err.message.includes('timeout'))) {
       console.warn(`[Groq OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/5)...`);
       await new Promise(r => setTimeout(r, 5000));
-      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+      // FIX #3: Pass expectedCount correctly (was already correct here, keeping ocrRetryCount too)
+      return callGroqQwenVision(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
     }
     throw err;
   }
@@ -727,6 +747,10 @@ async function main() {
           if (newScore > existingScore) questionMap.set(q.qIndex, q);
         }
       } else {
+        // FIX #5: Log out-of-range question numbers so they are traceable instead of silently dropped
+        if (!isNaN(q.qIndex) && q.qIndex > maxAllowedQuestions) {
+          console.warn(`  ⚠️  [Out-of-Range] Q${q.qIndex} is outside allowed range (1–${maxAllowedQuestions}). Placing in gap-fill queue (NTA ID: ${q.ntaQuestionId || 'N/A'}).`);
+        }
         unindexedQueue.push(q);
       }
     });
@@ -747,6 +771,20 @@ async function main() {
 
     const finalQuestions = Array.from(questionMap.values()).sort((a, b) => a.qIndex - b.qIndex);
     console.log(`Original parsed count: ${parsedQuestions.length}. Clean imported count: ${finalQuestions.length}`);
+    // FIX #4: Warn clearly if the final count is less than expected
+    const missing = maxAllowedQuestions - finalQuestions.length;
+    if (missing > 0) {
+      console.warn(`\n⚠️  WARNING: Import completed with only ${finalQuestions.length}/${maxAllowedQuestions} questions! ${missing} question(s) missing.`);
+      const presentSlots = new Set(finalQuestions.map(q => q.qIndex));
+      const missingSlots = [];
+      for (let s = 1; s <= maxAllowedQuestions; s++) {
+        if (!presentSlots.has(s)) missingSlots.push(s);
+      }
+      console.warn(`   Missing question numbers: ${missingSlots.join(', ')}`);
+      console.warn(`   ➡  Re-run the importer with the same Set ID to resume from checkpoint and fill missing questions.`);
+    } else {
+      console.log(`✅  All ${maxAllowedQuestions} questions imported successfully!`);
+    }
 
     if (finalQuestions.length > 0) {
       console.log(`Cleaning old questions for Set ${TARGET_SET_ID}...`);

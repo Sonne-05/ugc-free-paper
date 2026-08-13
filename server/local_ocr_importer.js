@@ -215,7 +215,7 @@ function cleanJsonString(str) {
 }
 
 // 4. API Call to Gemini
-async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0) {
+async function callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount = 0, retryCount = 0, ocrRetryCount = 0) {
   const keyIndex = await getAvailableKeyIndex();
   const apiKey = apiKeys[keyIndex];
   const modelName = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
@@ -381,15 +381,16 @@ Schema:
         }));
       }
 
-      // If extracted count is less than expected count, retry up to 2 times for full extraction
-      if (expectedCount > 0 && resQuestions.length < expectedCount && retryCount < 2) {
-        console.warn(`[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR call (${retryCount + 1}/2)...`);
+      // FIX #1 & #2: Use a separate ocrRetryCount so count-check retries are
+      // never consumed by API-error retries (429/503). Limit raised to 5 attempts.
+      if (expectedCount > 0 && resQuestions.length < expectedCount && ocrRetryCount < 5) {
+        console.warn(`[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
-      } else if (resQuestions.length === 0 && retryCount < 2) {
-        console.warn(`[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR call (${retryCount + 1}/2)...`);
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
+      } else if (resQuestions.length === 0 && ocrRetryCount < 5) {
+        console.warn(`[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR (attempt ${ocrRetryCount + 1}/5)...`);
         await new Promise(r => setTimeout(r, 2000));
-        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1);
+        return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount, ocrRetryCount + 1);
       }
       
       return resQuestions;
@@ -405,7 +406,8 @@ Schema:
     if (retryCount < 30 && (err.message.includes('fetch') || err.message.includes('timeout') || err.message.includes('API error'))) {
       console.warn(`[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/30)...`);
       await new Promise(r => setTimeout(r, 5000));
-      return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, retryCount + 1);
+      // FIX #3: Pass expectedCount correctly (was missing, causing AI to lose the question-count hint on retries)
+      return callAIChatForOcrPage(base64Image, pageNum, isPaperII, importLanguage, expectedCount, retryCount + 1, ocrRetryCount);
     }
     throw err;
   }
@@ -785,6 +787,10 @@ async function main() {
           }
         }
       } else {
+        // FIX #5: Log out-of-range question numbers so they are traceable instead of silently dropped
+        if (!isNaN(q.qIndex) && q.qIndex > maxAllowedQuestions) {
+          console.warn(`  ⚠️  [Out-of-Range] Q${q.qIndex} is outside allowed range (1–${maxAllowedQuestions}). Placing in gap-fill queue (NTA ID: ${q.ntaQuestionId || 'N/A'}).`);
+        }
         // Out of bounds or 6-digit Question ID — collect in unindexedQueue for smart gap filling
         unindexedQueue.push(q);
       }
@@ -811,6 +817,21 @@ async function main() {
 
     const finalQuestions = Array.from(questionMap.values()).sort((a, b) => a.qIndex - b.qIndex);
     console.log(`Original parsed count: ${parsedQuestions.length}. Clean imported count: ${finalQuestions.length}`);
+    // FIX #4: Warn clearly if the final count is less than expected
+    const missing = maxAllowedQuestions - finalQuestions.length;
+    if (missing > 0) {
+      console.warn(`\n⚠️  WARNING: Import completed with only ${finalQuestions.length}/${maxAllowedQuestions} questions! ${missing} question(s) missing.`);
+      // Find which slots are missing and print them for easy debugging
+      const presentSlots = new Set(finalQuestions.map(q => q.qIndex));
+      const missingSlots = [];
+      for (let s = 1; s <= maxAllowedQuestions; s++) {
+        if (!presentSlots.has(s)) missingSlots.push(s);
+      }
+      console.warn(`   Missing question numbers: ${missingSlots.join(', ')}`);
+      console.warn(`   ➡  Re-run the importer with the same Set ID to resume from checkpoint and fill missing questions.`);
+    } else {
+      console.log(`✅  All ${maxAllowedQuestions} questions imported successfully!`);
+    }
 
     if (finalQuestions.length > 0) {
       console.log(`Cleaning old questions for Set ${TARGET_SET_ID}...`);
