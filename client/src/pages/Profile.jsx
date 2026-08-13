@@ -2423,13 +2423,12 @@ const Profile = () => {
                       <div className="pyq-filter-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Paper:</label>
                         <select 
-                          className="pane-select" 
+                          className="pane-select pyq-filter-select" 
                           value={selectedFilterPaperType} 
                           onChange={(e) => {
                             setSelectedFilterPaperType(e.target.value);
                             setSelectedFilterSubject('All'); // Reset subject filter when paper type changes
                           }}
-                          style={{ width: '150px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
                         >
                           <option value="All">All Papers</option>
                           <option value="Paper I">Paper I (General)</option>
@@ -2440,10 +2439,9 @@ const Profile = () => {
                         <div className="pyq-filter-group">
                           <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Subject:</label>
                           <select 
-                            className="pane-select" 
+                            className="pane-select pyq-filter-select" 
                             value={selectedFilterSubject} 
                             onChange={(e) => setSelectedFilterSubject(e.target.value)}
-                            style={{ width: '160px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
                           >
                             <option value="All">All Subjects</option>
                             {uniqueSetSubjects.map(subject => (
@@ -2455,10 +2453,9 @@ const Profile = () => {
                       <div className="pyq-filter-group">
                         <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Year:</label>
                         <select 
-                          className="pane-select" 
+                          className="pane-select pyq-filter-select pyq-filter-select--sm" 
                           value={selectedFilterYear} 
                           onChange={(e) => setSelectedFilterYear(e.target.value)}
-                          style={{ width: '120px', padding: '4px 8px', fontSize: '0.8rem', height: '30px', margin: 0 }}
                         >
                           <option value="All">All Years</option>
                           {uniqueSetYears.map(year => (

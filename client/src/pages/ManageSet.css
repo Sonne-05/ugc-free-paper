@@ -588,10 +588,17 @@ textarea.ms-input {
 
   .ms-q-slot-header {
     padding: 12px 14px;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
   .ms-q-slot-preview {
-    max-width: 220px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
   }
 }
 
@@ -616,17 +623,18 @@ textarea.ms-input {
 
   .ms-q-slot-header {
     padding: 10px 12px !important;
-    flex-wrap: wrap;
     gap: 6px;
   }
 
   .ms-q-slot-preview {
-    max-width: 130px !important;
     font-size: 0.8rem !important;
+    flex: 1;
+    min-width: 0;
   }
 
   .ms-q-slot-number {
     font-size: 0.85rem !important;
+    min-width: auto;
   }
 
   .ms-input, select.ms-input, textarea.ms-input {
@@ -637,7 +645,31 @@ textarea.ms-input {
   .ms-btn {
     padding: 10px 14px !important;
     font-size: 0.88rem !important;
+    width: 100%;
   }
+
+  .di-table {
+    width: 100% !important;
+    font-size: 0.7rem !important;
+  }
+
+  .di-table th, .di-table td {
+    padding: 4px 6px !important;
+  }
+}
+
+/* Quill Toolbar Responsive Fix */
+.ql-toolbar.ql-snow {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  padding: 6px !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 6px !important;
+  margin-bottom: 4px !important;
 }
 
 /* DI Table Styling for Live Preview */
@@ -645,10 +677,11 @@ textarea.ms-input {
   width: 100%;
   margin: 15px 0;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .di-table {
-  width: 75%;
+  width: 85%;
   max-width: 560px;
   margin: 0 auto;
   border-collapse: collapse;

@@ -732,4 +732,25 @@ iframe[src*="youtube"] {
     max-height: 220px !important;
     margin: 1rem 0 !important;
   }
+
+  .ms-word-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .ms-word-header-inputs {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ms-word-header-input {
+    width: 100% !important;
+  }
+
+  .ms-word-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
