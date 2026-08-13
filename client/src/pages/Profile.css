@@ -340,6 +340,260 @@
   animation: fadeIn 0.2s ease;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pane-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.pane-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Platform Settings list styling */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .setting-info {
+    max-width: 100% !important;
+  }
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 70%;
+}
+
+.setting-name {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.setting-help {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.pane-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.pane-select:focus {
+  border-color: var(--primary);
+}
+
+.pyq-filter-select {
+  width: 160px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  height: 32px;
+}
+
+.pyq-filter-select--sm {
+  width: 120px;
+}
+
+@media (max-width: 640px) {
+  .pyq-filter-select,
+  .pyq-filter-select--sm {
+    width: 100% !important;
+    height: 36px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Custom Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background-color: var(--text-muted);
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toggle-switch--active {
+  background-color: var(--primary);
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.toggle-switch--active .toggle-slider {
+  transform: translateX(20px);
+}
+
+/* Form Styling */
+.pane-form {
+  margin-top: 15px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.pane-form h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.form-fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 600px) {
+  .form-fields {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 600px) {
+  .options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field.full-width {
+  grid-column: 1 / -1;
+  margin-bottom: 14px;
+}
+
+.form-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-field input, .form-field textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-field input:focus, .form-field textarea:focus {
+  border-color: var(--primary);
+}
+
+.pane-submit-btn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pane-submit-btn:hover {
+  background: var(--primary-dark);
+}
+
+.creator-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.creator-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .creator-section {
+    padding: 14px;
+  }
+  .options-grid,
+  .form-fields {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
 .admin-table-container {
   width: 100%;
   overflow-x: auto;
