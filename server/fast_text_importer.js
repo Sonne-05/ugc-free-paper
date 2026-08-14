@@ -225,12 +225,12 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   // Try Gemini first
   const geminiInfo = await keyPool.getNextGeminiKey();
   if (geminiInfo) {
+    const { key, keyIndex } = geminiInfo;
     const geminiModels = [
       process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-8b'
+      'gemini-flash-latest',
+      'gemini-3.6-pro',
+      'gemini-pro-latest'
     ];
 
     for (const modelName of geminiModels) {
@@ -451,21 +451,33 @@ async function main() {
   console.log('⚡ High-Speed Zero-Token Text Question Importer');
   console.log('======================================================\n');
 
-  const PDF_PATH = process.argv[2] || await askQuestion('Enter the absolute path to your Questions PDF file: ');
+  let PDF_PATH = process.argv[2];
+  let TARGET_SET_ID = process.argv[3];
+  let LANGUAGE = process.argv[4];
+  let ANSWER_KEY_PATH = process.argv[5];
+
+  if (!PDF_PATH) {
+    PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
+  }
   if (!fs.existsSync(PDF_PATH)) {
     console.error(`Error: PDF file does not exist: "${PDF_PATH}"`);
     process.exit(1);
   }
 
-  const TARGET_SET_ID = process.argv[3] || await askQuestion('Enter the Target PyqSet MongoDB ID: ');
+  if (!TARGET_SET_ID) {
+    TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
+  }
   if (!mongoose.Types.ObjectId.isValid(TARGET_SET_ID)) {
     console.error('Error: Invalid MongoDB ObjectId.');
     process.exit(1);
   }
 
-  const LANGUAGE = process.argv[4] || (await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English';
-
-  const ANSWER_KEY_PATH = process.argv[5] || (process.argv[2] ? '' : await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): '));
+  if (!LANGUAGE) {
+    LANGUAGE = process.argv[2] ? 'English' : ((await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English');
+  }
+  if (!ANSWER_KEY_PATH && !process.argv[2]) {
+    ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
+  }
   let answerKeyMap = null;
 
   if (ANSWER_KEY_PATH && fs.existsSync(ANSWER_KEY_PATH)) {
