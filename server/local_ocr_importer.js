@@ -332,48 +332,7 @@ async function callGroqVisionForOcrPage(base64Image, pageNum, textPrompt, import
   }
 }
 
-// Helper: Fallback to NVIDIA NIM Vision
-async function callNvidiaVisionForOcrPage(base64Image, pageNum, textPrompt, importLanguage) {
-  const nvidiaKey = (process.env.NVIDIA_API_KEY || "").trim();
-  if (!nvidiaKey) return null;
 
-  try {
-    const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${nvidiaKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta/llama-3.2-11b-vision-instruct",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: textPrompt },
-              {
-                type: "image_url",
-                image_url: { url: `data:image/png;base64,${base64Image}` },
-              },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
-      }),
-      signal: AbortSignal.timeout(35000),
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(cleanJsonString(content));
-    let questions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
-    return sanitizeSindhiOutput(questions, importLanguage);
-  } catch (err) {
-    return null;
-  }
-}
 
 // 4. API Call to Gemini
 async function callAIChatForOcrPage(
@@ -534,19 +493,7 @@ Schema:
           return groqResult;
         }
 
-        // Try NVIDIA NIM Vision Fallback
-        const nvidiaResult = await callNvidiaVisionForOcrPage(
-          base64Image,
-          pageNum,
-          textPrompt,
-          importLanguage,
-        );
-        if (nvidiaResult && nvidiaResult.length > 0) {
-          console.log(
-            `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${nvidiaResult.length} questions using NVIDIA NIM Vision!`,
-          );
-          return nvidiaResult;
-        }
+
 
         if (retryCount < 30) {
           console.warn(

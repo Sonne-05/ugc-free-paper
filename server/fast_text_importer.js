@@ -330,45 +330,13 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     }
   }
 
-  // Fallback to NVIDIA NIM
-  const nvidiaKey = process.env.NVIDIA_API_KEY;
-  if (nvidiaKey) {
-    try {
-      console.log(`[AI Fallback] Routing batch to NVIDIA NIM...`);
-      const nvidiaModel = process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct';
-      const nvidiaRes = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${nvidiaKey}`
-        },
-        signal: AbortSignal.timeout(30000),
-        body: JSON.stringify({
-          model: nvidiaModel,
-          messages: [{ role: 'user', content: prompt + '\nReturn ONLY a valid JSON object matching {"questions": [...]}. No extra text.' }],
-          temperature: 0.1,
-          max_tokens: 4096
-        })
-      });
-
-      if (nvidiaRes.ok) {
-        const nvData = await nvidiaRes.json();
-        const content = nvData.choices?.[0]?.message?.content || '{}';
-        const parsed = JSON.parse(cleanJsonString(content));
-        return parsed.questions || (Array.isArray(parsed) ? parsed : []);
-      }
-    } catch (nvErr) {
-      console.warn(`[NVIDIA NIM Error]: ${nvErr.message}`);
-    }
-  }
-
   if (retryCount < 10) {
-    console.warn(`[AI Structuring] Retrying batch after 5s wait (attempt ${retryCount + 1}/10)...`);
-    await new Promise(r => setTimeout(r, 5000));
+    console.warn(`[AI Structuring] Retrying batch after 3s wait (attempt ${retryCount + 1}/10)...`);
+    await new Promise(r => setTimeout(r, 3000));
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
 
-  throw new Error('All AI providers (Gemini, Groq, NVIDIA NIM) exhausted after multiple retry cycles.');
+  throw new Error('All AI providers (Gemini, Groq) exhausted after multiple retry cycles.');
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
