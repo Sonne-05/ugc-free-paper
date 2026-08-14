@@ -445,183 +445,124 @@ Schema:
 }
 `;
 
-  try {
-    const response = await fetch(urlEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: textPrompt },
-              { inlineData: { mimeType: "image/png", data: base64Image } },
-            ],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
+  const geminiModels = [
+    process.env.GEMINI_MODEL || "gemini-3.6-flash",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
+  ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-
-      // If Gemini hits 429 / 503, immediately try Groq Vision or NVIDIA NIM Vision fallback
-      if (response.status === 429 || response.status === 503) {
-        const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
-        const retryDelaySecs = retryDelayMatch
-          ? parseInt(retryDelayMatch[1])
-          : 30;
-
-        keyCooldownUntil[keyIndex] =
-          Date.now() + retryDelaySecs * 1000 + 2000;
-
-        // Try Groq Vision Fallback (Instant, Zero Quota Delay)
-        const groqResult = await callGroqVisionForOcrPage(
-          base64Image,
-          pageNum,
-          textPrompt,
-          importLanguage,
-        );
-        if (groqResult && groqResult.length > 0) {
-          console.log(
-            `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${groqResult.length} questions using Groq Llama 3.2 Vision!`,
-          );
-          return groqResult;
-        }
-
-
-
-        if (retryCount < 30) {
-          console.warn(
-            `[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling for ${retryDelaySecs}s. Switching to next Gemini key...`,
-          );
-          return callAIChatForOcrPage(
-            base64Image,
-            pageNum,
-            isPaperII,
-            importLanguage,
-            expectedCount,
-            retryCount + 1,
-          );
-        }
-      }
-      throw new Error(`API error: ${response.status} - ${errText}`);
-    }
-
-    recordRequest(keyIndex);
-
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-    const cleaned = cleanJsonString(rawText);
+  for (const modelName of geminiModels) {
+    const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     try {
-      const parsed = JSON.parse(cleaned);
-      let resQuestions =
-        parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      const response = await fetch(urlEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: textPrompt },
+                { inlineData: { mimeType: "image/png", data: base64Image } },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+          },
+        }),
+      });
 
-      // If Sindhi is requested, sanitize output to remove any residual Perso-Arabic/Urdu script characters (\u0600-\u06FF, etc.)
-      if (importLanguage && importLanguage.includes("Sindhi")) {
-        const arabicRegex =
-          /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
-        const cleanField = (val) => {
-          if (typeof val === "string") {
-            return val
-              .replace(arabicRegex, "")
-              .replace(/[ \t]+\n/g, "\n")
-              .replace(/\n{3,}/g, "\n\n")
-              .trim();
+      if (!response.ok) {
+        const errText = await response.text();
+
+        if (response.status === 503) {
+          console.warn(`[AI OCR] Key #${keyIndex + 1} 503 High demand on ${modelName}. Trying next Gemini model in cascade...`);
+          continue;
+        }
+
+        // If Gemini hits 429, immediately try Groq Vision fallback
+        if (response.status === 429) {
+          const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
+          const retryDelaySecs = retryDelayMatch
+            ? parseInt(retryDelayMatch[1])
+            : 30;
+
+          keyCooldownUntil[keyIndex] =
+            Date.now() + retryDelaySecs * 1000 + 2000;
+
+          // Try Groq Vision Fallback (Instant, Zero Quota Delay)
+          const groqResult = await callGroqVisionForOcrPage(
+            base64Image,
+            pageNum,
+            textPrompt,
+            importLanguage,
+          );
+          if (groqResult && groqResult.length > 0) {
+            console.log(
+              `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${groqResult.length} questions using Groq Llama 3.2 Vision!`,
+            );
+            return groqResult;
           }
-          if (Array.isArray(val)) {
-            return val.map((item) =>
-              typeof item === "string"
-                ? item
-                    .replace(arabicRegex, "")
-                    .replace(/[ \t]+\n/g, "\n")
-                    .replace(/\n{3,}/g, "\n\n")
-                    .trim()
-                : item,
+
+          if (retryCount < 30) {
+            console.warn(
+              `[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling for ${retryDelaySecs}s. Switching to next Gemini key...`,
+            );
+            return callAIChatForOcrPage(
+              base64Image,
+              pageNum,
+              isPaperII,
+              importLanguage,
+              expectedCount,
+              retryCount + 1,
             );
           }
-          return val;
-        };
-
-        resQuestions = resQuestions.map((q) => ({
-          ...q,
-          text: cleanField(q.text),
-          options: cleanField(q.options),
-          statements: cleanField(q.statements),
-          list1: cleanField(q.list1),
-          list2: cleanField(q.list2),
-          assertion: cleanField(q.assertion),
-          reason: cleanField(q.reason),
-          passage: cleanField(q.passage),
-          explanation: cleanField(q.explanation),
-        }));
+        }
+        console.warn(`[Gemini OCR Error] ${modelName} ${response.status}: ${errText.substring(0, 150)}`);
+        continue;
       }
 
-      // If questions are extracted, accept them immediately without burning tokens on repetitive count retries
-      if (resQuestions.length === 0 && ocrRetryCount < 1) {
-        console.warn(
-          `[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR once...`,
-        );
-        await new Promise((r) => setTimeout(r, 1500));
-        return callAIChatForOcrPage(
-          base64Image,
-          pageNum,
-          isPaperII,
-          importLanguage,
-          expectedCount,
-          retryCount,
-          ocrRetryCount + 1,
-        );
-      }
+      recordRequest(keyIndex);
 
-      return resQuestions;
-    } catch (jsonErr) {
-      if (retryCount < 30) {
-        console.warn(
-          `[AI OCR] Malformed JSON on Page ${pageNum}. Retrying (${retryCount + 1}/30)...`,
-        );
-        await new Promise((r) => setTimeout(r, 2000));
-        return callAIChatForOcrPage(
-          base64Image,
-          pageNum,
-          isPaperII,
-          importLanguage,
-          expectedCount,
-          retryCount + 1,
-        );
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+      const cleaned = cleanJsonString(rawText);
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        let resQuestions =
+          parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        return sanitizeSindhiOutput(resQuestions, importLanguage);
+      } catch (parseErr) {
+        console.warn(`JSON parse error on ${modelName}: ${parseErr.message}`);
       }
-      throw jsonErr;
+    } catch (fetchErr) {
+      console.warn(`Network error on ${modelName}: ${fetchErr.message}`);
     }
-  } catch (err) {
-    if (
-      retryCount < 30 &&
-      (err.message.includes("fetch") ||
-        err.message.includes("timeout") ||
-        err.message.includes("API error"))
-    ) {
-      console.warn(
-        `[AI OCR] Network error on Page ${pageNum} (${err.message}). Retrying (${retryCount + 1}/30)...`,
-      );
-      await new Promise((r) => setTimeout(r, 5000));
-      // FIX #3: Pass expectedCount correctly (was missing, causing AI to lose the question-count hint on retries)
-      return callAIChatForOcrPage(
-        base64Image,
-        pageNum,
-        isPaperII,
-        importLanguage,
-        expectedCount,
-        retryCount + 1,
-        ocrRetryCount,
-      );
-    }
-    throw err;
   }
+
+  if (retryCount < 30) {
+    console.warn(
+      `[AI OCR] All Gemini models exhausted on Page ${pageNum}. Cooling 3s before retrying (${retryCount + 1}/30)...`,
+    );
+    await new Promise((r) => setTimeout(r, 3000));
+    return callAIChatForOcrPage(
+      base64Image,
+      pageNum,
+      isPaperII,
+      importLanguage,
+      expectedCount,
+      retryCount + 1,
+      ocrRetryCount,
+    );
+  }
+
+  throw new Error(`All Gemini models failed on Page ${pageNum}`);
 }
 
 // 5. Main execution

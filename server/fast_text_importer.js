@@ -225,76 +225,89 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   // Try Gemini first
   const geminiInfo = await keyPool.getNextGeminiKey();
   if (geminiInfo) {
-    const { key, keyIndex } = geminiInfo;
-    let modelName = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+    const geminiModels = [
+      process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-8b'
+    ];
 
-    try {
-      const res = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(60000),
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-            responseSchema: {
-              type: 'OBJECT',
-              properties: {
-                questions: {
-                  type: 'ARRAY',
-                  items: {
-                    type: 'OBJECT',
-                    properties: {
-                      qIndex: { type: 'INTEGER' },
-                      ntaQuestionId: { type: 'STRING' },
-                      unit: { type: 'STRING' },
-                      type: {
-                        type: 'STRING',
-                        enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di']
+    for (const modelName of geminiModels) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+
+      try {
+        const res = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(60000),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.1,
+              responseSchema: {
+                type: 'OBJECT',
+                properties: {
+                  questions: {
+                    type: 'ARRAY',
+                    items: {
+                      type: 'OBJECT',
+                      properties: {
+                        qIndex: { type: 'INTEGER' },
+                        ntaQuestionId: { type: 'STRING' },
+                        unit: { type: 'STRING' },
+                        type: {
+                          type: 'STRING',
+                          enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di']
+                        },
+                        text: { type: 'STRING' },
+                        options: { type: 'ARRAY', items: { type: 'STRING' } },
+                        statements: { type: 'ARRAY', items: { type: 'STRING' } },
+                        correct: { type: 'INTEGER' },
+                        assertion: { type: 'STRING' },
+                        reason: { type: 'STRING' },
+                        list1: { type: 'ARRAY', items: { type: 'STRING' } },
+                        list2: { type: 'ARRAY', items: { type: 'STRING' } },
+                        list1Header: { type: 'STRING' },
+                        list2Header: { type: 'STRING' },
+                        passage: { type: 'STRING' },
+                        explanation: { type: 'STRING' }
                       },
-                      text: { type: 'STRING' },
-                      options: { type: 'ARRAY', items: { type: 'STRING' } },
-                      statements: { type: 'ARRAY', items: { type: 'STRING' } },
-                      correct: { type: 'INTEGER' },
-                      assertion: { type: 'STRING' },
-                      reason: { type: 'STRING' },
-                      list1: { type: 'ARRAY', items: { type: 'STRING' } },
-                      list2: { type: 'ARRAY', items: { type: 'STRING' } },
-                      list1Header: { type: 'STRING' },
-                      list2Header: { type: 'STRING' },
-                      passage: { type: 'STRING' },
-                      explanation: { type: 'STRING' }
-                    },
-                    required: ['qIndex', 'type', 'text', 'options', 'correct', 'explanation']
+                      required: ['qIndex', 'type', 'text', 'options', 'correct', 'explanation']
+                    }
                   }
-                }
-              },
-              required: ['questions']
+                },
+                required: ['questions']
+              }
             }
-          }
-        })
-      });
+          })
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        const parsed = JSON.parse(cleanJsonString(rawJson));
-        return parsed.questions || (Array.isArray(parsed) ? parsed : []);
-      }
+        if (res.ok) {
+          const data = await res.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+          const parsed = JSON.parse(cleanJsonString(rawJson));
+          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        }
 
-      const errText = await res.text();
-      if ((res.status === 429 || res.status === 503) && retryCount < 15) {
-        const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
-        const waitSec = retryMatch ? parseFloat(retryMatch[1]) : (res.status === 503 ? 10 : 15);
-        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} (${res.status === 503 ? 'High Demand' : 'Rate Limit'}). Switching to next key/provider...`);
-        keyPool.coolDownGeminiKey(keyIndex, waitSec);
-        return callAiStructuring(prompt, keyPool, retryCount + 1);
+        const errText = await res.text();
+        if (res.status === 503) {
+          console.warn(`[Gemini 503 on ${modelName}] High demand. Trying next Gemini model in cascade...`);
+          continue;
+        }
+
+        if (res.status === 429 && retryCount < 15) {
+          const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+          const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
+          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Switching to next key/provider...`);
+          keyPool.coolDownGeminiKey(keyIndex, waitSec);
+          return callAiStructuring(prompt, keyPool, retryCount + 1);
+        }
+        console.warn(`[Gemini API Error] Model ${modelName} Status ${res.status}: ${errText.substring(0, 150)}`);
+      } catch (gErr) {
+        console.warn(`[Gemini Network Error on ${modelName}]: ${gErr.message}`);
       }
-      console.warn(`[Gemini API Error] Status ${res.status}: ${errText.substring(0, 150)}`);
-    } catch (gErr) {
-      console.warn(`[Gemini Network Error]: ${gErr.message}`);
     }
   }
 
