@@ -1,7 +1,21 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
+import { API_BASE_URL } from '../services/api'
 import './About.css'
 
 const About = () => {
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.settings) setSettings(data.settings)
+      })
+      .catch(() => {})
+  }, [])
+
   const metrics = [
     { value: '15,000+', label: 'Verified Questions' },
     { value: '10 / 10', label: 'Paper 1 Units' },
@@ -92,6 +106,11 @@ const About = () => {
         </div>
       </div>
 
+      {/* AdSense Placement 1: Top Responsive Banner */}
+      <div className="ad-container" style={{ maxWidth: '1100px', margin: '0 auto 36px auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
+
       <div className="about-content">
         {/* 3. CORE PILLARS */}
         <section className="about-pillars">
@@ -155,6 +174,11 @@ const About = () => {
             </div>
           </div>
         </section>
+
+        {/* AdSense Placement 2: Mid-Content Banner */}
+        <div className="ad-container" style={{ margin: '0 auto', textAlign: 'center' }}>
+          <AdSensePlaceholder format="horizontal" config={settings} />
+        </div>
 
         {/* 5. TARGET AUDIENCE */}
         <section className="about-audience">

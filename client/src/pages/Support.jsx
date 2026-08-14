@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import { API_BASE_URL } from '../services/api'
 import './Support.css'
 
 const Support = () => {
+  const [settings, setSettings] = useState(null)
   const [openFaq, setOpenFaq] = useState(0)
 
   useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.settings) setSettings(data.settings)
+      })
+      .catch(() => {})
+
     // Load Razorpay checkout script dynamically
     const script = document.createElement('script')
     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
@@ -128,6 +137,11 @@ const Support = () => {
         </div>
       </section>
 
+      {/* AdSense Placement 1: Top Leaderboard Banner */}
+      <div className="ad-container" style={{ maxWidth: '1100px', margin: '24px auto 0 auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
+
       <div className="support-container">
         {/* 2. COMMUNITY SUSTAINER TIERS */}
         <section className="support-tiers">
@@ -220,6 +234,11 @@ const Support = () => {
             </div>
           </div>
         </section>
+
+        {/* AdSense Placement 2: Mid-Content Ad Unit */}
+        <div className="ad-container" style={{ margin: '0 auto', textAlign: 'center' }}>
+          <AdSensePlaceholder format="horizontal" config={settings} />
+        </div>
 
         {/* 3. INTERACTIVE FAQ ACCORDION */}
         <section className="support-faqs">

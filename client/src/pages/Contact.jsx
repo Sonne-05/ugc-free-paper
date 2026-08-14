@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import { API_BASE_URL } from '../services/api'
 import './Contact.css'
 
 const Contact = () => {
+  const [settings, setSettings] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -14,6 +16,15 @@ const Contact = () => {
     category: 'General Feedback / Inquiry',
     message: ''
   })
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.settings) setSettings(data.settings)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText('support@ugcfreepaper.com')
@@ -77,6 +88,11 @@ const Contact = () => {
           </p>
         </div>
       </section>
+
+      {/* AdSense Placement 1: Top Responsive Leaderboard */}
+      <div className="ad-container" style={{ maxWidth: '1100px', margin: '24px auto 0 auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
 
       {/* 2. MAIN 2-COLUMN SECTION */}
       <div className="contact-container">
@@ -263,6 +279,11 @@ const Contact = () => {
               </form>
             )}
           </div>
+        </div>
+
+        {/* AdSense Placement 2: Pre-Footer Banner */}
+        <div className="ad-container" style={{ maxWidth: '1100px', margin: '48px auto 0 auto', textAlign: 'center' }}>
+          <AdSensePlaceholder format="horizontal" config={settings} />
         </div>
       </div>
     </div>
