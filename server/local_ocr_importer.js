@@ -174,7 +174,9 @@ function estimateRequestTokens() {
   return 4500;
 }
 
-// Returns index of the best available key right now.
+let currentKeyIndex = 0;
+
+// Returns index of the best available key right now using Round-Robin.
 // Skips keys that are in a retryDelay cooldown or at RPM capacity.
 // If ALL keys are unavailable, waits for the earliest one to free up, then retries.
 async function getAvailableKeyIndex() {
@@ -186,46 +188,35 @@ async function getAvailableKeyIndex() {
     keyHistory[i] = keyHistory[i].filter((ts) => now - ts < windowMs);
   }
 
-  // Find the best available key:
-  // Must be (a) not in retryDelay cooldown AND (b) under its RPM cap
-  let bestIndex = -1;
-  let lowestUsage = Infinity;
-  for (let i = 0; i < keyHistory.length; i++) {
-    if (keyCooldownUntil[i] > now) continue; // skip: still in retryDelay cooldown
-    const usage = keyHistory[i].length;
-    if (usage < PER_KEY_RPM && usage < lowestUsage) {
-      lowestUsage = usage;
-      bestIndex = i;
+  // True Round-Robin across all 21 keys:
+  // Each page moves to the next key (Key 1 -> Key 2 -> ... -> Key 21 -> Key 1)
+  for (let attempt = 0; attempt < apiKeys.length; attempt++) {
+    const idx = (currentKeyIndex + attempt) % apiKeys.length;
+    if (keyCooldownUntil[idx] <= now && keyHistory[idx].length < PER_KEY_RPM) {
+      currentKeyIndex = (idx + 1) % apiKeys.length;
+      return idx;
     }
   }
-
-  // Found an available key — return immediately
-  if (bestIndex !== -1) return bestIndex;
 
   // All keys are either in cooldown or at RPM cap.
   // Find the earliest moment ANY key becomes available.
   let earliestAvailable = Infinity;
   for (let i = 0; i < keyHistory.length; i++) {
-    // Cooldown expiry time for this key
     if (keyCooldownUntil[i] > now) {
       earliestAvailable = Math.min(earliestAvailable, keyCooldownUntil[i]);
     }
-    // RPM sliding window expiry time for this key
     if (keyHistory[i].length >= PER_KEY_RPM && keyHistory[i].length > 0) {
       const rpmFreeAt = keyHistory[i][0] + windowMs;
       earliestAvailable = Math.min(earliestAvailable, rpmFreeAt);
     }
   }
 
-  const waitMs = earliestAvailable - Date.now() + 300; // +300ms buffer
-  if (waitMs > 0) {
-    console.log(
-      `[Rate Limiter] All ${apiKeys.length} keys unavailable. Waiting ${(waitMs / 1000).toFixed(1)}s for next key to free up...`,
-    );
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
+  const waitMs = Math.max(earliestAvailable - Date.now() + 500, 1000);
+  console.log(
+    `[Rate Limiter] All ${apiKeys.length} keys cooling down. Waiting ${(waitMs / 1000).toFixed(1)}s for next key...`,
+  );
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
 
-  // Recurse to re-evaluate after the wait
   return getAvailableKeyIndex();
 }
 
