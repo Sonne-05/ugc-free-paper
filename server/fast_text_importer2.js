@@ -772,7 +772,13 @@ async function main() {
           if (ans !== undefined) structuredQ.correct = ans;
         }
 
-        completedQuestions.push(structuredQ);
+        // Overwrite or add by qIndex to prevent any duplicate index pushes
+        const existingIdx = completedQuestions.findIndex(item => item.qIndex === qIndex);
+        if (existingIdx !== -1) {
+          completedQuestions[existingIdx] = structuredQ;
+        } else {
+          completedQuestions.push(structuredQ);
+        }
       });
 
       // Save Checkpoint
@@ -787,7 +793,11 @@ async function main() {
 
     // Safety Pass: Check for any missing question numbers from 1 to total cleanQuestions
     const finalMap = new Map();
-    completedQuestions.forEach(q => finalMap.set(q.qIndex, q));
+    completedQuestions.forEach(q => {
+      if (q.qIndex >= 1 && q.qIndex <= cleanQuestions.length) {
+        finalMap.set(q.qIndex, q);
+      }
+    });
 
     const missingQuestions = cleanQuestions.filter(cq => !finalMap.has(cq.qIndex));
     if (missingQuestions.length > 0) {
@@ -830,8 +840,10 @@ async function main() {
       }
     }
 
-    // 4. Save to Database
-    const finalQuestions = Array.from(finalMap.values()).sort((a, b) => a.qIndex - b.qIndex);
+    // 4. Save to Database (Strictly bounded from 1 to cleanQuestions.length)
+    const finalQuestions = Array.from(finalMap.values())
+      .filter(q => q.qIndex >= 1 && q.qIndex <= cleanQuestions.length)
+      .sort((a, b) => a.qIndex - b.qIndex);
     console.log(`\n[4/4] Committing ${finalQuestions.length} questions to MongoDB...`);
 
     await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
