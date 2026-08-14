@@ -152,6 +152,7 @@ function setupKeyPool() {
     groqKeys,
     geminiHistory,
     geminiCooldowns,
+    geminiIndex: 0,
     groqIndex: 0,
     PER_KEY_RPM: 15, // Conservative safe RPM per project
     
@@ -232,7 +233,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
       const res = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
@@ -301,29 +302,39 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   const groqKey = keyPool.getNextGroqKey();
   if (groqKey) {
     try {
-      console.log(`[AI Fallback] Routing batch to Groq Llama 3.3...`);
-      const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`
-        },
-        signal: AbortSignal.timeout(30000),
-        body: JSON.stringify({
-          model: groqModel,
-          messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching {"questions": [...]}.' }],
-          temperature: 0.1,
-          response_format: { type: 'json_object' },
-          max_tokens: 4096
-        })
-      });
+      console.log(`[AI Fallback] Routing batch to Groq...`);
+      const groqModels = [process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+      
+      for (const groqModel of groqModels) {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          signal: AbortSignal.timeout(30000),
+          body: JSON.stringify({
+            model: groqModel,
+            messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching {"questions": [...]}.' }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+            max_tokens: 2048
+          })
+        });
 
-      if (groqRes.ok) {
-        const groqData = await groqRes.json();
-        const content = groqData.choices?.[0]?.message?.content || '{}';
-        const parsed = JSON.parse(cleanJsonString(content));
-        return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const content = groqData.choices?.[0]?.message?.content || '{}';
+          const parsed = JSON.parse(cleanJsonString(content));
+          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        } else {
+          const groqErrText = await groqRes.text();
+          if (groqRes.status === 429 && groqModel !== 'llama-3.1-8b-instant') {
+            console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
+            continue;
+          }
+          console.warn(`[Groq ${groqRes.status} Error on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
+        }
       }
     } catch (groqErr) {
       console.warn(`[Groq Error]: ${groqErr.message}`);
@@ -396,25 +407,26 @@ Questions to process:\n\n`;
   const passage1Id = compKeys[0];
   const passage2Id = compKeys[1];
 
+  let passageContext = '';
+  if (!isPaperII) {
+    if (batch.some(q => q.qIndex >= 1 && q.qIndex <= 5) && passage1Id && compPassages[passage1Id]) {
+      passageContext = `[DI Passage Context:\n${compPassages[passage1Id].substring(0, 1500)}]\n\n`;
+    } else if (batch.some(q => q.qIndex >= 46 && q.qIndex <= 50) && passage2Id && compPassages[passage2Id]) {
+      passageContext = `[RC Passage Context:\n${compPassages[passage2Id].substring(0, 1500)}]\n\n`;
+    }
+  } else {
+    if (batch.some(q => q.qIndex >= 91 && q.qIndex <= 95) && passage1Id && compPassages[passage1Id]) {
+      passageContext = `[RC Passage Context:\n${compPassages[passage1Id].substring(0, 1500)}]\n\n`;
+    } else if (batch.some(q => q.qIndex >= 96 && q.qIndex <= 100) && passage2Id && compPassages[passage2Id]) {
+      passageContext = `[RC Passage Context:\n${compPassages[passage2Id].substring(0, 1500)}]\n\n`;
+    }
+  }
+
+  if (passageContext) prompt += passageContext;
+
   batch.forEach(q => {
     prompt += `--- QUESTION ${q.qIndex} (Raw ID: ${q.qId}) ---\n`;
     prompt += q.text + '\n\n';
-
-    if (!isPaperII) {
-      if (q.qIndex >= 1 && q.qIndex <= 5 && passage1Id && compPassages[passage1Id]) {
-        prompt += `[DI Passage Context:\n${compPassages[passage1Id]}]\n\n`;
-      }
-      if (q.qIndex >= 46 && q.qIndex <= 50 && passage2Id && compPassages[passage2Id]) {
-        prompt += `[RC Passage Context:\n${compPassages[passage2Id]}]\n\n`;
-      }
-    } else {
-      if (q.qIndex >= 91 && q.qIndex <= 95 && passage1Id && compPassages[passage1Id]) {
-        prompt += `[RC Passage Context:\n${compPassages[passage1Id]}]\n\n`;
-      }
-      if (q.qIndex >= 96 && q.qIndex <= 100 && passage2Id && compPassages[passage2Id]) {
-        prompt += `[RC Passage Context:\n${compPassages[passage2Id]}]\n\n`;
-      }
-    }
   });
 
   return prompt;
@@ -426,21 +438,21 @@ async function main() {
   console.log('⚡ High-Speed Zero-Token Text Question Importer');
   console.log('======================================================\n');
 
-  const PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
+  const PDF_PATH = process.argv[2] || await askQuestion('Enter the absolute path to your Questions PDF file: ');
   if (!fs.existsSync(PDF_PATH)) {
     console.error(`Error: PDF file does not exist: "${PDF_PATH}"`);
     process.exit(1);
   }
 
-  const TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
+  const TARGET_SET_ID = process.argv[3] || await askQuestion('Enter the Target PyqSet MongoDB ID: ');
   if (!mongoose.Types.ObjectId.isValid(TARGET_SET_ID)) {
     console.error('Error: Invalid MongoDB ObjectId.');
     process.exit(1);
   }
 
-  const LANGUAGE = (await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English';
+  const LANGUAGE = process.argv[4] || (await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English';
 
-  const ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
+  const ANSWER_KEY_PATH = process.argv[5] || (process.argv[2] ? '' : await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): '));
   let answerKeyMap = null;
 
   if (ANSWER_KEY_PATH && fs.existsSync(ANSWER_KEY_PATH)) {
@@ -660,8 +672,8 @@ async function main() {
     const batches = [];
     const pendingQuestions = cleanQuestions.filter(q => !processedIndices.has(q.qIndex));
 
-    for (let i = 0; i < pendingQuestions.length; i += 5) {
-      batches.push(pendingQuestions.slice(i, i + 5));
+    for (let i = 0; i < pendingQuestions.length; i += 4) {
+      batches.push(pendingQuestions.slice(i, i + 4));
     }
 
     console.log(`\n[3/4] Processing ${batches.length} remaining batches using AI (${keyPool.geminiKeys.length} Gemini keys in pool)...`);
@@ -725,12 +737,17 @@ function extractRawQuestionText(rawBlock) {
           }
         }
 
+        let qType = (q.type || 'mcq').toLowerCase();
+        if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+          qType = 'mcq';
+        }
+
         const structuredQ = {
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
           qIndex: qIndex,
           ntaQuestionId: matched ? matched.qId : (q.ntaQuestionId || ''),
           unit: '',
-          type: q.type || 'mcq',
+          type: qType,
           text: finalPromptText || `Question ${qIndex}`,
           options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
           statements: Array.isArray(q.statements) ? q.statements : [],
