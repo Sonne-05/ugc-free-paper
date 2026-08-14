@@ -832,18 +832,29 @@ function extractRawQuestionText(rawBlock) {
             if (extractedStatements.length === 0 && matched?.text) {
               const rawBlock = matched.text;
               const rawLines = rawBlock.split('\n').map(l => l.trim()).filter(Boolean);
-              const tempStmts = [];
+              const stmtsMap = new Map();
+
               for (const line of rawLines) {
                 if (/^Question Number/i.test(line) || /^Correct Marks/i.test(line) || /^--\s*\d+\s+of\s+\d+/i.test(line)) continue;
                 if (/^Choose the/i.test(line) || /^Options\s*:/i.test(line) || /^\d+\.\s+[A-E]/i.test(line)) continue;
                 const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
                 if (stmtMatch) {
                   const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
-                  tempStmts.push(`${letter}. ${stmtMatch[2].trim()}`);
+                  if (!stmtsMap.has(letter) || stmtsMap.get(letter).length < stmtMatch[2].trim().length) {
+                    stmtsMap.set(letter, `${letter}. ${stmtMatch[2].trim()}`);
+                  }
                 }
               }
-              if (tempStmts.length >= 2) {
-                extractedStatements = tempStmts;
+
+              const parsedStmts = Array.from(stmtsMap.values()).sort();
+              const optionsAreCombos = (Array.isArray(q.options) ? q.options : []).some(opt =>
+                /\b[A-E]\s*,\s*[A-E]\b/i.test(opt) ||
+                /\b[A-E]\s+and\s+[A-E]\b/i.test(opt) ||
+                /\bonly\b/i.test(opt)
+              );
+
+              if (parsedStmts.length >= 2 || (optionsAreCombos && parsedStmts.length > 0)) {
+                extractedStatements = parsedStmts;
                 qType = 'multiple-statement';
               }
             }
