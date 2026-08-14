@@ -729,10 +729,33 @@ async function main() {
         }
       }
 
+function extractRawQuestionText(rawBlock) {
+  if (!rawBlock) return '';
+  let cleaned = rawBlock
+    .replace(/^Question Number\s*:\s*\d+[\s\S]*?Option Orientation\s*:\s*\w+/i, '')
+    .replace(/^Question Number\s*:\s*\d+[\s\S]*?Wrong Marks\s*:\s*\d+/i, '')
+    .replace(/^SI\.\s*No\.?\s*\d+[\s\S]*?QBID\s*:\s*\d+/i, '')
+    .replace(/^\[Question ID\s*=\s*\d+\][\s\S]*?\[Question Description\s*=\s*[^\]]+\]/i, '')
+    .replace(/Options\s*:[\s\S]*$/i, '')
+    .replace(/\n\s*1\.\s+[\s\S]*$/i, '')
+    .replace(/\n\s*\(1\)\s+[\s\S]*$/i, '')
+    .replace(/--\s*\d+\s+of\s+\d+\s*--/g, '')
+    .trim();
+  return cleaned;
+}
+
       // Map and sanitize batch results
       (batchResults || []).forEach((q, idx) => {
-        const matched = batch.find(item => item.qIndex === q.qIndex) || batch[idx];
+        const matched = batch.find(item => item.qIndex === q.qIndex || item.pdfQNum === q.qIndex) || batch[idx];
         const qIndex = matched ? matched.qIndex : (q.qIndex || completedQuestions.length + 1);
+
+        let finalPromptText = (q.text || q.question || q.questionText || q.prompt || '').trim();
+        if (!finalPromptText || finalPromptText.startsWith('Question ') || finalPromptText.length < 10) {
+          const rawExtracted = extractRawQuestionText(matched?.text);
+          if (rawExtracted && rawExtracted.length > 5) {
+            finalPromptText = rawExtracted;
+          }
+        }
 
         const structuredQ = {
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
@@ -740,7 +763,7 @@ async function main() {
           ntaQuestionId: matched ? matched.qId : (q.ntaQuestionId || ''),
           unit: '',
           type: q.type || 'mcq',
-          text: (q.text || `Question ${qIndex}`).trim(),
+          text: finalPromptText || `Question ${qIndex}`,
           options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
           statements: Array.isArray(q.statements) ? q.statements : [],
           correct: parseInt(q.correct, 10) || 1,
