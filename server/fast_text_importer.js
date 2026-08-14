@@ -146,12 +146,14 @@ function setupKeyPool() {
 
   const geminiHistory = geminiKeys.map(() => []);
   const geminiCooldowns = geminiKeys.map(() => 0);
+  const groqCooldowns = groqKeys.map(() => 0);
 
   return {
     geminiKeys,
     groqKeys,
     geminiHistory,
     geminiCooldowns,
+    groqCooldowns,
     geminiIndex: 0,
     groqIndex: 0,
     PER_KEY_RPM: 15, // Conservative safe RPM per project
@@ -189,7 +191,7 @@ function setupKeyPool() {
 
       const waitMs = Math.max(earliest - Date.now() + 200, 500);
       if (waitMs > 0 && waitMs < 60000) {
-        console.log(`[Rate Limiter] All Gemini keys in rotation busy. Waiting ${(waitMs / 1000).toFixed(1)}s...`);
+        console.log(`[Rate Limiter] All Gemini keys busy. Waiting ${(waitMs / 1000).toFixed(1)}s...`);
         await new Promise(r => setTimeout(r, waitMs));
         return this.getNextGeminiKey();
       }
@@ -205,7 +207,21 @@ function setupKeyPool() {
 
     getNextGroqKey() {
       if (this.groqKeys.length === 0) return null;
-      return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
+      const now = Date.now();
+      for (let attempt = 0; attempt < this.groqKeys.length; attempt++) {
+        const idx = (this.groqIndex + attempt) % this.groqKeys.length;
+        if (this.groqCooldowns[idx] <= now) {
+          this.groqIndex = (idx + 1) % this.groqKeys.length;
+          return { key: this.groqKeys[idx], keyIndex: idx };
+        }
+      }
+      return null;
+    },
+
+    coolDownGroqKey(keyIndex, seconds) {
+      if (keyIndex >= 0 && keyIndex < this.groqCooldowns.length) {
+        this.groqCooldowns[keyIndex] = Date.now() + (seconds * 1000) + 1000;
+      }
     }
   };
 }
@@ -220,11 +236,12 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
-// Call AI using Groq (Primary) with Multi-Tier Fallback to Gemini (Secondary)
+// Call AI using Groq (Primary) with Infinite Circular Fallback to Gemini (Secondary) and Back to Groq
 async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   // 1. Try Groq first as Primary
-  const groqKey = keyPool.getNextGroqKey();
-  if (groqKey) {
+  const groqInfo = keyPool.getNextGroqKey();
+  if (groqInfo) {
+    const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
     try {
       const groqModels = [process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
       
@@ -252,15 +269,21 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           return parsed.questions || (Array.isArray(parsed) ? parsed : []);
         } else {
           const groqErrText = await groqRes.text();
-          if (groqRes.status === 429 && groqModel !== 'llama-3.1-8b-instant') {
-            console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
-            continue;
+          if (groqRes.status === 429) {
+            if (groqModel !== 'llama-3.1-8b-instant') {
+              console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
+              continue;
+            } else {
+              console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 30s. Switching to Gemini fallback...`);
+              keyPool.coolDownGroqKey(groqKeyIndex, 30);
+            }
+          } else {
+            console.warn(`[Groq ${groqRes.status} on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
           }
-          console.warn(`[Groq ${groqRes.status} on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
         }
       }
     } catch (groqErr) {
-      console.warn(`[Groq Error]: ${groqErr.message}`);
+      console.warn(`[Groq Error]: ${groqErr.message}. Switching to Gemini fallback...`);
     }
   }
 
@@ -340,10 +363,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           continue;
         }
 
-        if (res.status === 429 && retryCount < 15) {
+        if (res.status === 429 && retryCount < 30) {
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
           const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
-          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Switching to next key/provider...`);
+          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Cooling for ${waitSec}s. Switching back to Groq / next Gemini key...`);
           keyPool.coolDownGeminiKey(keyIndex, waitSec);
           return callAiStructuring(prompt, keyPool, retryCount + 1);
         }
@@ -354,13 +377,14 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     }
   }
 
-  if (retryCount < 10) {
-    console.warn(`[AI Structuring] Retrying batch after 3s wait (attempt ${retryCount + 1}/10)...`);
-    await new Promise(r => setTimeout(r, 3000));
+  // 3. Circular Loop: If Gemini fails / rate-limits, loop back to Groq after short pause
+  if (retryCount < 30) {
+    console.warn(`[AI Failover] Both Groq and Gemini currently cooling. Retrying in 2s (Attempt ${retryCount + 1}/30)...`);
+    await new Promise(r => setTimeout(r, 2000));
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
 
-  throw new Error('All AI providers (Groq, Gemini) exhausted after multiple retry cycles.');
+  throw new Error('All AI providers (Groq, Gemini) exhausted after 30 retry cycles.');
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
