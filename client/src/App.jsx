@@ -113,6 +113,19 @@ function App() {
         document.head.appendChild(metaDesc);
       }
       metaDesc.setAttribute('content', description);
+
+      // Manage robots meta tag: de-index policy pages from sitelinks while allowing crawlers
+      let metaRobots = document.querySelector('meta[name="robots"]');
+      if (['/privacy', '/terms', '/refund-policy'].includes(path)) {
+        if (!metaRobots) {
+          metaRobots = document.createElement('meta');
+          metaRobots.setAttribute('name', 'robots');
+          document.head.appendChild(metaRobots);
+        }
+        metaRobots.setAttribute('content', 'noindex, follow');
+      } else if (metaRobots) {
+        metaRobots.setAttribute('content', 'index, follow');
+      }
     }
   }, [location.pathname]);
 
