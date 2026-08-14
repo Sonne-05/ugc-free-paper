@@ -793,7 +793,16 @@ function extractRawQuestionText(rawBlock) {
         }
 
         let qType = (q.type || 'mcq').toLowerCase();
-        if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+        if ((Array.isArray(q.list1) && q.list1.length > 0) || (Array.isArray(q.list2) && q.list2.length > 0) || /^Match\s+(?:the\s+)?List/i.test(finalPromptText)) {
+          qType = 'match-column';
+          if (finalPromptText.length > 40 && /^Match/i.test(finalPromptText)) {
+            finalPromptText = 'Match List - I with List - II.';
+          }
+        } else if (q.assertion && q.reason) {
+          qType = 'assertion-reason';
+        } else if (Array.isArray(q.statements) && q.statements.length > 0) {
+          qType = 'multiple-statement';
+        } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
           qType = 'mcq';
         }
 

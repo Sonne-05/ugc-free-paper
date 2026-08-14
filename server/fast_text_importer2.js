@@ -732,13 +732,28 @@ async function main() {
         const matched = batch.find(item => item.qIndex === q.qIndex) || batch[idx];
         const qIndex = matched ? matched.qIndex : (q.qIndex || completedQuestions.length + 1);
 
+        let finalPromptText = (q.text || `Question ${qIndex}`).trim();
+        let qType = (q.type || 'mcq').toLowerCase();
+        if ((Array.isArray(q.list1) && q.list1.length > 0) || (Array.isArray(q.list2) && q.list2.length > 0) || /^Match\s+(?:the\s+)?List/i.test(finalPromptText)) {
+          qType = 'match-column';
+          if (finalPromptText.length > 40 && /^Match/i.test(finalPromptText)) {
+            finalPromptText = 'Match List - I with List - II.';
+          }
+        } else if (q.assertion && q.reason) {
+          qType = 'assertion-reason';
+        } else if (Array.isArray(q.statements) && q.statements.length > 0) {
+          qType = 'multiple-statement';
+        } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+          qType = 'mcq';
+        }
+
         const structuredQ = {
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
           qIndex: qIndex,
           ntaQuestionId: matched ? matched.qId : (q.ntaQuestionId || ''),
           unit: '',
-          type: q.type || 'mcq',
-          text: (q.text || `Question ${qIndex}`).trim(),
+          type: qType,
+          text: finalPromptText,
           options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
           statements: Array.isArray(q.statements) ? q.statements : [],
           correct: parseInt(q.correct, 10) || 1,
