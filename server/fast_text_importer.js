@@ -805,37 +805,53 @@ function extractRawQuestionText(rawBlock) {
 
         let qType = (q.type || 'mcq').toLowerCase();
         let extractedStatements = Array.isArray(q.statements) ? q.statements : [];
+        let extractedAssertion = q.assertion || '';
+        let extractedReason = q.reason || '';
 
         if ((Array.isArray(q.list1) && q.list1.length > 0) || (Array.isArray(q.list2) && q.list2.length > 0) || /^Match\s+(?:the\s+)?List/i.test(finalPromptText)) {
           qType = 'match-column';
           if (finalPromptText.length > 40 && /^Match/i.test(finalPromptText)) {
             finalPromptText = 'Match List - I with List - II.';
           }
-        } else if (q.assertion && q.reason) {
-          qType = 'assertion-reason';
         } else {
-          if (extractedStatements.length === 0 && matched?.text) {
+          // Check for Assertion & Reason fallback
+          if ((!extractedAssertion || !extractedReason) && matched?.text) {
             const rawBlock = matched.text;
-            const rawLines = rawBlock.split('\n').map(l => l.trim()).filter(Boolean);
-            const tempStmts = [];
-            for (const line of rawLines) {
-              if (/^Question Number/i.test(line) || /^Correct Marks/i.test(line) || /^--\s*\d+\s+of\s+\d+/i.test(line)) continue;
-              if (/^Choose the/i.test(line) || /^Options\s*:/i.test(line) || /^\d+\.\s+[A-E]/i.test(line)) continue;
-              const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
-              if (stmtMatch) {
-                const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
-                tempStmts.push(`${letter}. ${stmtMatch[2].trim()}`);
-              }
-            }
-            if (tempStmts.length >= 2) {
-              extractedStatements = tempStmts;
-              qType = 'multiple-statement';
+            const aMatch = rawBlock.match(/(?:Assertion\s*\([A-Z]\)|अभिकथन\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\)|In light of|Choose the|Options\s*:|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+            const rMatch = rawBlock.match(/(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+            if (aMatch && rMatch) {
+              extractedAssertion = aMatch[1].trim();
+              extractedReason = rMatch[1].trim();
             }
           }
-          if (extractedStatements.length > 0) {
-            qType = 'multiple-statement';
-          } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
-            qType = 'mcq';
+
+          if (extractedAssertion && extractedReason) {
+            qType = 'assertion-reason';
+          } else {
+            // Check for Multiple Statements fallback
+            if (extractedStatements.length === 0 && matched?.text) {
+              const rawBlock = matched.text;
+              const rawLines = rawBlock.split('\n').map(l => l.trim()).filter(Boolean);
+              const tempStmts = [];
+              for (const line of rawLines) {
+                if (/^Question Number/i.test(line) || /^Correct Marks/i.test(line) || /^--\s*\d+\s+of\s+\d+/i.test(line)) continue;
+                if (/^Choose the/i.test(line) || /^Options\s*:/i.test(line) || /^\d+\.\s+[A-E]/i.test(line)) continue;
+                const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
+                if (stmtMatch) {
+                  const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
+                  tempStmts.push(`${letter}. ${stmtMatch[2].trim()}`);
+                }
+              }
+              if (tempStmts.length >= 2) {
+                extractedStatements = tempStmts;
+                qType = 'multiple-statement';
+              }
+            }
+            if (extractedStatements.length > 0) {
+              qType = 'multiple-statement';
+            } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+              qType = 'mcq';
+            }
           }
         }
 
@@ -857,8 +873,8 @@ function extractRawQuestionText(rawBlock) {
           statements: extractedStatements,
           correct: parseInt(q.correct, 10) || 1,
           explanation: safeExplanation,
-          assertion: q.assertion || '',
-          reason: q.reason || '',
+          assertion: extractedAssertion,
+          reason: extractedReason,
           list1: Array.isArray(q.list1) ? q.list1 : [],
           list2: Array.isArray(q.list2) ? q.list2 : [],
           list1Header: q.list1Header || '',
