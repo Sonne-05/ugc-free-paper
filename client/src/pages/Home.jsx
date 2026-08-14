@@ -353,7 +353,7 @@ const Home = () => {
             <span className="section-head__tag">WHY STICK WITH US</span>
             <h2 className="section-head__title">UGC Free Paper vs Paid Coaching Platforms</h2>
             <p className="section-head__desc">
-              See how we provide an authentic, ad-free, high-quality learning ecosystem at zero cost compared to expensive commercial apps.
+              See how we provide an authentic, high-quality learning ecosystem at zero cost compared to expensive commercial apps.
             </p>
           </div>
 
