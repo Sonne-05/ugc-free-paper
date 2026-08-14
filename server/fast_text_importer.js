@@ -245,7 +245,6 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     try {
       const groqModels = [
         process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
-        'qwen/qwen3.6-27b',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
         'openai/gpt-oss-20b'
@@ -276,8 +275,8 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         } else {
           const groqErrText = await groqRes.text();
           if (groqRes.status === 429) {
-            if (groqModel !== 'llama-3.1-8b-instant') {
-              console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
+            if (groqModel !== 'llama-3.1-8b-instant' && groqModel !== 'openai/gpt-oss-20b') {
+              console.warn(`[Groq ${groqModel} Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
               continue;
             } else {
               console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 30s. Switching to Gemini fallback...`);
@@ -819,6 +818,13 @@ function extractRawQuestionText(rawBlock) {
           qType = 'mcq';
         }
 
+        let safeExplanation = '<p>Detailed explanation.</p>';
+        if (typeof q.explanation === 'string' && q.explanation.trim()) {
+          safeExplanation = q.explanation.trim();
+        } else if (q.explanation && typeof q.explanation === 'object') {
+          safeExplanation = `<p>${q.explanation.text || q.explanation.content || JSON.stringify(q.explanation)}</p>`;
+        }
+
         const structuredQ = {
           setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
           qIndex: qIndex,
@@ -829,7 +835,7 @@ function extractRawQuestionText(rawBlock) {
           options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
           statements: Array.isArray(q.statements) ? q.statements : [],
           correct: parseInt(q.correct, 10) || 1,
-          explanation: (q.explanation || '<p>Detailed explanation.</p>').trim(),
+          explanation: safeExplanation,
           assertion: q.assertion || '',
           reason: q.reason || '',
           list1: Array.isArray(q.list1) ? q.list1 : [],
@@ -882,6 +888,13 @@ function extractRawQuestionText(rawBlock) {
           const singleRes = await callAiStructuring(singlePrompt, keyPool);
           if (singleRes && singleRes.length > 0) {
             const q = singleRes[0];
+            let safeRecExplanation = '<p>Detailed explanation.</p>';
+            if (typeof q.explanation === 'string' && q.explanation.trim()) {
+              safeRecExplanation = q.explanation.trim();
+            } else if (q.explanation && typeof q.explanation === 'object') {
+              safeRecExplanation = `<p>${q.explanation.text || q.explanation.content || JSON.stringify(q.explanation)}</p>`;
+            }
+
             const structuredQ = {
               setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
               qIndex: misQ.qIndex,
@@ -892,7 +905,7 @@ function extractRawQuestionText(rawBlock) {
               options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
               statements: Array.isArray(q.statements) ? q.statements : [],
               correct: parseInt(q.correct, 10) || 1,
-              explanation: (q.explanation || '<p>Detailed explanation.</p>').trim(),
+              explanation: safeRecExplanation,
               assertion: q.assertion || '',
               reason: q.reason || '',
               list1: Array.isArray(q.list1) ? q.list1 : [],
