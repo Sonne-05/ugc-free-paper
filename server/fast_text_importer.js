@@ -165,21 +165,14 @@ function setupKeyPool() {
         this.geminiHistory[i] = this.geminiHistory[i].filter(ts => now - ts < windowMs);
       }
 
-      // Find available key not in cooldown and under RPM
-      let bestIndex = -1;
-      let lowestUsage = Infinity;
-      for (let i = 0; i < this.geminiKeys.length; i++) {
-        if (this.geminiCooldowns[i] > now) continue;
-        const usage = this.geminiHistory[i].length;
-        if (usage < this.PER_KEY_RPM && usage < lowestUsage) {
-          lowestUsage = usage;
-          bestIndex = i;
+      // Round-Robin search across all available keys
+      for (let attempt = 0; attempt < this.geminiKeys.length; attempt++) {
+        const idx = (this.geminiIndex + attempt) % this.geminiKeys.length;
+        if (this.geminiCooldowns[idx] <= now && this.geminiHistory[idx].length < this.PER_KEY_RPM) {
+          this.geminiIndex = (idx + 1) % this.geminiKeys.length;
+          this.geminiHistory[idx].push(now);
+          return { key: this.geminiKeys[idx], keyIndex: idx };
         }
-      }
-
-      if (bestIndex !== -1) {
-        this.geminiHistory[bestIndex].push(now);
-        return { key: this.geminiKeys[bestIndex], keyIndex: bestIndex };
       }
 
       // If all keys busy/cooling, calculate earliest free time
