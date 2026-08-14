@@ -242,6 +242,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   const groqInfo = keyPool.getNextGroqKey();
   if (groqInfo) {
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
+    try {
       const groqModels = [
         process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
         'qwen/qwen3.6-27b',
@@ -392,6 +393,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   throw new Error('All AI providers (Groq, Gemini) exhausted after 30 retry cycles.');
 }
 
+function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
   let langRule = '';
   if (importLanguage === 'Hindi') {
     langRule = `Target Language & Script Rule (STRICT ENFORCEMENT):
