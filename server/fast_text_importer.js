@@ -220,12 +220,55 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
-// Call AI using Native JSON Schema (Gemini) or Structured Prompt (Groq)
+// Call AI using Groq (Primary) with Multi-Tier Fallback to Gemini (Secondary)
 async function callAiStructuring(prompt, keyPool, retryCount = 0) {
-  // Try Gemini first
+  // 1. Try Groq first as Primary
+  const groqKey = keyPool.getNextGroqKey();
+  if (groqKey) {
+    try {
+      const groqModels = [process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+      
+      for (const groqModel of groqModels) {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          signal: AbortSignal.timeout(35000),
+          body: JSON.stringify({
+            model: groqModel,
+            messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching {"questions": [...]}.' }],
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+            max_tokens: 2048
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const content = groqData.choices?.[0]?.message?.content || '{}';
+          const parsed = JSON.parse(cleanJsonString(content));
+          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        } else {
+          const groqErrText = await groqRes.text();
+          if (groqRes.status === 429 && groqModel !== 'llama-3.1-8b-instant') {
+            console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
+            continue;
+          }
+          console.warn(`[Groq ${groqRes.status} on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
+        }
+      }
+    } catch (groqErr) {
+      console.warn(`[Groq Error]: ${groqErr.message}`);
+    }
+  }
+
+  // 2. Fallback to Gemini (Secondary) across 21 keys
   const geminiInfo = await keyPool.getNextGeminiKey();
   if (geminiInfo) {
     const { key, keyIndex } = geminiInfo;
+    console.log(`[AI Fallback] Routing batch to Gemini Key #${keyIndex + 1}...`);
     const geminiModels = [
       process.env.GEMINI_MODEL || 'gemini-3.6-flash',
       'gemini-flash-latest',
@@ -311,56 +354,13 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     }
   }
 
-  // Fallback to Groq Llama 3.3
-  const groqKey = keyPool.getNextGroqKey();
-  if (groqKey) {
-    try {
-      console.log(`[AI Fallback] Routing batch to Groq...`);
-      const groqModels = [process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-      
-      for (const groqModel of groqModels) {
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqKey}`
-          },
-          signal: AbortSignal.timeout(30000),
-          body: JSON.stringify({
-            model: groqModel,
-            messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching {"questions": [...]}.' }],
-            temperature: 0.1,
-            response_format: { type: 'json_object' },
-            max_tokens: 2048
-          })
-        });
-
-        if (groqRes.ok) {
-          const groqData = await groqRes.json();
-          const content = groqData.choices?.[0]?.message?.content || '{}';
-          const parsed = JSON.parse(cleanJsonString(content));
-          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
-        } else {
-          const groqErrText = await groqRes.text();
-          if (groqRes.status === 429 && groqModel !== 'llama-3.1-8b-instant') {
-            console.warn(`[Groq 70B Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
-            continue;
-          }
-          console.warn(`[Groq ${groqRes.status} Error on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
-        }
-      }
-    } catch (groqErr) {
-      console.warn(`[Groq Error]: ${groqErr.message}`);
-    }
-  }
-
   if (retryCount < 10) {
     console.warn(`[AI Structuring] Retrying batch after 3s wait (attempt ${retryCount + 1}/10)...`);
     await new Promise(r => setTimeout(r, 3000));
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
 
-  throw new Error('All AI providers (Gemini, Groq) exhausted after multiple retry cycles.');
+  throw new Error('All AI providers (Groq, Gemini) exhausted after multiple retry cycles.');
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
@@ -701,7 +701,7 @@ async function main() {
       batches.push(pendingQuestions.slice(i, i + 4));
     }
 
-    console.log(`\n[3/4] Processing ${batches.length} remaining batches using AI (${keyPool.geminiKeys.length} Gemini keys in pool)...`);
+    console.log(`\n[3/4] Processing ${batches.length} remaining batches using Groq Llama 3.3 (Primary) with Multi-Gemini Fallback (${keyPool.geminiKeys.length} Gemini keys)...`);
 
     for (let b = 0; b < batches.length; b++) {
       const batch = batches[b];

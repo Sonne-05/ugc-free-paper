@@ -445,6 +445,25 @@ Schema:
 }
 `;
 
+  // 1. Try Groq Vision first as Primary
+  try {
+    const groqResult = await callGroqVisionForOcrPage(
+      base64Image,
+      pageNum,
+      textPrompt,
+      importLanguage,
+    );
+    if (groqResult && groqResult.length > 0) {
+      console.log(
+        `✨ [Groq Vision Primary] Page ${pageNum}: Successfully extracted ${groqResult.length} questions!`,
+      );
+      return groqResult;
+    }
+  } catch (groqErr) {
+    console.warn(`[Groq Vision Primary]: ${groqErr.message}. Falling back to Gemini...`);
+  }
+
+  // 2. Fallback to Gemini Vision
   const geminiModels = [
     process.env.GEMINI_MODEL || "gemini-3.6-flash",
     "gemini-flash-latest",
@@ -484,7 +503,7 @@ Schema:
           continue;
         }
 
-        // If Gemini hits 429, immediately try Groq Vision fallback
+        // If Gemini hits 429, cool key and switch
         if (response.status === 429) {
           const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
           const retryDelaySecs = retryDelayMatch
@@ -493,20 +512,6 @@ Schema:
 
           keyCooldownUntil[keyIndex] =
             Date.now() + retryDelaySecs * 1000 + 2000;
-
-          // Try Groq Vision Fallback (Instant, Zero Quota Delay)
-          const groqResult = await callGroqVisionForOcrPage(
-            base64Image,
-            pageNum,
-            textPrompt,
-            importLanguage,
-          );
-          if (groqResult && groqResult.length > 0) {
-            console.log(
-              `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${groqResult.length} questions using Groq Llama 3.2 Vision!`,
-            );
-            return groqResult;
-          }
 
           if (retryCount < 30) {
             console.warn(
@@ -519,6 +524,7 @@ Schema:
               importLanguage,
               expectedCount,
               retryCount + 1,
+              ocrRetryCount,
             );
           }
         }
