@@ -891,147 +891,112 @@ async function main() {
       }
     }
 
-    let completedOcrCount = processedPages.size;
-    const totalOcrPages = ocrPages.length;
+    const pendingPages = ocrPages.filter((p) => !processedPages.has(p.pageNum));
+    console.log(`\n⚡ Processing ${pendingPages.length} remaining pages in parallel batches of 5 (using 21 Gemini keys in pool)...`);
 
-    for (let i = 0; i < ocrPages.length; i++) {
-      const { pageNum, page, expectedCount } = ocrPages[i];
+    const CONCURRENCY = 5;
+    for (let i = 0; i < pendingPages.length; i += CONCURRENCY) {
+      const batch = pendingPages.slice(i, i + CONCURRENCY);
+      const batchPageNums = batch.map((p) => p.pageNum).join(", ");
+      console.log(`\n🚀 [Parallel Batch ${Math.floor(i / CONCURRENCY) + 1}/${Math.ceil(pendingPages.length / CONCURRENCY)}] Processing Pages [${batchPageNums}] concurrently...`);
 
-      // Skip page if already in checkpoint
-      if (processedPages.has(pageNum)) {
-        console.log(
-          `\n--- Page ${pageNum} (${completedOcrCount}/${totalOcrPages}) ---`,
-        );
-        console.log(
-          `⏩ [Checkpoint] Skipping Page ${pageNum} (already processed in checkpoint).`,
-        );
-        continue;
-      }
+      await Promise.all(
+        batch.map(async (pageObj) => {
+          const { pageNum, page, expectedCount, pageSlNos = [] } = pageObj;
 
-      console.log(
-        `\n--- Processing Page ${pageNum} (${completedOcrCount + 1}/${totalOcrPages}) ---`,
-      );
+          // Render page to canvas with higher resolution (2.0x scale)
+          const viewport = page.getViewport({ scale: 2.0 });
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const context = canvas.getContext("2d");
+          await page.render({ canvasContext: context, viewport }).promise;
+          const imgBuffer = canvas.toBuffer("image/png");
+          const base64Image = imgBuffer.toString("base64");
 
-      // Render page to canvas with higher resolution (2.0x scale for crystal clear OCR)
-      const viewport = page.getViewport({ scale: 2.0 });
-      const canvas = createCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext("2d");
-      await page.render({ canvasContext: context, viewport }).promise;
-      const imgBuffer = canvas.toBuffer("image/png");
-      const base64Image = imgBuffer.toString("base64");
-
-      console.log(
-        `Page ${pageNum} rendered. Image size: ${imgBuffer.length} bytes.${expectedCount > 0 ? ` (Pre-scan detected ~${expectedCount} questions)` : ""}`,
-      );
-      console.log(`Sending to Gemini API...`);
-
-      let pageQuestions = [];
-      try {
-        pageQuestions = await callAIChatForOcrPage(
-          base64Image,
-          pageNum,
-          isPaperII,
-          LANGUAGE,
-          expectedCount || 0,
-        );
-      } catch (err) {
-        console.error(
-          `\n❌ Error: Page ${pageNum} failed to process after all retries:`,
-          err.message,
-        );
-        console.error(
-          `💾 Progress saved in checkpoint! Run the command again with Set ID ${TARGET_SET_ID} to resume from Page ${pageNum}.`,
-        );
-        process.exit(1);
-      }
-
-      // --- PDF Sl. No. Override ---
-      // The PDF text layer's Sl. No. values are ground truth.
-      // If the page has known Sl. No. values from pre-scan, assign them in order
-      // to the AI-extracted questions (sorted by their AI-reported qIndex).
-      // This ensures Q1 in PDF always becomes qIndex=1 in DB, regardless of AI errors.
-      const { pageSlNos } = ocrPages[i];
-      if (pageSlNos && pageSlNos.length > 0 && pageQuestions.length > 0) {
-        // Sort AI questions by their own reported qIndex so order is preserved
-        const sorted = [...pageQuestions].sort((a, b) => {
-          const ai = parseInt(
-            String(a.qIndex || "0").match(/\d+/)?.[0] || "0",
-            10,
-          );
-          const bi = parseInt(
-            String(b.qIndex || "0").match(/\d+/)?.[0] || "0",
-            10,
-          );
-          return ai - bi;
-        });
-        // Assign PDF Sl. No. values in order
-        sorted.forEach((q, idx) => {
-          if (idx < pageSlNos.length) {
-            const pdfNum = pageSlNos[idx];
-            const aiNum = parseInt(
-              String(q.qIndex || "").match(/\d+/)?.[0] || "NaN",
-              10,
+          let pageQuestions = [];
+          try {
+            pageQuestions = await callAIChatForOcrPage(
+              base64Image,
+              pageNum,
+              isPaperII,
+              LANGUAGE,
+              expectedCount || 0,
             );
-            if (!isNaN(aiNum) && aiNum !== pdfNum) {
-              console.log(
-                `  📌 [Sl.No Fix] Page ${pageNum}: AI said Q${aiNum}, PDF says Q${pdfNum} → using PDF value`,
+          } catch (err) {
+            console.error(
+              `\n❌ Error: Page ${pageNum} failed to process:`,
+              err.message,
+            );
+            return;
+          }
+
+          // PDF Sl. No. Override
+          if (
+            Array.isArray(pageSlNos) &&
+            pageSlNos.length > 0 &&
+            pageQuestions.length > 0
+          ) {
+            const sorted = [...pageQuestions].sort((a, b) => {
+              const ai = parseInt(
+                String(a.qIndex || "0").match(/\d+/)?.[0] || "0",
+                10,
               );
+              const bi = parseInt(
+                String(b.qIndex || "0").match(/\d+/)?.[0] || "0",
+                10,
+              );
+              return ai - bi;
+            });
+            sorted.forEach((q, idx) => {
+              if (idx < pageSlNos.length) {
+                q.qIndex = pageSlNos[idx];
+              }
+            });
+            pageQuestions.splice(0, pageQuestions.length, ...sorted);
+          }
+
+          pageQuestions.forEach((q) => {
+            let rawStr = String(q.qIndex || "").trim();
+            let matchDigits = rawStr.match(/\d+/);
+            let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
+
+            let ntaId = q.ntaQuestionId || "";
+            if (!isNaN(pdfQNum) && pdfQNum >= 1000 && !ntaId) {
+              ntaId = String(pdfQNum);
+              pdfQNum = NaN;
             }
-            q.qIndex = pdfNum;
-          }
-        });
-        // Replace pageQuestions with the corrected sorted array
-        pageQuestions.splice(0, pageQuestions.length, ...sorted);
-      }
 
-      pageQuestions.forEach((q, pageLocalIdx) => {
-        // Robustly parse digits from qIndex (now already set from PDF Sl. No. above)
-        let rawStr = String(q.qIndex || "").trim();
-        let matchDigits = rawStr.match(/\d+/);
-        let pdfQNum = matchDigits ? parseInt(matchDigits[0], 10) : NaN;
+            let updatedQ = {
+              ...q,
+              qIndex: pdfQNum,
+              pdfQNum: pdfQNum,
+              ntaQuestionId: ntaId,
+              setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
+              _arrivalIndex: parsedQuestions.length,
+            };
 
-        // If pdfQNum is a large bank ID (>= 1000) and ntaQuestionId is not set yet,
-        // promote it to ntaQuestionId and mark qIndex as NaN so it goes to gap-fill.
-        // The gap-fill will assign it in PDF sequence using pageArrivalIndex.
-        let ntaId = q.ntaQuestionId || "";
-        if (!isNaN(pdfQNum) && pdfQNum >= 1000 && !ntaId) {
-          ntaId = String(pdfQNum);
-          pdfQNum = NaN; // will be gap-filled in page-arrival sequence
-        }
+            if (answerKeyMap) {
+              let correctAns = undefined;
+              if (ntaId && answerKeyMap[ntaId] !== undefined) {
+                correctAns = answerKeyMap[ntaId];
+              } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
+                correctAns = answerKeyMap[pdfQNum];
+              }
+              if (correctAns !== undefined) {
+                updatedQ.correct = correctAns;
+              }
+            }
 
-        let updatedQ = {
-          ...q,
-          qIndex: pdfQNum,
-          pdfQNum: pdfQNum,
-          ntaQuestionId: ntaId,
-          setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-          // Preserve the exact order this question appeared in the PDF (global insertion order)
-          _arrivalIndex: parsedQuestions.length,
-        };
+            parsedQuestions.push(updatedQ);
+          });
 
-        // Override correct answer with official key if provided (by ntaQuestionId or pdfQNum)
-        if (answerKeyMap) {
-          let correctAns = undefined;
-          if (ntaId && answerKeyMap[ntaId] !== undefined) {
-            correctAns = answerKeyMap[ntaId];
-          } else if (!isNaN(pdfQNum) && answerKeyMap[pdfQNum] !== undefined) {
-            correctAns = answerKeyMap[pdfQNum];
-          }
-          if (correctAns !== undefined) {
-            updatedQ.correct = correctAns;
-          }
-        }
-
-        parsedQuestions.push(updatedQ);
-      });
-
-      console.log(
-        `Page ${pageNum} processed successfully. Questions found: ${pageQuestions.length}`,
+          processedPages.add(pageNum);
+          console.log(
+            `  ✅ Page ${pageNum} processed (${pageQuestions.length} Qs extracted).`,
+          );
+        }),
       );
-      completedOcrCount++;
 
-      // Save checkpoint after every page
-      processedPages.add(pageNum);
+      // Save checkpoint after each parallel batch
       try {
         const checkpointData = {
           setId: TARGET_SET_ID,
@@ -1045,19 +1010,8 @@ async function main() {
           JSON.stringify(checkpointData, null, 2),
           "utf8",
         );
-        console.log(
-          `💾 [Checkpoint Saved] Page ${pageNum} saved to local checkpoint.`,
-        );
+        console.log(`💾 [Checkpoint Saved] Progress saved up to Batch.`);
       } catch (cpSaveErr) {
-        console.warn(
-          `⚠️  Warning: Failed to write checkpoint file for page ${pageNum}:`,
-          cpSaveErr.message,
-        );
-      }
-
-      // Small spacing delay between requests to keep the IP connection throughput smooth
-      if (i < ocrPages.length - 1) {
-        const spacingDelay = 1500;
         await new Promise((resolve) => setTimeout(resolve, spacingDelay));
       }
     }
