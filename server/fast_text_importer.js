@@ -787,7 +787,7 @@ function extractRawQuestionText(rawBlock) {
 
       // Map and sanitize batch results
       (batchResults || []).forEach((q, idx) => {
-        const matched = batch.find(item => item.qIndex === q.qIndex || item.pdfQNum === q.qIndex) || batch[idx];
+        const matched = batch.find(item => item.qIndex === q.qIndex) || batch[idx];
         const qIndex = matched ? matched.qIndex : (q.qIndex || completedQuestions.length + 1);
 
         let finalPromptText = (q.text || q.question || q.questionText || q.prompt || '').trim();
