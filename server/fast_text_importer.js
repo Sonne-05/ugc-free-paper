@@ -420,7 +420,13 @@ Common Formatting Rules:
 3. Classify question type accurately:
    - 'mcq': standard 4-option single choice.
    - 'assertion-reason': contains "Assertion (A)" and "Reason (R)" or "अभिकथन (A)" and "कारण (R)". Fill "assertion" and "reason" fields.
-   - 'match-column': matching lists (List I / List II or सूची I / सूची II). Fill "list1", "list2", "list1Header", and "list2Header" fields.
+   - 'match-column': matching lists (List I / List II or सूची I / सूची II).
+     CRITICAL FOR 'match-column':
+     * In UGC NET text, List I items are labeled (A), (B), (C), (D) and List II items are labeled (I), (II), (III), (IV) (often side-by-side on the same line or with OCR variations like {i}, (ft), (1), (Il}, (I{l})).
+     * You MUST separate them: extract the 4 List I items into "list1" array and the 4 List II items into "list2" array.
+     * Put the 4 combination choices (e.g. "(A)-(III), (B)-(I), (C)-(IV), (D)-(II)") into the "options" array.
+     * Set "list1Header" to "List - I" and "list2Header" to "List - II".
+     * NEVER leave "list1" or "list2" empty for a match-column question!
    - 'multiple-statement': statements (A, B, C, D, E or I, II, III, IV / कथन) followed by combination options (e.g., "(1) A and B only" / "(1) केवल A और B"). Fill "statements" array and combination options in "options".
    - 'di': Data Interpretation (Q1-5 in Paper I). Fill "passage" field with table/data.
    - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.

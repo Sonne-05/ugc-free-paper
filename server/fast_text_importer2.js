@@ -5,12 +5,20 @@ const dotenv = require('dotenv');
 const readline = require('readline');
 const { PDFParse } = require('pdf-parse');
 
-// Load environment variables
-const envPath = path.resolve('.env');
-if (fs.existsSync(envPath)) {
-  const envConfig = dotenv.parse(fs.readFileSync(envPath));
-  for (const k in envConfig) process.env[k] = envConfig[k];
-}
+// Load environment variables reliably from both script dir and current working dir
+const serverEnvPath = path.join(__dirname, '.env');
+const cwdEnvPath = path.resolve('.env');
+
+[serverEnvPath, cwdEnvPath].forEach(envFile => {
+  if (fs.existsSync(envFile)) {
+    const envConfig = dotenv.parse(fs.readFileSync(envFile));
+    for (const k in envConfig) {
+      if (!process.env[k] || envFile === serverEnvPath) {
+        process.env[k] = envConfig[k];
+      }
+    }
+  }
+});
 
 // Interactive terminal input helper
 function askQuestion(query) {
@@ -132,35 +140,64 @@ const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
 function cleanJsonString(str) {
   let cleaned = str.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  const mdMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (mdMatch) {
+    cleaned = mdMatch[1].trim();
   }
-  const jsonMatch = cleaned.match(/({[\s\S]*}|\[[\s\S]*\])/);
-  if (jsonMatch) cleaned = jsonMatch[1];
+  const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
+  let startIdx = -1;
+  if (firstBrace !== -1 && firstBracket !== -1) {
+    startIdx = Math.min(firstBrace, firstBracket);
+  } else if (firstBrace !== -1) {
+    startIdx = firstBrace;
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+  }
+
+  if (startIdx !== -1) {
+    const isObj = cleaned[startIdx] === '{';
+    const lastIdx = isObj ? cleaned.lastIndexOf('}') : cleaned.lastIndexOf(']');
+    if (lastIdx > startIdx) {
+      cleaned = cleaned.substring(startIdx, lastIdx + 1);
+    }
+  }
   return cleaned;
 }
 
 const OPENCODE_FREE_MODELS = [
-  'deepseek-v4-flash-free',
-  'nemotron-3.5-lightning-free',
   'nemotron-3-ultra-free',
   'mimo-v2.5-free',
+  'deepseek-v4-flash-free',
   'hy3-free',
-  'laguna-s-2.1-free'
+  'laguna-s-2.1-free',
+  'big-pickle',
+  'nemotron-3.5-lightning-free'
 ];
 
-// OpenCode Zen API Caller with Automatic Free Model Failover
+// Unified API Caller (Supports OmniRoute Local Gateway + Direct OpenCode Zen)
 async function callOpenCodeApi(prompt, model, retryCount = 0) {
+  let baseUrl = (process.env.OPENCODE_BASE_URL || 'https://opencode.ai/zen/v1').replace(/\/+$/, '');
+  if (baseUrl.includes('opencodezen.com')) {
+    baseUrl = 'https://opencode.ai/zen/v1';
+  }
+  
+  const isOmniRoute = baseUrl.includes('20128') || model.startsWith('auto') || process.env.USE_OMNIROUTE === 'true';
   let apiKey = (process.env.OPENCODE_API_KEY || '').replace(/\"/g, '').trim();
-  if (!apiKey) {
+
+  if (isOmniRoute && !apiKey) {
+    apiKey = 'omniroute';
+  } else if (!apiKey) {
     throw new Error('OPENCODE_API_KEY is not set in .env file.');
   }
 
-  const baseUrl = (process.env.OPENCODE_BASE_URL || 'https://api.opencodezen.com/v1').replace(/\/+$/, '');
   const urlEndpoint = `${baseUrl}/chat/completions`;
 
-  // Build model cascade list starting with the selected model
-  const modelCascade = [model, ...OPENCODE_FREE_MODELS.filter(m => m !== model)];
+  // Build model cascade list
+  const modelCascade = isOmniRoute 
+    ? [model, 'auto/coding', 'auto', 'auto/fast']
+    : [model, ...OPENCODE_FREE_MODELS.filter(m => m !== model)];
+    
   const currentModel = modelCascade[retryCount % modelCascade.length];
 
   try {
@@ -170,19 +207,20 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(90000),
       body: JSON.stringify({
         model: currentModel,
         messages: [
           {
             role: 'system',
-            content: 'You are an expert UGC NET exam parser. You extract questions and output ONLY valid JSON matching {"questions": [...]}. Never output markdown fences or commentary.'
+            content: 'You are an expert UGC NET exam parser. You extract questions and output ONLY valid JSON matching {"questions": [...]}. Keep explanations concise (1-2 sentences). Never output markdown fences or commentary.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
+        stream: false,
         temperature: 0.1,
         response_format: { type: 'json_object' },
         max_tokens: 4096
@@ -190,8 +228,29 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      const rawJson = data.choices?.[0]?.message?.content || '{}';
+      const rawText = await res.text();
+      let rawJson = '';
+      if (rawText.trim().startsWith('data:')) {
+        const lines = rawText.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data:') && !trimmed.includes('[DONE]')) {
+            try {
+              const chunk = JSON.parse(trimmed.replace(/^data:\s*/, ''));
+              const chunkContent = chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
+              rawJson += chunkContent;
+            } catch (_) {}
+          }
+        }
+      } else {
+        try {
+          const data = JSON.parse(rawText);
+          rawJson = data.choices?.[0]?.message?.content || (typeof data === 'string' ? data : JSON.stringify(data));
+        } catch (_) {
+          rawJson = rawText;
+        }
+      }
+
       const parsed = JSON.parse(cleanJsonString(rawJson));
       return parsed.questions || (Array.isArray(parsed) ? parsed : []);
     }
@@ -199,23 +258,28 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
     const errText = await res.text();
     if ((res.status === 429 || res.status === 503) && retryCount < 10) {
       const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-      console.warn(`[OpenCode Zen ${res.status}] ${currentModel} busy. Auto-switching immediately to "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
+      console.warn(`[AI Gateway ${res.status}] ${currentModel} busy. Switching to "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
       return callOpenCodeApi(prompt, model, retryCount + 1);
     }
 
-    console.warn(`[OpenCode Zen Error] Status ${res.status} on ${currentModel}: ${errText.substring(0, 150)}`);
+    console.warn(`[AI Gateway Error] Status ${res.status} on ${currentModel}: ${errText.substring(0, 150)}`);
   } catch (err) {
-    console.warn(`[OpenCode Zen Network Error on ${currentModel}]: ${err.message}`);
+    if (isOmniRoute && err.message.includes('ECONNREFUSED')) {
+      console.error('\n❌ Could not connect to local OmniRoute on http://localhost:20128.');
+      console.error('👉 Please start OmniRoute in a separate terminal: npx omniroute\n');
+    } else {
+      console.warn(`[AI Gateway Network Error on ${currentModel}]: ${err.message}`);
+    }
   }
 
   if (retryCount < 10) {
     const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-    console.warn(`[OpenCode Zen] Switching to backup model "${nextModel}" after 2s (Attempt ${retryCount + 1}/10)...`);
+    console.warn(`[AI Gateway] Switching to backup "${nextModel}" after 2s (Attempt ${retryCount + 1}/10)...`);
     await new Promise(r => setTimeout(r, 2000));
     return callOpenCodeApi(prompt, model, retryCount + 1);
   }
 
-  throw new Error(`All OpenCode Zen free models exhausted after 10 retry cycles.`);
+  throw new Error(`All AI Gateway models exhausted after 10 retry cycles.`);
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
@@ -228,19 +292,19 @@ Selected Language: "${importLanguage}".
 1. If "${importLanguage}" is "Hindi":
    - Extract the entire question prompt, statements, and all 4 options strictly in HINDI (हिन्दी) using DEVANAGARI script.
    - If the original paper has English + Hindi side-by-side or stacked, isolate and extract ONLY the Hindi Devanagari text.
-   - The "explanation" field MUST be written in clear, accurate academic Hindi (हिन्दी) using Devanagari script with HTML formatting (<p>, <strong>, <ul>, <li>).
+   - The "explanation" field must be written in Hindi (हिन्दी) (1-2 sentences).
 
 2. If "${importLanguage}" is "Sindhi":
    - In UGC NET Sindhi papers, questions are given in both Devanagari script (देवनागरी) and Perso-Arabic script (سنڌي).
    - You MUST extract ONLY the Sindhi text written in DEVANAGARI (देवनागरी) script.
    - Completely DISCARD and STRIP ALL Perso-Arabic / Urdu script characters and lines.
    - Accurately preserve Sindhi Devanagari phonetic letters (such as ॻ, ॼ, ॾ, ॿ, ङ, ञ, ड़, ढ़, ॴ, ॵ, etc.).
-   - The "explanation" field must be written in clear Sindhi Devanagari (or standard academic Devanagari) with rich step-by-step reasoning.
+   - The "explanation" field must be written in Sindhi Devanagari (1-2 sentences).
 
 3. If "${importLanguage}" is "English":
    - Extract ONLY the English text for question text, statements, and 4 options.
    - Discard all Hindi, Sindhi, Devanagari, and Perso-Arabic translations or annotations.
-   - The "explanation" field must be written in English.
+   - The "explanation" field must be written in English (1-2 sentences).
 
 4. If "${importLanguage}" is "Bilingual":
    - Provide English text first, followed by the Devanagari translation on a new line for question text and options.
@@ -251,11 +315,17 @@ Common Formatting Rules:
 3. Classify question type accurately:
    - 'mcq': standard 4-option single choice.
    - 'assertion-reason': contains "Assertion (A)" and "Reason (R)" or "अभिकथन (A)" and "कारण (R)". Fill "assertion" and "reason" fields.
-   - 'match-column': matching lists (List I / List II or सूची I / सूची II). Fill "list1", "list2", "list1Header", and "list2Header" fields.
+   - 'match-column': matching lists (List I / List II or सूची I / सूची II).
+     CRITICAL FOR 'match-column':
+     * In UGC NET text, List I items are labeled (A), (B), (C), (D) and List II items are labeled (I), (II), (III), (IV) (often side-by-side on the same line or with OCR variations like {i}, (ft), (1), (Il}, (I{l})).
+     * You MUST separate them: extract the 4 List I items into "list1" array and the 4 List II items into "list2" array.
+     * Put the 4 combination choices (e.g. "(A)-(III), (B)-(I), (C)-(IV), (D)-(II)") into the "options" array.
+     * Set "list1Header" to "List - I" and "list2Header" to "List - II".
+     * NEVER leave "list1" or "list2" empty for a match-column question!
    - 'multiple-statement': statements (A, B, C, D, E or I, II, III, IV / कथन) followed by combination options (e.g., "(1) A and B only" / "(1) केवल A और B"). Fill "statements" array and combination options in "options".
    - 'di': Data Interpretation (Q1-5 in Paper I). Fill "passage" field with table/data.
    - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.
-4. Generate a rich, high-quality step-by-step HTML explanation (100-150 words) with <p>, <strong>, <ul>, <li> tags in the selected target language.
+4. Keep the "explanation" field SHORT & CONCISE (1 to 2 clear sentences only, e.g. "<p>Option (X) is correct because...</p>"). Do NOT write long paragraphs.
 
 Return JSON in this EXACT schema:
 {
@@ -329,44 +399,82 @@ async function main() {
   console.log('⚡ OpenCode Zen High-Speed Text Question Importer');
   console.log('======================================================\n');
 
-  // Available OpenCode Models
-  const availableModels = [
-    { name: 'DeepSeek V4 Flash Free', id: 'deepseek-v4-flash-free' },
-    { name: 'Nemotron 3.5 Lightning Free', id: 'nemotron-3.5-lightning-free' },
-    { name: 'Nemotron 3 Ultra Free', id: 'nemotron-3-ultra-free' },
-    { name: 'MiMo-V2.5 Free', id: 'mimo-v2.5-free' },
-    { name: 'Hy3 Free', id: 'hy3-free' },
-    { name: 'Laguna S 2.1 Free', id: 'laguna-s-2.1-free' },
-    { name: 'Big Pickle', id: 'big-pickle' }
-  ];
+  const args = process.argv.slice(2);
+  const getArg = (flag) => {
+    const idx = args.indexOf(flag);
+    return idx !== -1 && args[idx + 1] ? args[idx + 1] : null;
+  };
 
-  console.log('Select OpenCode Model:');
-  availableModels.forEach((m, idx) => console.log(`  ${idx + 1}. ${m.name} (${m.id})`));
-  const modelChoice = await askQuestion(`\nEnter choice (1-${availableModels.length}) [Default: 1 - DeepSeek V4 Flash]: `);
-  const choiceIdx = parseInt(modelChoice, 10) - 1;
-  const selectedModel = (choiceIdx >= 0 && choiceIdx < availableModels.length)
-    ? availableModels[choiceIdx].id
-    : (process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free');
+  const cliOmniroute = args.includes('--omniroute');
+  const cliPdf = getArg('--pdf');
+  const cliSetId = getArg('--setId');
+  const cliLang = getArg('--lang');
+  const cliModel = getArg('--model');
+  const cliKey = getArg('--key');
 
-  console.log(`Using Model: "${selectedModel}"\n`);
+  let selectedModel;
+  let PDF_PATH;
+  let TARGET_SET_ID;
+  let LANGUAGE;
+  let ANSWER_KEY_PATH;
 
-  const PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
+  if (cliOmniroute) {
+    process.env.OPENCODE_BASE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
+    process.env.USE_OMNIROUTE = 'true';
+  }
+
+  if (cliPdf && cliSetId) {
+    selectedModel = cliModel || (cliOmniroute ? 'auto/coding' : (process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free'));
+    PDF_PATH = cliPdf;
+    TARGET_SET_ID = cliSetId;
+    LANGUAGE = cliLang || 'English';
+    ANSWER_KEY_PATH = cliKey || null;
+    console.log(`Using CLI Args -> ${cliOmniroute ? '🌐 Gateway: OmniRoute | ' : ''}Model: "${selectedModel}", Language: "${LANGUAGE}"`);
+  } else {
+    // Available AI Models & Gateways
+    const availableModels = [
+      { name: '🚀 OmniRoute Local Gateway (Auto-fallback across 90+ free models)', id: 'auto/coding', isOmni: true },
+      { name: 'Nemotron 3 Ultra Free', id: 'nemotron-3-ultra-free' },
+      { name: 'DeepSeek V4 Flash Free', id: 'deepseek-v4-flash-free' },
+      { name: 'MiMo-V2.5 Free', id: 'mimo-v2.5-free' },
+      { name: 'Hy3 Free', id: 'hy3-free' },
+      { name: 'Laguna S 2.1 Free', id: 'laguna-s-2.1-free' },
+      { name: 'Big Pickle', id: 'big-pickle' }
+    ];
+
+    console.log('Select AI Provider / Model:');
+    availableModels.forEach((m, idx) => console.log(`  ${idx + 1}. ${m.name} [${m.id}]`));
+    const modelChoice = await askQuestion(`\nEnter choice (1-${availableModels.length}) [Default: 1 - OmniRoute / auto]: `);
+    const choiceIdx = parseInt(modelChoice, 10) - 1;
+    const selected = (choiceIdx >= 0 && choiceIdx < availableModels.length)
+      ? availableModels[choiceIdx]
+      : availableModels[0];
+
+    selectedModel = selected.id;
+    if (selected.isOmni) {
+      process.env.OPENCODE_BASE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
+      process.env.USE_OMNIROUTE = 'true';
+    }
+
+    console.log(`Using Model: "${selectedModel}"\n`);
+
+    PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
+    TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
+    LANGUAGE = (await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English';
+    ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
+  }
+
   if (!fs.existsSync(PDF_PATH)) {
     console.error(`Error: PDF file does not exist: "${PDF_PATH}"`);
     process.exit(1);
   }
 
-  const TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
   if (!mongoose.Types.ObjectId.isValid(TARGET_SET_ID)) {
     console.error('Error: Invalid MongoDB ObjectId.');
     process.exit(1);
   }
 
-  const LANGUAGE = (await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English';
-
-  const ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
   let answerKeyMap = null;
-
   if (ANSWER_KEY_PATH && fs.existsSync(ANSWER_KEY_PATH)) {
     console.log('Parsing Answer Key PDF...');
     try {
