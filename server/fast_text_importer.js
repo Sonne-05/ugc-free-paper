@@ -244,7 +244,6 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
     try {
       const groqModels = [
-        process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
         'llama-3.3-70b-versatile',
         'llama-3.1-8b-instant',
         'openai/gpt-oss-20b'
