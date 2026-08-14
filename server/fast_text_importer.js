@@ -292,8 +292,8 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         }
 
         const errText = await res.text();
-        if (res.status === 503) {
-          console.warn(`[Gemini 503 on ${modelName}] High demand. Trying next Gemini model in cascade...`);
+        if (res.status === 503 || res.status === 404 || (res.status === 400 && errText.includes('models/'))) {
+          console.warn(`[Gemini ${res.status} on ${modelName}] Trying next active Gemini model in cascade...`);
           continue;
         }
 

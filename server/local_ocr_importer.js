@@ -480,8 +480,8 @@ Schema:
       if (!response.ok) {
         const errText = await response.text();
 
-        if (response.status === 503) {
-          console.warn(`[AI OCR] Key #${keyIndex + 1} 503 High demand on ${modelName}. Trying next Gemini model in cascade...`);
+        if (response.status === 503 || response.status === 404 || (response.status === 400 && errText.includes('models/'))) {
+          console.warn(`[AI OCR] Key #${keyIndex + 1} ${response.status} on ${modelName}. Trying next Gemini model in cascade...`);
           continue;
         }
 
