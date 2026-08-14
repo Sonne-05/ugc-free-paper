@@ -17,6 +17,28 @@ const CorePaper = require('./models/CorePaper');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { PDFParse } = require('pdf-parse');
+const fs = require('fs');
+
+// Fallback: read Gemini keys directly from .env file (dotenv/dotenvx may not parse AQ.Ab8RN6... keys correctly)
+function loadGeminiKeysFromEnvFile() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    const content = fs.readFileSync(envPath, 'utf8');
+    const line = content.split('\n').find(l => l.startsWith('GEMINI_API_KEY='));
+    if (!line) return [];
+    const raw = line.substring('GEMINI_API_KEY='.length);
+    const keys = raw.split(',').map(k => k.trim()).filter(Boolean);
+    return keys;
+  } catch { return []; }
+}
+
+function getAllGeminiKeys() {
+  const fileKeys = loadGeminiKeysFromEnvFile();
+  if (fileKeys.length > 0) return fileKeys;
+  const envKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+  const envKeys2 = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
+  return [...envKeys, ...envKeys2].filter(Boolean);
+}
 
 const app = express();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -388,12 +410,10 @@ const cleanJsonString = (str) => {
 // Unified helper to call AI for structuring questions
 async function callAIChatForStructure(prompt, keyRotation, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
-    const apiKey = keyRotation.getNextKey('gemini');
+    const keyObj = keyRotation.getNextKey('gemini');
+    const apiKey = typeof keyObj === 'object' && keyObj ? keyObj.key : keyObj;
+    const keyIndex = typeof keyObj === 'object' && keyObj ? keyObj.keyIndex : -1;
     let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-    // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
-    if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
-      rawModel = 'gemini-3.6-flash';
-    }
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
@@ -455,22 +475,18 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     if (!response.ok) {
       const errText = await response.text();
       const maxRetries = Math.max(keysCount * 2, 10);
-      if (response.status === 429 && retryCount < maxRetries) {
+      if ((response.status === 429 || response.status === 503) && retryCount < maxRetries) {
+        const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+        const waitSeconds = retryMatch ? parseFloat(retryMatch[1]) : (response.status === 503 ? 10 : 15);
+        if (keyRotation.coolDownKey && keyIndex >= 0) {
+          keyRotation.coolDownKey(keyIndex, waitSeconds);
+        }
         if (retryCount < keysCount - 1) {
-          console.warn(`[AI Structuring] Gemini 429 Rate Limited. Waiting 2s before trying next key in rotation pool (Retry ${retryCount + 1}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.warn(`[AI Structuring] Gemini ${response.status} on Key #${keyIndex + 1}. Switching immediately to next key in pool (Retry ${retryCount + 1}/${maxRetries})...`);
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         } else {
-          const consecutiveWaitCount = Math.max(retryCount - keysCount + 1, 1);
-          let waitTime = 10000 * consecutiveWaitCount;
-          const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i);
-          if (retryMatch) {
-            const waitSeconds = parseFloat(retryMatch[1]);
-            waitTime = Math.ceil(waitSeconds) * 1000 + 2000;
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini requested wait of ${waitSeconds}s. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/${maxRetries})...`);
-          } else {
-            console.warn(`[AI Structuring] All Gemini keys rate-limited. Gemini 429 Rate Limited. Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/${maxRetries})...`);
-          }
+          const waitTime = Math.min(Math.ceil(waitSeconds) * 1000 + 1000, 30000);
+          console.warn(`[AI Structuring] All Gemini keys busy/limited (${response.status}). Waiting ${waitTime / 1000}s (Retry ${retryCount + 1}/${maxRetries})...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           return callAIChatForStructure(prompt, keyRotation, provider, retryCount + 1, overrideModel);
         }
@@ -1000,54 +1016,78 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
       }
     }
 
-    // If Formats A, B, C, D all found 0 matches, try Format E (OCR bilingual PDF: "N)" numbering + "[Question ID = X]")
-    // Example: "1)\nQuestion text\n1.. Option\n...\n[Question ID = 1406][Question Description = ...]"
+    // If Formats A, B, C, D all found 0 matches, try Format E (NTA [Question ID = X] format)
+    let cleanQuestions = [];
     if (matchesList.length === 0) {
-      console.log(`[Job ${jobId}] No Format A/B/C/D headers found. Trying Format E (OCR bilingual: N) + [Question ID = X])...`);
-      // Match "N)" at start of line (question number), then find the [Question ID = X] that follows in that block
-      const qNumRegex = /^(\d+)\)\s*$/gm;
-      const qIdRegex = /\[Question ID\s*=\s*(\d+)\]/g;
-
-      // Build list of all question number positions
-      const qNumPositions = [];
-      let qnm;
-      while ((qnm = qNumRegex.exec(text)) !== null) {
-        const qNum = parseInt(qnm[1], 10);
-        if (qNum >= 1 && qNum <= 200) {
-          qNumPositions.push({ index: qnm.index, qNum });
+      console.log(`[Job ${jobId}] No Format A/B/C/D headers found. Trying Format E ([Question ID = X])...`);
+      const qIdRegex = /\[Question ID\s*=\s*(\d+)\](?:\[Question Description\s*=\s*([^\]]+)\])?/g;
+      const allFormatEMatches = [];
+      let ematch;
+      while ((ematch = qIdRegex.exec(text)) !== null) {
+        let qNum = null;
+        if (ematch[2]) {
+          const numMatch = ematch[2].match(/_Q0*(\d+)/i) || ematch[2].match(/_(\d+)$/);
+          if (numMatch) qNum = parseInt(numMatch[1], 10);
         }
+        allFormatEMatches.push({
+          index: ematch.index,
+          matchLength: ematch[0].length,
+          qId: ematch[1],
+          desc: ematch[2] || '',
+          qNum
+        });
       }
 
-      // Build list of all [Question ID = X] positions
-      const qIdPositions = [];
-      let qidm;
-      qIdRegex.lastIndex = 0;
-      while ((qidm = qIdRegex.exec(text)) !== null) {
-        qIdPositions.push({ index: qidm.index, qId: qidm[1] });
-      }
+      if (allFormatEMatches.length > 0) {
+        console.log(`[Job ${jobId}] Format E found ${allFormatEMatches.length} [Question ID] markers.`);
+        
+        let targetMatches = allFormatEMatches;
+        if (isPaperII && allFormatEMatches.some(m => /_GP\d+/i.test(m.desc))) {
+          targetMatches = allFormatEMatches.filter(m => !/_GP\d+/i.test(m.desc));
+        } else if (!isPaperII && allFormatEMatches.some(m => /_GP\d+/i.test(m.desc))) {
+          targetMatches = allFormatEMatches.filter(m => /_GP\d+/i.test(m.desc));
+        }
 
-      console.log(`[Job ${jobId}] Format E: found ${qNumPositions.length} "N)" headers and ${qIdPositions.length} [Question ID] markers.`);
-
-      if (qNumPositions.length > 0 && qIdPositions.length > 0) {
-        // For each "N)" position, find the nearest [Question ID = X] that comes AFTER it (before the next "N)")
-        for (let i = 0; i < qNumPositions.length; i++) {
-          const cur = qNumPositions[i];
-          const nextQNumIdx = i + 1 < qNumPositions.length ? qNumPositions[i + 1].index : text.length;
-          // Find the first [Question ID = X] between cur.index and nextQNumIdx
-          const matchingQId = qIdPositions.find(q => q.index > cur.index && q.index < nextQNumIdx);
-          if (matchingQId) {
-            matchesList.push({ index: cur.index, qNum: cur.qNum, qId: matchingQId.qId });
+        for (let i = 0; i < targetMatches.length; i++) {
+          const cur = targetMatches[i];
+          const prevMatch = i > 0 ? targetMatches[i - 1] : null;
+          let textStart = 0;
+          if (prevMatch) {
+            const prevBlock = text.substring(prevMatch.index, cur.index);
+            const lastOpt = prevBlock.lastIndexOf('[Option ID');
+            if (lastOpt !== -1) {
+              const bracketEnd = prevBlock.indexOf(']', lastOpt);
+              textStart = prevMatch.index + (bracketEnd !== -1 ? bracketEnd + 1 : lastOpt + 10);
+            } else {
+              textStart = prevMatch.index + prevMatch.matchLength;
+            }
           }
-        }
+          const rawQText = text.substring(textStart, cur.index)
+            .replace(/^[\s\d\)\-\.]+/g, '')
+            .replace(/Topic:‐\s*[^\n]+\n/gi, '')
+            .trim();
 
-        if (matchesList.length > 0) {
-          matchesList.sort((a, b) => a.index - b.index);
-          console.log(`[Job ${jobId}] Format E resolved ${matchesList.length} questions (range: Q${matchesList[0].qNum}–Q${matchesList[matchesList.length - 1].qNum}).`);
+          const nextMatch = i + 1 < targetMatches.length ? targetMatches[i + 1] : null;
+          let optEnd = nextMatch ? nextMatch.index : text.length;
+          if (nextMatch) {
+            const betweenBlock = text.substring(cur.index, nextMatch.index);
+            const lastOpt = betweenBlock.lastIndexOf('[Option ID');
+            if (lastOpt !== -1) {
+              const bracketEnd = betweenBlock.indexOf(']', lastOpt);
+              optEnd = cur.index + (bracketEnd !== -1 ? bracketEnd + 1 : betweenBlock.length);
+            }
+          }
+          const rawOptText = text.substring(cur.index + cur.matchLength, optEnd).trim();
+
+          cleanQuestions.push({
+            qIndex: cur.qNum || (i + 1),
+            pdfQNum: cur.qNum || (i + 1),
+            qId: cur.qId,
+            text: rawQText + '\n' + rawOptText
+          });
         }
       }
     }
-
-    console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
 
     // Capture comprehension blocks (passages/tables)
     const compPassages = {};
@@ -1061,50 +1101,53 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
     }
     console.log(`[Job ${jobId}] Found comprehension blocks:`, Object.keys(compPassages));
 
-    // Determine the question numbers to look for in the PDF
-    let startQNum = 1;
-    let endQNum = 50;
-    let qNumOffset = 0; // dbIndex = current.qNum - qNumOffset
-    let usePdfRangeForAnswers = false;
+    let englishQuestions = cleanQuestions;
 
-    if (isPaperII) {
-      // Check if PDF has question numbers in range 51-150
-      const hasPaperIIRange = matchesList.some(m => m.qNum >= 51 && m.qNum <= 150);
-      if (hasPaperIIRange) {
-        startQNum = 51;
-        endQNum = 150;
-        qNumOffset = 50;
-        usePdfRangeForAnswers = true;
-      } else {
-        startQNum = 1;
-        endQNum = 100;
-        qNumOffset = 0;
+    if (englishQuestions.length === 0 && matchesList.length > 0) {
+      console.log(`[Job ${jobId}] Found ${matchesList.length} total question headers.`);
+      let startQNum = 1;
+      let endQNum = 50;
+      let qNumOffset = 0; // dbIndex = current.qNum - qNumOffset
+
+      if (isPaperII) {
+        // Check if PDF has question numbers in range 51-150
+        const hasPaperIIRange = matchesList.some(m => m.qNum >= 51 && m.qNum <= 150);
+        if (hasPaperIIRange) {
+          startQNum = 51;
+          endQNum = 150;
+          qNumOffset = 50;
+        } else {
+          startQNum = 1;
+          endQNum = 100;
+          qNumOffset = 0;
+        }
       }
+
+      // Group blocks by Question Id (taking first occurrence = English version)
+      for (let i = 0; i < matchesList.length; i++) {
+        const current = matchesList[i];
+        if (current.qNum < startQNum || current.qNum > endQNum) continue;
+        
+        const nextIndex = (i + 1 < matchesList.length) ? matchesList[i + 1].index : text.length;
+        const questionBlockText = text.substring(current.index, nextIndex);
+        
+        if (!questionsMap.has(current.qId)) {
+          questionsMap.set(current.qId, { 
+            qIndex: current.qNum - qNumOffset, 
+            pdfQNum: current.qNum,
+            qId: current.qId, 
+            text: questionBlockText 
+          });
+        }
+      }
+
+      englishQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
     }
 
-    // Group blocks by Question Id (taking first occurrence = English version)
-    for (let i = 0; i < matchesList.length; i++) {
-      const current = matchesList[i];
-      if (current.qNum < startQNum || current.qNum > endQNum) continue;
-      
-      const nextIndex = (i + 1 < matchesList.length) ? matchesList[i + 1].index : text.length;
-      const questionBlockText = text.substring(current.index, nextIndex);
-      
-      if (!questionsMap.has(current.qId)) {
-        questionsMap.set(current.qId, { 
-          qIndex: current.qNum - qNumOffset, 
-          pdfQNum: current.qNum,
-          qId: current.qId, 
-          text: questionBlockText 
-        });
-      }
-    }
-
-    const englishQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
-    console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique English questions.`);
+    console.log(`[Job ${jobId}] Filtered ${englishQuestions.length} unique questions.`);
 
     if (englishQuestions.length === 0) {
-      throw new Error(`No questions matching Q${startQNum}-Q${endQNum} found in the uploaded PDF.`);
+      throw new Error(`No questions matching Paper ${isPaperII ? 'II' : 'I'} found in the uploaded PDF.`);
     }
 
     const compKeys = Object.keys(compPassages);
@@ -1112,10 +1155,12 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
     const passageId2 = compKeys[1];
 
     // 3. Process concurrently in batches of 5 using API key rotation and parallel async pool
+    const allGemKeys = getAllGeminiKeys();
     const keyRotation = {
       geminiIndex: 0,
       groqIndex: 0,
-      geminiKeys: (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
+      geminiKeys: allGemKeys,
+      geminiCooldowns: allGemKeys.map(() => 0),
       groqKeys: (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean),
       hasKeys(provider) {
         if (provider === 'gemini') return this.geminiKeys.length > 0;
@@ -1123,13 +1168,31 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
         return false;
       },
       getNextKey(provider) {
+        const now = Date.now();
         if (provider === 'gemini') {
-          return this.geminiKeys[this.geminiIndex++ % this.geminiKeys.length];
+          if (this.geminiKeys.length === 0) return null;
+          // Find next key not in cooldown
+          for (let attempt = 0; attempt < this.geminiKeys.length; attempt++) {
+            const idx = (this.geminiIndex + attempt) % this.geminiKeys.length;
+            if (this.geminiCooldowns[idx] <= now) {
+              this.geminiIndex = (idx + 1) % this.geminiKeys.length;
+              return { key: this.geminiKeys[idx], keyIndex: idx };
+            }
+          }
+          // All in cooldown, take the next one anyway
+          const fallbackIdx = this.geminiIndex++ % this.geminiKeys.length;
+          return { key: this.geminiKeys[fallbackIdx], keyIndex: fallbackIdx };
         }
         if (provider === 'groq') {
+          if (this.groqKeys.length === 0) return null;
           return this.groqKeys[this.groqIndex++ % this.groqKeys.length];
         }
         return null;
+      },
+      coolDownKey(keyIndex, seconds) {
+        if (keyIndex >= 0 && keyIndex < this.geminiCooldowns.length) {
+          this.geminiCooldowns[keyIndex] = Date.now() + (seconds * 1000) + 1000;
+        }
       }
     };
 
@@ -1148,7 +1211,22 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
       updateJobProgress(jobId, initialPercent, `Importing questions (${completedQuestionsCount}/${totalQuestions})...`);
       console.log(`[Job ${jobId}] Processing batch ${i + 1}/${batches.length} (Q${batch[0].qIndex} to Q${batch[batch.length - 1].qIndex})...`);
       
-      const batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII, importLanguage);
+      let batchJson = [];
+      try {
+        batchJson = await callAIChatToStructureBatch(batch, compPassages, keyRotation, answerKeyMap, isPaperII, importLanguage);
+      } catch (batchErr) {
+        console.warn(`[Job ${jobId}] Batch ${i + 1} failed (${batchErr.message}). Retrying questions individually...`);
+        for (const singleQ of batch) {
+          try {
+            const singleResult = await callAIChatToStructureBatch([singleQ], compPassages, keyRotation, answerKeyMap, isPaperII, importLanguage);
+            if (singleResult && singleResult.length > 0) {
+              batchJson.push(singleResult[0]);
+            }
+          } catch (singleErr) {
+            console.error(`[Job ${jobId}] Single question Q${singleQ.qIndex} failed:`, singleErr.message);
+          }
+        }
+      }
       batchJson.forEach((q, idx) => {
         // Enforce index-based mapping to prevent AI from returning wrong qIndex (like absolute 51 instead of relative 1)
         const matchedInputQ = batch[idx];
@@ -1554,7 +1632,7 @@ app.post('/api/questions/explain', async (req, res) => {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-      const geminiKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+      const geminiKeys = getAllGeminiKeys();
   const groqKeys = (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
   const geminiApiKey = geminiKeys.length > 0 ? geminiKeys[geminiExplainIndex++ % geminiKeys.length] : '';
@@ -1684,10 +1762,10 @@ app.post('/api/questions/explain', async (req, res) => {
     let geminiErrorMsg = '';
 
     if (geminiApiKey) {
-      let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+      let rawModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
       // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
-      if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'].includes(rawModel)) {
-        rawModel = 'gemini-3.6-flash';
+      if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.6-flash'].includes(rawModel)) {
+        rawModel = 'gemini-flash-latest';
       }
       const geminiModel = rawModel.replace(/^models\//, '');
       console.log(`[AI Explain] Trying Gemini Direct using model ${geminiModel}...`);

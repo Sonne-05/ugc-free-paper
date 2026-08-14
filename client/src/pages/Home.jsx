@@ -1,294 +1,523 @@
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
+import { API_BASE_URL } from '../services/api'
 import './Home.css'
 
 const Home = () => {
   const isLoggedIn = typeof localStorage !== 'undefined' ? localStorage.getItem('isLoggedIn') === 'true' : false
+  const [activeFaq, setActiveFaq] = useState(null)
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.settings) setSettings(data.settings)
+      })
+      .catch(() => {})
+  }, [])
+
+  const toggleFaq = (index) => {
+    setActiveFaq(activeFaq === index ? null : index)
+  }
+
+  const paper1Units = [
+    { id: 'unit-1', num: 'Unit 1', title: 'Teaching Aptitude', topics: 'Learner characteristics, Teaching methods, Evaluation systems, Swayam/Moocs', path: '/paper1-notes/unit-1' },
+    { id: 'unit-2', num: 'Unit 2', title: 'Research Aptitude', topics: 'Positivism, Methods of research, Thesis writing, Ethics, Plagiarism', path: '/paper1-notes/unit-2' },
+    { id: 'unit-3', num: 'Unit 3', title: 'Reading Comprehension', topics: 'Passage analysis, Inference extraction, Contextual vocabulary', path: '/paper1-unit-pyq' },
+    { id: 'unit-4', num: 'Unit 4', title: 'Communication', topics: 'Types of communication, Barriers, Mass-media and society, Intercultural', path: '/paper1-notes/unit-4' },
+    { id: 'unit-5', num: 'Unit 5', title: 'Mathematical Reasoning', topics: 'Number series, Coding, Fractions, Ratio, Percentage, Profit & Loss', path: '/paper1-unit-pyq' },
+    { id: 'unit-6', num: 'Unit 6', title: 'Logical Reasoning', topics: 'Square of opposition, Deductive/Inductive, Fallacies, Indian Logic (Pramanas)', path: '/paper1-notes/unit-6' },
+    { id: 'unit-7', num: 'Unit 7', title: 'Data Interpretation (DI)', topics: 'Table charts, Bar graphs, Pie charts, Percentage analysis, Trend analysis', path: '/paper1-unit-pyq' },
+    { id: 'unit-8', num: 'Unit 8', title: 'ICT', topics: 'General abbreviations, Internet basics, Digital initiatives, NEP 2020 tech', path: '/paper1-notes/unit-8' },
+    { id: 'unit-9', num: 'Unit 9', title: 'People, Dev & Environment', topics: 'MDGs, SDGs, Air/Water Pollution, Climate Change, International Solar Alliance', path: '/paper1-notes/unit-9' },
+    { id: 'unit-10', num: 'Unit 10', title: 'Higher Education System', topics: 'Ancient universities (Takshashila, Nalanda), Governance, NEP 2020, Regulatory bodies', path: '/paper1-notes/unit-10' }
+  ]
+
+  const comparisonFeatures = [
+    {
+      feature: 'Access & Pricing',
+      other: '₹2,000 – ₹5,999 / year subscription paywall',
+      ugc: '100% Free Forever — Zero Hidden Fees'
+    },
+    {
+      feature: 'NTA CBT Exam Simulator',
+      other: 'Generic quiz interface without actual exam layout',
+      ugc: 'Pixel-perfect NTA CBT Palette, Timer & Question Layout'
+    },
+    {
+      feature: 'Full-Length Solved PYQs',
+      other: 'Only 1-2 free sample tests; remainder locked',
+      ugc: 'Complete 100-Question Year Papers (2021–2024)'
+    },
+    {
+      feature: 'Solution Quality',
+      other: 'Brief 1-line answer key without deep context',
+      ugc: '150-word Step-by-Step Academic Reasoning & References'
+    },
+    {
+      feature: 'Bilingual Support (Hindi / Sindhi / English)',
+      other: 'Often mixed, fragmented, or poorly translated',
+      ugc: 'Clean English, Hindi Devanagari & Sindhi Devanagari'
+    },
+    {
+      feature: 'Sign-up Friction & Marketing Spam',
+      other: 'Aggressive sales calls, phone number gating',
+      ugc: 'Zero Spam Calls • Instant 1-Click Practice'
+    }
+  ]
+
+  const faqs = [
+    {
+      q: 'Why is UGC Free Paper completely free?',
+      a: 'Our mission is to democratize higher education exam preparation in India. High-quality UGC NET and JRF test preparation should not be locked behind costly ₹5,000 paywalls. We provide full-length NTA mock tests, unit-wise notes, and authentic previous year papers completely free for all aspirants.'
+    },
+    {
+      q: 'Is the mock test interface identical to the real NTA UGC NET exam?',
+      a: 'Yes. Our Computer Based Test (CBT) engine replicates the exact NTA exam screen—including the 4-color status palette (Answered, Not Answered, Marked for Review, Not Visited), section switcher, question navigation, countdown timers, and final submission summaries.'
+    },
+    {
+      q: 'Does UGC NET have negative marking in Paper 1 or Paper 2?',
+      a: 'No. As per National Testing Agency (NTA) guidelines, there is no negative marking in either Paper 1 or Paper 2. Each correct question awards +2 marks. Unattempted or incorrect answers receive 0 marks. Aspirants should attempt all questions.'
+    },
+    {
+      q: 'What are the qualifying criteria and fellowship for Junior Research Fellowship (JRF)?',
+      a: 'Candidates who score above the top percentile cutoff qualify for JRF. Successful JRF awardees receive a monthly government research stipend of ₹37,000/month (plus HRA) for the first two years (JRF), progressing to ₹42,000/month for Senior Research Fellowship (SRF).'
+    },
+    {
+      q: 'How can I practice both Paper 1 (General Paper) and Paper 2 (Subject Core)?',
+      a: 'You can navigate to "Paper I (PYQ)" for year-wise full papers, "Unit-Wise PYQs" for topic drilling across all 10 general aptitude units, and "Core Paper (PYQ)" for specialized subjects like Sociology, Sindhi, Political Science, and more.'
+    }
+  ]
+
   return (
     <div className="home-page">
-      {/* 1. Hero Section */}
+      {/* 1. HERO SECTION */}
       <section className="hero-sec">
         <div className="hero-sec__container">
           <div className="hero-sec__content">
             <div className="hero-sec__badge">
-              <svg className="hero-sec__badge-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="M9 11l2 2 4-4" />
-              </svg>
-              <span>NTA-PATTERN COMPLIANT</span>
+              <span className="hero-sec__badge-dot" />
+              <span>OFFICIAL NTA CBT PATTERN (2024–2025)</span>
             </div>
-            
+
             <h1 className="hero-sec__title">
-              Master Your UGC NET Preparation with <span className="hero-sec__title--green">Free Mock Tests</span>
+              Crack UGC NET & JRF with <span className="hero-sec__title--highlight">100% Free</span> Mock Tests & Solved PYQs
             </h1>
-            
+
             <p className="hero-sec__subtitle">
-              Experience the real NTA interface, track your progress, and access 15,000+ practice questions for free. Empowering students with the tools to succeed.
+              Stop paying ₹3,000–₹5,000 for mock test subscriptions. Practice with the authentic NTA Computer Based Test (CBT) interface, 15,000+ verified previous year questions (2021–2024), and step-by-step academic solutions.
             </p>
-            
+
             <div className="hero-sec__actions">
               <Link to="/paper1" className="hero-sec__btn hero-sec__btn--primary">
-                Start Free Mock Test <span className="hero-sec__btn-arrow">&rarr;</span>
+                <span>Start Paper 1 Mock Test</span>
+                <span className="hero-sec__btn-arrow">&rarr;</span>
               </Link>
               <Link to="/paper2" className="hero-sec__btn hero-sec__btn--secondary">
-                Browse Papers
+                Explore Paper 2 Subjects
+              </Link>
+              <Link to="/paper1-notes" className="hero-sec__btn hero-sec__btn--outline">
+                Unit Notes (All 10 Units)
               </Link>
             </div>
 
-            <div className="hero-sec__social-proof" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3BBED0' }} />
-              <span className="hero-sec__social-text" style={{ margin: 0, color: '#64748b', fontSize: '0.88rem', fontFamily: 'sans-serif' }}>
-                Joined by <strong style={{ color: '#0f172a', fontWeight: '600' }}>100k+ aspirants</strong> this month
-              </span>
+            <div className="hero-sec__trust-row">
+              <div className="hero-sec__trust-item">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>100% Free Forever</span>
+              </div>
+              <div className="hero-sec__trust-item">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>Zero Paywalls / No Cards</span>
+              </div>
+              <div className="hero-sec__trust-item">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+                <span>100k+ Aspirants</span>
+              </div>
             </div>
           </div>
-          
+
           <div className="hero-sec__visual">
-            <div className="hero-sec__mockup-wrapper">
-              <img src="/dashboard_mockup.png" alt="Dashboard Mockup" className="hero-sec__mockup-img" />
-              <div className="hero-sec__floating-badge">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.5" fill="none">
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                  <path d="M4 22h16" />
-                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
-                  <path d="M12 2a5 5 0 0 1 5 5v5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z" />
-                </svg>
+            <div className="hero-cbt-preview">
+              <div className="hero-cbt-preview__bar">
+                <div className="hero-cbt-preview__dots">
+                  <span className="dot red" />
+                  <span className="dot yellow" />
+                  <span className="dot green" />
+                </div>
+                <span className="hero-cbt-preview__title">NTA Examination Simulator</span>
+                <span className="hero-cbt-preview__timer">⏱ 02:59:45</span>
+              </div>
+              <div className="hero-cbt-preview__body">
+                <div className="hero-cbt-preview__question-area">
+                  <span className="hero-cbt-preview__qnum">Question 1 (Paper I General)</span>
+                  <p className="hero-cbt-preview__qtext">
+                    Which of the following levels of teaching involves reflective and problem-solving cognitive abilities of the learner?
+                  </p>
+                  <div className="hero-cbt-preview__options">
+                    <div className="hero-cbt-preview__opt">1. Memory level</div>
+                    <div className="hero-cbt-preview__opt">2. Understanding level</div>
+                    <div className="hero-cbt-preview__opt active">3. Reflective level (Hunt's Model)</div>
+                    <div className="hero-cbt-preview__opt">4. Autonomous development level</div>
+                  </div>
+                </div>
+                <div className="hero-cbt-preview__palette">
+                  <span className="palette-label">Question Palette</span>
+                  <div className="palette-grid">
+                    <span className="palette-btn answered">1</span>
+                    <span className="palette-btn review">2</span>
+                    <span className="palette-btn not-visited">3</span>
+                    <span className="palette-btn not-answered">4</span>
+                    <span className="palette-btn not-visited">5</span>
+                    <span className="palette-btn not-visited">6</span>
+                    <span className="palette-btn not-visited">7</span>
+                    <span className="palette-btn not-visited">8</span>
+                  </div>
+                  <div className="palette-legend">
+                    <div><span className="legend-box answered" /> Answered</div>
+                    <div><span className="legend-box review" /> Marked for Review</div>
+                    <div><span className="legend-box not-answered" /> Not Answered</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 2. Stats Section */}
+      {/* 2. STATS BANNER */}
       <section className="stats-banner">
         <div className="stats-banner__container">
           <div className="stats-banner__item">
-            <div className="stats-banner__icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
-                <path d="M9 11l3 3L22 4" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-              </svg>
-            </div>
-            <div className="stats-banner__info">
-              <span className="stats-banner__number">50+</span>
-              <span className="stats-banner__label">Full Mock Tests</span>
-            </div>
+            <span className="stats-banner__number">15,000+</span>
+            <span className="stats-banner__label">Solved Questions with Explanations</span>
           </div>
-          
           <div className="stats-banner__divider" />
-          
           <div className="stats-banner__item">
-            <div className="stats-banner__icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </div>
-            <div className="stats-banner__info">
-              <span className="stats-banner__number">15,000+</span>
-              <span className="stats-banner__label">Practice Questions</span>
-            </div>
+            <span className="stats-banner__number">100%</span>
+            <span className="stats-banner__label">NTA Real Exam CBT Screen Match</span>
           </div>
-          
           <div className="stats-banner__divider" />
-          
           <div className="stats-banner__item">
-            <div className="stats-banner__icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-              </svg>
+            <span className="stats-banner__number">10 Units</span>
+            <span className="stats-banner__label">Complete Paper 1 Syllabus Mastery</span>
+          </div>
+          <div className="stats-banner__divider" />
+          <div className="stats-banner__item">
+            <span className="stats-banner__number">₹0</span>
+            <span className="stats-banner__label">Free Forever for Every Student</span>
+          </div>
+        </div>
+      </section>
+
+      {/* AdSense Placement 1: Top Leaderboard */}
+      <div className="ad-container" style={{ maxWidth: '1200px', margin: '16px auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
+
+      {/* 3. DUAL PATHWAY SELECTOR */}
+      <section className="pathway-sec">
+        <div className="pathway-sec__container">
+          <div className="section-head">
+            <span className="section-head__tag">YOUR PREPARATION ROADMAP</span>
+            <h2 className="section-head__title">What Do You Need to Practice Today?</h2>
+            <p className="section-head__desc">
+              Choose your targeted study mode. Whether you are aiming to score 80+ in Paper 1 or master your Core Subject in Paper 2, we have you covered.
+            </p>
+          </div>
+
+          <div className="pathway-grid">
+            {/* Pathway Card 1: Paper 1 */}
+            <div className="pathway-card pathway-card--p1">
+              <div className="pathway-card__header">
+                <div className="pathway-card__badge">COMPULSORY GENERAL PAPER</div>
+                <h3 className="pathway-card__title">Paper I: Teaching & Research Aptitude</h3>
+                <p className="pathway-card__meta">50 Questions • 100 Marks • Common to all 83 UGC NET Subjects</p>
+              </div>
+              <ul className="pathway-card__list">
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>All 10 Units Covered:</strong> Teaching, Research, Reading Comprehension, DI, ICT, Environment & Higher Education.</span>
+                </li>
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>Unit-Wise Practice:</strong> Isolate your weak topics and practice targeted question banks.</span>
+                </li>
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>High-Yield Study Notes:</strong> Revision summaries, formulas, and short notes for quick memory retention.</span>
+                </li>
+              </ul>
+              <div className="pathway-card__actions">
+                <Link to="/paper1" className="pathway-btn pathway-btn--primary">
+                  Practice Year-Wise PYQs &rarr;
+                </Link>
+                <Link to="/paper1-unit-pyq" className="pathway-btn pathway-btn--secondary">
+                  Practice Unit-Wise PYQs &rarr;
+                </Link>
+              </div>
             </div>
-            <div className="stats-banner__info">
-              <span className="stats-banner__number">100+</span>
-              <span className="stats-banner__label">Free Study Notes</span>
+
+            {/* Pathway Card 2: Paper 2 */}
+            <div className="pathway-card pathway-card--p2">
+              <div className="pathway-card__header">
+                <div className="pathway-card__badge pathway-card__badge--p2">SUBJECT SPECIALIZATION</div>
+                <h3 className="pathway-card__title">Paper II: Core Subject Question Banks</h3>
+                <p className="pathway-card__meta">100 Questions • 200 Marks • Deep Domain Curriculum</p>
+              </div>
+              <ul className="pathway-card__list">
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>Full 100-Question Papers:</strong> Complete subject papers from 2021 to 2024 without missing questions.</span>
+                </li>
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>Sociology, Sindhi & More:</strong> Deep question coverage with Match-Column, Assertion-Reason, and Multiple Statements.</span>
+                </li>
+                <li>
+                  <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                  </svg>
+                  <span><strong>Bilingual & Script Purity:</strong> Crisp English, Hindi Devanagari, and Sindhi Devanagari script integrity.</span>
+                </li>
+              </ul>
+              <div className="pathway-card__actions">
+                <Link to="/paper2" className="pathway-btn pathway-btn--p2">
+                  Browse Core Subjects &rarr;
+                </Link>
+                <Link to="/paper1-notes" className="pathway-btn pathway-btn--secondary">
+                  Access Study Notes &rarr;
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-
-
-      {/* 3. Features Section */}
-      <section className="features-sec">
-        <div className="features-sec__container">
-          <div className="features-sec__header">
-            <h2 className="features-sec__title">Designed for Peak Performance</h2>
-            <p className="features-sec__subtitle">
-              Experience a learning ecosystem that mimics the pressure and precision of the real UGC NET exam.
+      {/* 4. PAPER 1 COMPLETE 10 UNITS BREAKDOWN */}
+      <section className="units-sec">
+        <div className="units-sec__container">
+          <div className="section-head">
+            <span className="section-head__tag">COMPLETE SYLLABUS BREAKDOWN</span>
+            <h2 className="section-head__title">Paper 1: Master All 10 Units</h2>
+            <p className="section-head__desc">
+              Every unit carries equal weightage (5 questions / 10 marks). Click any unit below to access dedicated notes and practice tests.
             </p>
           </div>
-          
-          <div className="features-sec__grid">
-            <div className="feature-card">
-              <div className="feature-card__icon-box">
+
+          <div className="units-grid">
+            {paper1Units.map((u) => (
+              <Link to={u.path} key={u.id} className="unit-card">
+                <div className="unit-card__top">
+                  <span className="unit-card__num">{u.num}</span>
+                  <span className="unit-card__badge">5 Qs / 10 M</span>
+                </div>
+                <h4 className="unit-card__title">{u.title}</h4>
+                <p className="unit-card__topics">{u.topics}</p>
+                <span className="unit-card__link">
+                  Study & Practice &rarr;
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AdSense Placement 2: Mid-Content In-Feed Banner */}
+      <div className="ad-container" style={{ maxWidth: '1200px', margin: '24px auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
+
+      {/* 5. "WHY STICK WITH UGC FREE PAPER" - COMPARISON MATRIX */}
+      <section className="comparison-sec">
+        <div className="comparison-sec__container">
+          <div className="section-head">
+            <span className="section-head__tag">WHY STICK WITH US</span>
+            <h2 className="section-head__title">UGC Free Paper vs Paid Coaching Platforms</h2>
+            <p className="section-head__desc">
+              See how we provide an authentic, ad-free, high-quality learning ecosystem at zero cost compared to expensive commercial apps.
+            </p>
+          </div>
+
+          <div className="comparison-table-wrapper">
+            <table className="comparison-table">
+              <thead>
+                <tr>
+                  <th className="th-feature">Feature / Quality Metric</th>
+                  <th className="th-other">Paid Coaching Apps<br/><span className="sub">(Testbook / Unacademy / Adda247)</span></th>
+                  <th className="th-ugc">🌟 UGC Free Paper<br/><span className="sub">(For All Aspirants)</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonFeatures.map((row, i) => (
+                  <tr key={i}>
+                    <td className="td-feature">
+                      <strong>{row.feature}</strong>
+                    </td>
+                    <td className="td-other">
+                      <span className="cross-badge">✕</span>
+                      <span>{row.other}</span>
+                    </td>
+                    <td className="td-ugc">
+                      <span className="check-badge">✓</span>
+                      <span>{row.ugc}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. REAL NTA CBT EXPERIENCE FEATURES */}
+      <section className="features-sec">
+        <div className="features-sec__container">
+          <div className="section-head">
+            <span className="section-head__tag">SIMULATE REAL EXAM PRESSURE</span>
+            <h2 className="section-head__title">Built for Peak Examination Performance</h2>
+            <p className="section-head__desc">
+              Overcome exam anxiety before sitting in the actual exam hall. Practice in the exact environment NTA provides.
+            </p>
+          </div>
+
+          <div className="features-grid">
+            <div className="feature-item">
+              <div className="feature-item__icon-box">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                   <line x1="8" y1="21" x2="16" y2="21" />
                   <line x1="12" y1="17" x2="12" y2="21" />
                 </svg>
               </div>
-              <h3 className="feature-card__title">Realistic NTA Interface</h3>
-              <p className="feature-card__desc">
-                Practice in an environment that matches the actual exam. Master the navigation, timers, and question palette exactly like the real thing.
+              <h3 className="feature-item__title">Authentic NTA Color Palette</h3>
+              <p className="feature-item__desc">
+                Color coding matched to NTA standards: Green for Answered, Red for Unanswered, Purple for Marked for Review, and Grey for Not Visited.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-card__icon-box">
+            <div className="feature-item">
+              <div className="feature-item__icon-box">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </div>
+              <h3 className="feature-item__title">Live 3-Hour Countdown Timers</h3>
+              <p className="feature-item__desc">
+                Master your time management. Learn to allocate 60 minutes for Paper 1 and 120 minutes for Paper 2 without running out of time.
+              </p>
+            </div>
+
+            <div className="feature-item">
+              <div className="feature-item__icon-box">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
                   <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
                   <line x1="9" y1="18" x2="15" y2="18" />
                   <line x1="10" y1="22" x2="14" y2="22" />
                 </svg>
               </div>
-              <h3 className="feature-card__title">Instant Explanations</h3>
-              <p className="feature-card__desc">
-                Don't just get answers, get insights. Detailed solutions are provided immediately after each question to bridge your knowledge gaps.
+              <h3 className="feature-item__title">In-Depth Academic Explanations</h3>
+              <p className="feature-item__desc">
+                Never guess why an answer is correct. Every single question has a clear, formatted explanation citing academic theories, formulas, and concepts.
               </p>
             </div>
 
-            <div className="feature-card">
-              <div className="feature-card__icon-box">
+            <div className="feature-item">
+              <div className="feature-item__icon-box">
                 <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2.2" fill="none">
                   <line x1="18" y1="20" x2="18" y2="10" />
                   <line x1="12" y1="20" x2="12" y2="4" />
                   <line x1="6" y1="20" x2="6" y2="14" />
                 </svg>
               </div>
-              <h3 className="feature-card__title">Performance Tracking</h3>
-              <p className="feature-card__desc">
-                Analyze your accuracy and time management. Advanced dashboards show your strengths and weaknesses subject by subject.
+              <h3 className="feature-item__title">Instant Performance Analytics</h3>
+              <p className="feature-item__desc">
+                Get an instant diagnostic report showing your total score, accuracy percentage, time spent per question, and strong vs. weak units.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Subjects Section */}
-      <section className="subjects-sec">
-        <div className="subjects-sec__container">
-          <div className="subjects-sec__header">
-            <div className="subjects-sec__header-left">
-              <h2 className="subjects-sec__title">Explore Subjects for Paper 1 & 2</h2>
-              <p className="subjects-sec__subtitle">Comprehensive material curated for all major disciplines.</p>
-            </div>
-            <Link to="/paper2" className="subjects-sec__view-all">
-              View All Subjects &rarr;
-            </Link>
-          </div>
-          
-          <div className="subjects-sec__grid">
-            <Link to="/paper1" className="subject-card">
-              <div className="subject-card__icon-box">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-                  <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
-                </svg>
-              </div>
-              <h3 className="subject-card__title">Teaching Aptitude</h3>
-              <span className="subject-card__badge subject-card__badge--p1">Paper 1 Core</span>
-            </Link>
-
-            <Link to="/paper1" className="subject-card">
-              <div className="subject-card__icon-box">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <circle cx="12" cy="5" r="3" />
-                  <path d="M12 22V8M5 12h14" />
-                </svg>
-              </div>
-              <h3 className="subject-card__title">Research Aptitude</h3>
-              <span className="subject-card__badge subject-card__badge--p1">Paper 1 Core</span>
-            </Link>
-
-            <Link to="/paper2" className="subject-card">
-              <div className="subject-card__icon-box">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.2" fill="none">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <h3 className="subject-card__title">Sociology</h3>
-              <span className="subject-card__badge subject-card__badge--p2">Paper 2</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* 5. CTA Section */}
+      {/* 7. HIGH-CONVERTING FINAL CTA */}
       <section className="cta-sec">
         <div className="cta-sec__container">
           <div className="cta-sec__box">
-            <h2 className="cta-sec__title">Ready to Crack UGC NET?</h2>
+            <h2 className="cta-sec__title">Ready to Achieve Your Assistant Professor & JRF Dream?</h2>
             <p className="cta-sec__subtitle">
-              Join 100,000+ students preparing with us. Get full access to all mock tests and premium features at zero cost.
+              Join thousands of serious aspirants preparing daily on UGC Free Paper. Full access to all mock tests, previous year papers, and study notes at zero cost.
             </p>
             <div className="cta-sec__actions">
               {isLoggedIn ? (
-                <Link to="/profile" className="cta-sec__btn">
-                  Go to Dashboard
+                <Link to="/profile" className="cta-sec__btn cta-sec__btn--primary">
+                  Go to Student Dashboard &rarr;
                 </Link>
               ) : (
-                <Link to="/signup" className="cta-sec__btn">
-                  Register Now
+                <Link to="/signup" className="cta-sec__btn cta-sec__btn--primary">
+                  Create Free Account &rarr;
                 </Link>
               )}
-              <div className="cta-sec__badge">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="3" fill="none" className="cta-sec__badge-icon">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>No Credit Card Required</span>
-              </div>
+              <Link to="/paper1" className="cta-sec__btn cta-sec__btn--secondary">
+                Start Mock Test Without Login
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. AdSense Compliance Content & FAQs */}
-      <section className="adsense-content">
-        <div className="adsense-content__container">
-          <div className="adsense-content__info-block">
-            <h2 className="adsense-content__title">UGC NET Examination Guidelines & Resources</h2>
-            <p className="adsense-content__para">
-              The University Grants Commission National Eligibility Test (UGC NET) is a highly competitive national-level examination in India. Conducted by the National Testing Agency (NTA), it determines the eligibility of Indian nationals for 'Assistant Professor' and 'Junior Research Fellowship (JRF)' positions in Indian universities and colleges.
-            </p>
-            <p className="adsense-content__para">
-              To maximize success, candidate preparation should focus heavily on understanding the exam pattern. The test is administered in a Computer Based Test (CBT) format. It consists of two papers, both containing objective-type, multiple-choice questions (MCQs), spanning a duration of 3 hours without any break.
-            </p>
-            <p className="adsense-content__para">
-              <strong>Paper 1 (General Paper on Teaching & Research Aptitude)</strong> is compulsory and common to all candidates. It evaluates teaching methodologies, research capabilities, reading comprehension, mathematical reasoning, data interpretation, and environmental awareness. <strong>Paper 2 (Sociology Core Subject)</strong> focuses deeply on advanced sociology curriculum, sociological theories, research methodologies, and social development paradigms.
+      {/* AdSense Placement 3: Pre-FAQ Display Banner */}
+      <div className="ad-container" style={{ maxWidth: '1200px', margin: '24px auto', padding: '0 24px', textAlign: 'center' }}>
+        <AdSensePlaceholder format="horizontal" config={settings} />
+      </div>
+
+      {/* 8. AUTHORITATIVE UGC NET GUIDELINES & FAQS */}
+      <section className="faq-sec">
+        <div className="faq-sec__container">
+          <div className="section-head">
+            <span className="section-head__tag">COMMONLY ASKED QUESTIONS</span>
+            <h2 className="section-head__title">UGC NET Guidelines & Platform FAQs</h2>
+            <p className="section-head__desc">
+              Everything you need to know about the exam pattern, fellowship benefits, and how to maximize your score.
             </p>
           </div>
 
-          <div className="adsense-content__faq-block">
-            <h3 className="adsense-content__faq-title">Frequently Asked Questions</h3>
-            <div className="faq-accordion">
-              <div className="faq-accordion__item">
-                <h4 className="faq-accordion__question">Is there any negative marking in the NTA UGC NET exam?</h4>
-                <p className="faq-accordion__answer">
-                  No, there is currently no negative marking in the UGC NET exam. Each correct answer awards 2 marks, while unanswered or incorrect attempts receive zero marks. Aspirants are highly encouraged to answer all questions to improve their chances.
-                </p>
+          <div className="faq-accordion">
+            {faqs.map((f, idx) => (
+              <div
+                key={idx}
+                className={`faq-item ${activeFaq === idx ? 'faq-item--active' : ''}`}
+                onClick={() => toggleFaq(idx)}
+              >
+                <div className="faq-item__question">
+                  <h4>{f.q}</h4>
+                  <span className="faq-item__toggle">{activeFaq === idx ? '−' : '+'}</span>
+                </div>
+                {activeFaq === idx && (
+                  <div className="faq-item__answer">
+                    <p>{f.a}</p>
+                  </div>
+                )}
               </div>
-
-              <div className="faq-accordion__item">
-                <h4 className="faq-accordion__question">What is the Junior Research Fellowship (JRF) age limit?</h4>
-                <p className="faq-accordion__answer">
-                  For General Category candidates, the age limit to qualify for the Junior Research Fellowship (JRF) is typically 30 years, with relaxations of up to 5 years for reserved categories (OBC-NCL, SC, ST, PwD, and female candidates). There is no upper age limit for applying for Assistant Professorship eligibility.
-                </p>
-              </div>
-
-              <div className="faq-accordion__item">
-                <h4 className="faq-accordion__question">How often is the UGC NET exam conducted?</h4>
-                <p className="faq-accordion__answer">
-                  The National Testing Agency (NTA) conducts the UGC NET exam twice a year, typically in the months of June and December. Candidates who are completing or have completed their postgraduate degrees with at least 55% marks are eligible to apply.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
