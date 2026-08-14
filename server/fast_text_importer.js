@@ -804,6 +804,8 @@ function extractRawQuestionText(rawBlock) {
         }
 
         let qType = (q.type || 'mcq').toLowerCase();
+        let extractedStatements = Array.isArray(q.statements) ? q.statements : [];
+
         if ((Array.isArray(q.list1) && q.list1.length > 0) || (Array.isArray(q.list2) && q.list2.length > 0) || /^Match\s+(?:the\s+)?List/i.test(finalPromptText)) {
           qType = 'match-column';
           if (finalPromptText.length > 40 && /^Match/i.test(finalPromptText)) {
@@ -811,10 +813,30 @@ function extractRawQuestionText(rawBlock) {
           }
         } else if (q.assertion && q.reason) {
           qType = 'assertion-reason';
-        } else if (Array.isArray(q.statements) && q.statements.length > 0) {
-          qType = 'multiple-statement';
-        } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
-          qType = 'mcq';
+        } else {
+          if (extractedStatements.length === 0 && matched?.text) {
+            const rawBlock = matched.text;
+            const rawLines = rawBlock.split('\n').map(l => l.trim()).filter(Boolean);
+            const tempStmts = [];
+            for (const line of rawLines) {
+              if (/^Question Number/i.test(line) || /^Correct Marks/i.test(line) || /^--\s*\d+\s+of\s+\d+/i.test(line)) continue;
+              if (/^Choose the/i.test(line) || /^Options\s*:/i.test(line) || /^\d+\.\s+[A-E]/i.test(line)) continue;
+              const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
+              if (stmtMatch) {
+                const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
+                tempStmts.push(`${letter}. ${stmtMatch[2].trim()}`);
+              }
+            }
+            if (tempStmts.length >= 2) {
+              extractedStatements = tempStmts;
+              qType = 'multiple-statement';
+            }
+          }
+          if (extractedStatements.length > 0) {
+            qType = 'multiple-statement';
+          } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+            qType = 'mcq';
+          }
         }
 
         let safeExplanation = '<p>Detailed explanation.</p>';
@@ -832,7 +854,7 @@ function extractRawQuestionText(rawBlock) {
           type: qType,
           text: finalPromptText || `Question ${qIndex}`,
           options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-          statements: Array.isArray(q.statements) ? q.statements : [],
+          statements: extractedStatements,
           correct: parseInt(q.correct, 10) || 1,
           explanation: safeExplanation,
           assertion: q.assertion || '',
