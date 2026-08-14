@@ -387,32 +387,38 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   throw new Error('All AI providers (Groq, Gemini) exhausted after 30 retry cycles.');
 }
 
-function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
-  let prompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser with deep mastery in English, Hindi (हिन्दी), and Sindhi (सिन्धी - देवनागरी).
+  let langRule = '';
+  if (importLanguage === 'Hindi') {
+    langRule = `Target Language & Script Rule (STRICT ENFORCEMENT):
+Selected Language: HINDI ONLY (हिन्दी - देवनागरी)
+- Extract the entire question prompt, statements, and all 4 options strictly in HINDI using DEVANAGARI script.
+- If the original paper has English + Hindi side-by-side or stacked, isolate and extract ONLY the Hindi Devanagari text.
+- The "explanation" field MUST be written in clear, accurate academic Hindi using Devanagari script with HTML formatting.`;
+  } else if (importLanguage === 'Sindhi') {
+    langRule = `Target Language & Script Rule (STRICT ENFORCEMENT):
+Selected Language: SINDHI DEVANAGARI ONLY (सिन्धी - देवनागरी)
+- In UGC NET Sindhi papers, questions are given in both Devanagari script and Perso-Arabic script.
+- You MUST extract ONLY the Sindhi text written in DEVANAGARI script.
+- Completely DISCARD and STRIP ALL Perso-Arabic / Urdu script characters and lines.
+- Accurately preserve Sindhi Devanagari phonetic letters (ॻ, ॼ, ॾ, ॿ, ङ, ञ, ड़, ढ़, ॴ, ॵ, etc.).
+- The "explanation" field must be written in clear Sindhi Devanagari.`;
+  } else if (importLanguage === 'Bilingual') {
+    langRule = `Target Language & Script Rule (STRICT ENFORCEMENT):
+Selected Language: BILINGUAL (English + Hindi)
+- Provide English text first, followed by the Devanagari translation on a new line for question text and options.`;
+  } else {
+    langRule = `Target Language & Script Rule (STRICT ENFORCEMENT):
+Selected Language: 100% PURE ENGLISH ONLY
+- Extract ONLY the English text for question text, statements, and all 4 options.
+- DO NOT translate any question, option, statement, or explanation into Hindi or any other language.
+- If the original paper has Hindi translations or notes, completely DISCARD and STRIP all Hindi/Devanagari text.
+- All question text, options, statements, and explanations MUST be in 100% English.`;
+  }
+
+  let prompt = `You are an expert UGC NET ${isPaperII ? 'Paper II' : 'Paper I'} exam parser.
 Analyze the following ${batch.length} questions from the exam paper.
 
-Target Language & Script Rules (STRICT ENFORCEMENT):
-Selected Language: "${importLanguage}".
-
-1. If "${importLanguage}" is "Hindi":
-   - Extract the entire question prompt, statements, and all 4 options strictly in HINDI (हिन्दी) using DEVANAGARI script.
-   - If the original paper has English + Hindi side-by-side or stacked, isolate and extract ONLY the Hindi Devanagari text.
-   - The "explanation" field MUST be written in clear, accurate academic Hindi (हिन्दी) using Devanagari script with HTML formatting (<p>, <strong>, <ul>, <li>).
-
-2. If "${importLanguage}" is "Sindhi":
-   - In UGC NET Sindhi papers, questions are given in both Devanagari script (देवनागरी) and Perso-Arabic script (سنڌي).
-   - You MUST extract ONLY the Sindhi text written in DEVANAGARI (देवनागरी) script.
-   - Completely DISCARD and STRIP ALL Perso-Arabic / Urdu script characters and lines.
-   - Accurately preserve Sindhi Devanagari phonetic letters (such as ॻ, ॼ, ॾ, ॿ, ङ, ञ, ड़, ढ़, ॴ, ॵ, etc.).
-   - The "explanation" field must be written in clear Sindhi Devanagari (or standard academic Devanagari) with rich step-by-step reasoning.
-
-3. If "${importLanguage}" is "English":
-   - Extract ONLY the English text for question text, statements, and 4 options.
-   - Discard all Hindi, Sindhi, Devanagari, and Perso-Arabic translations or annotations.
-   - The "explanation" field must be written in English.
-
-4. If "${importLanguage}" is "Bilingual":
-   - Provide English text first, followed by the Devanagari translation on a new line for question text and options.
+${langRule}
 
 Common Formatting Rules:
 1. Extract true question text and exactly 4 clean options (Option 1, 2, 3, 4). Filter out system footers, marks, question paper metadata, and OCR noise.
