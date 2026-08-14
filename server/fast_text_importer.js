@@ -242,8 +242,13 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   const groqInfo = keyPool.getNextGroqKey();
   if (groqInfo) {
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
-    try {
-      const groqModels = [process.env.GROQ_MODEL || 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+      const groqModels = [
+        process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+        'qwen/qwen3.6-27b',
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'openai/gpt-oss-20b'
+      ];
       
       for (const groqModel of groqModels) {
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {

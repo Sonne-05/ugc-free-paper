@@ -497,7 +497,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
   } else if (provider === 'groq') {
     const apiKey = keyRotation.getNextKey('groq');
-    const groqModel = overrideModel || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+    const groqModel = overrideModel || process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
     const keysCount = keyRotation.groqKeys ? keyRotation.groqKeys.length : 1;
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -1848,7 +1848,7 @@ app.post('/api/questions/explain', async (req, res) => {
 
     // 2. Fallback to Groq Direct if configured (Secondary Option)
     if (groqApiKey) {
-      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      const defaultGroqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
       console.log(`[AI Explain] Falling back to Groq Direct using model ${defaultGroqModel}...`);
 
       const callGroqExplain = async (modelName) => {
