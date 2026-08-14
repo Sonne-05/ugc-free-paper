@@ -255,6 +255,135 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
+// Helper: Sanitize Arabic text for Sindhi Devanagari mode
+function sanitizeSindhiOutput(questions, importLanguage) {
+  if (importLanguage && importLanguage.includes("Sindhi")) {
+    const arabicRegex =
+      /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+    const cleanField = (val) => {
+      if (typeof val === "string") {
+        return val
+          .replace(arabicRegex, "")
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+      }
+      if (Array.isArray(val)) {
+        return val.map((item) =>
+          typeof item === "string"
+            ? item
+                .replace(arabicRegex, "")
+                .replace(/[ \t]+\n/g, "\n")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim()
+            : item,
+        );
+      }
+      return val;
+    };
+
+    return questions.map((q) => ({
+      ...q,
+      text: cleanField(q.text),
+      options: cleanField(q.options),
+      statements: cleanField(q.statements),
+      list1: cleanField(q.list1),
+      list2: cleanField(q.list2),
+      assertion: cleanField(q.assertion),
+      reason: cleanField(q.reason),
+      passage: cleanField(q.passage),
+      explanation: cleanField(q.explanation),
+    }));
+  }
+  return questions;
+}
+
+// Helper: Fallback to Groq Llama 3.2 Vision (Instant, Zero Quota Starvation)
+async function callGroqVisionForOcrPage(base64Image, pageNum, textPrompt, importLanguage) {
+  const groqKey = (process.env.GROQ_API_KEY || "").split(",")[0]?.trim();
+  if (!groqKey) return null;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${groqKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.2-11b-vision-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: textPrompt },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${base64Image}` },
+              },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+      signal: AbortSignal.timeout(35000),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(cleanJsonString(content));
+    let questions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+    return sanitizeSindhiOutput(questions, importLanguage);
+  } catch (err) {
+    return null;
+  }
+}
+
+// Helper: Fallback to NVIDIA NIM Vision
+async function callNvidiaVisionForOcrPage(base64Image, pageNum, textPrompt, importLanguage) {
+  const nvidiaKey = (process.env.NVIDIA_API_KEY || "").trim();
+  if (!nvidiaKey) return null;
+
+  try {
+    const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${nvidiaKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "meta/llama-3.2-11b-vision-instruct",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: textPrompt },
+              {
+                type: "image_url",
+                image_url: { url: `data:image/png;base64,${base64Image}` },
+              },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+      signal: AbortSignal.timeout(35000),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(cleanJsonString(content));
+    let questions = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+    return sanitizeSindhiOutput(questions, importLanguage);
+  } catch (err) {
+    return null;
+  }
+}
+
 // 4. API Call to Gemini
 async function callAIChatForOcrPage(
   base64Image,
@@ -389,38 +518,58 @@ Schema:
 
     if (!response.ok) {
       const errText = await response.text();
-      if (
-        (response.status === 429 || response.status === 503) &&
-        retryCount < 30
-      ) {
+
+      // If Gemini hits 429 / 503, immediately try Groq Vision or NVIDIA NIM Vision fallback
+      if (response.status === 429 || response.status === 503) {
         const retryDelayMatch = errText.match(/"retryDelay"\s*:\s*"(\d+)s"/);
         const retryDelaySecs = retryDelayMatch
           ? parseInt(retryDelayMatch[1])
-          : 0;
+          : 30;
 
-        if (retryDelaySecs > 5) {
-          keyCooldownUntil[keyIndex] =
-            Date.now() + retryDelaySecs * 1000 + 2000;
-          console.warn(
-            `[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling this key for ${retryDelaySecs}s. Switching to next available key...`,
-          );
-        } else {
-          const slotsToFill = PER_KEY_RPM - keyHistory[keyIndex].length;
-          for (let s = 0; s < slotsToFill; s++)
-            keyHistory[keyIndex].push(Date.now());
-          console.warn(
-            `[AI OCR] Key #${keyIndex + 1} rate limited (${response.status}) on Page ${pageNum}. Switching to next available key (Retry ${retryCount + 1}/30)...`,
-          );
-        }
+        keyCooldownUntil[keyIndex] =
+          Date.now() + retryDelaySecs * 1000 + 2000;
 
-        return callAIChatForOcrPage(
+        // Try Groq Vision Fallback (Instant, Zero Quota Delay)
+        const groqResult = await callGroqVisionForOcrPage(
           base64Image,
           pageNum,
-          isPaperII,
+          textPrompt,
           importLanguage,
-          expectedCount,
-          retryCount + 1,
         );
+        if (groqResult && groqResult.length > 0) {
+          console.log(
+            `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${groqResult.length} questions using Groq Llama 3.2 Vision!`,
+          );
+          return groqResult;
+        }
+
+        // Try NVIDIA NIM Vision Fallback
+        const nvidiaResult = await callNvidiaVisionForOcrPage(
+          base64Image,
+          pageNum,
+          textPrompt,
+          importLanguage,
+        );
+        if (nvidiaResult && nvidiaResult.length > 0) {
+          console.log(
+            `✨ [AI Vision Fallback] Page ${pageNum}: Successfully extracted ${nvidiaResult.length} questions using NVIDIA NIM Vision!`,
+          );
+          return nvidiaResult;
+        }
+
+        if (retryCount < 30) {
+          console.warn(
+            `[AI OCR] Key #${keyIndex + 1} hit quota (${response.status}) on Page ${pageNum}. Cooling for ${retryDelaySecs}s. Switching to next Gemini key...`,
+          );
+          return callAIChatForOcrPage(
+            base64Image,
+            pageNum,
+            isPaperII,
+            importLanguage,
+            expectedCount,
+            retryCount + 1,
+          );
+        }
       }
       throw new Error(`API error: ${response.status} - ${errText}`);
     }
@@ -476,31 +625,12 @@ Schema:
         }));
       }
 
-      // FIX #1 & #2: Use a separate ocrRetryCount so count-check retries are
-      // never consumed by API-error retries (429/503). Limit raised to 5 attempts.
-      if (
-        expectedCount > 0 &&
-        resQuestions.length < expectedCount &&
-        ocrRetryCount < 3
-      ) {
+      // If questions are extracted, accept them immediately without burning tokens on repetitive count retries
+      if (resQuestions.length === 0 && ocrRetryCount < 1) {
         console.warn(
-          `[AI OCR] Page ${pageNum}: Extracted ${resQuestions.length}/${expectedCount} expected questions. Retrying OCR (attempt ${ocrRetryCount + 1}/3)...`,
+          `[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR once...`,
         );
-        await new Promise((r) => setTimeout(r, 2000));
-        return callAIChatForOcrPage(
-          base64Image,
-          pageNum,
-          isPaperII,
-          importLanguage,
-          expectedCount,
-          retryCount,
-          ocrRetryCount + 1,
-        );
-      } else if (resQuestions.length === 0 && ocrRetryCount < 3) {
-        console.warn(
-          `[AI OCR] 0 questions extracted on Page ${pageNum}. Retrying OCR (attempt ${ocrRetryCount + 1}/3)...`,
-        );
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 1500));
         return callAIChatForOcrPage(
           base64Image,
           pageNum,
@@ -689,21 +819,21 @@ async function main() {
         /विकल्प/i.test(pageText) ||
         pageText.trim().length > 80;
 
-      // Collect all candidate serial numbers from explicit question-serial markers
+      // Collect all candidate serial numbers from explicit question-serial markers ONLY
       const serialPatterns = [
-        // "3)" or "3 )" format (number followed by right parenthesis)
-        /\b(\d{1,3})\s*\)\s+/gi,
         // "Sl. No. X" or "Sl. No.X"
         /Sl\.?\s*No\.?\s*(\d{1,3})\b/gi,
         // "Question Number : X"
         /Question\s+Number\s*[:\.]?\s*(\d{1,3})\b/gi,
+        // "QBID: X"
+        /QBID\s*[:\.]?\s*(\d+)/gi,
         // "Q.X" or "Q:X" short form
         /\bQ\s*[\.:](\d{1,3})\b/gi,
-        // "[Question ID = X]" — if X <= 300, treat X as serial
-        /\[?\s*Question\s+ID\s*=\s*(\d{1,3})\b/gi,
-        // "Client Question ID X" — only if X <= 300 (serial-range)
-        /Client\s+Question\s+ID\s+(\d{1,3})\b/gi,
-        // "Objective Question X   ClientID"
+        // "[Question ID = X]"
+        /\[?\s*Question\s+ID\s*=\s*(\d+)\b/gi,
+        // "Client Question ID X"
+        /Client\s+Question\s+ID\s+(\d+)\b/gi,
+        // "Objective Question X"
         /Objective\s+Question\s+(\d{1,3})\b/gi,
       ];
 
@@ -716,14 +846,10 @@ async function main() {
       }
 
       const uniqueQNums = Array.from(new Set(qNumMatches));
-      // For bilingual PDFs, each number appears twice (English + Hindi), so deduplicate
-      // uniqueQNums already deduplicates — the Set ensures each number appears once regardless of language
       let expectedCount = uniqueQNums.length;
       if (isBilingualPdf && expectedCount > 0) {
         expectedCount = Math.ceil(expectedCount / 2);
       }
-      // Store the actual PDF Sl. No. values found on this page — used later to override AI qIndex
-      // For bilingual, take only first half (English side) which are the same numbers repeated
       const pageSlNos = isBilingualPdf
         ? uniqueQNums.slice(0, Math.ceil(uniqueQNums.length / 2))
         : uniqueQNums;
