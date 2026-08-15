@@ -3386,28 +3386,74 @@ const ManageSet = () => {
   }
 
   const handleTogglePublish = async (id, newStatus) => {
+    if (!id) return
+    const targetId = String(id)
+
+    // Instant Optimistic UI Update
+    setPyqSets(prev => prev.map(s => {
+      if (String(s.id || s._id) === targetId) {
+        return { ...s, isPublished: newStatus }
+      }
+      return s
+    }))
+    if (String(editingSetId || setId) === targetId) setNewSetIsPublished(newStatus)
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${targetId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublished: newStatus })
       })
       if (res.ok) {
         const updated = await res.json()
-        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
-        if ((editingSetId || setId) === id) setNewSetIsPublished(newStatus)
+        setPyqSets(prev => prev.map(s => {
+          if (String(s.id || s._id) === targetId) {
+            return { ...s, ...updated, isPublished: newStatus }
+          }
+          return s
+        }))
       } else {
-        alert('Failed to update publish status')
+        setPyqSets(prev => prev.map(s => {
+          if (String(s.id || s._id) === targetId) {
+            return { ...s, isPublished: !newStatus }
+          }
+          return s
+        }))
+        if (String(editingSetId || setId) === targetId) setNewSetIsPublished(!newStatus)
+        alert('Failed to update publish status on server')
       }
     } catch (err) {
       console.error(err)
-      alert('Error updating publish status')
+      setPyqSets(prev => prev.map(s => {
+        if (String(s.id || s._id) === targetId) {
+          return { ...s, isPublished: !newStatus }
+        }
+        return s
+      }))
+      if (String(editingSetId || setId) === targetId) setNewSetIsPublished(!newStatus)
+      alert('Network error updating publish status')
     }
   }
 
   const handleToggleVerification = async (id, newStatus) => {
+    if (!id) return
+    const targetId = String(id)
+
+    // Instant Optimistic UI Update
+    setPyqSets(prev => prev.map(s => {
+      if (String(s.id || s._id) === targetId) {
+        return {
+          ...s,
+          isVerified: newStatus,
+          verificationStatus: newStatus ? 'completed' : 'pending'
+        }
+      }
+      return s
+    }))
+    if (String(editingSetId || setId) === targetId) setNewSetIsVerified(newStatus)
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${targetId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3417,14 +3463,45 @@ const ManageSet = () => {
       })
       if (res.ok) {
         const updated = await res.json()
-        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
-        if ((editingSetId || setId) === id) setNewSetIsVerified(newStatus)
+        setPyqSets(prev => prev.map(s => {
+          if (String(s.id || s._id) === targetId) {
+            return {
+              ...s,
+              ...updated,
+              isVerified: newStatus,
+              verificationStatus: newStatus ? 'completed' : 'pending'
+            }
+          }
+          return s
+        }))
       } else {
-        alert('Failed to update verification status')
+        setPyqSets(prev => prev.map(s => {
+          if (String(s.id || s._id) === targetId) {
+            return {
+              ...s,
+              isVerified: !newStatus,
+              verificationStatus: !newStatus ? 'completed' : 'pending'
+            }
+          }
+          return s
+        }))
+        if (String(editingSetId || setId) === targetId) setNewSetIsVerified(!newStatus)
+        alert('Failed to update verification status on server')
       }
     } catch (err) {
       console.error(err)
-      alert('Error updating verification status')
+      setPyqSets(prev => prev.map(s => {
+        if (String(s.id || s._id) === targetId) {
+          return {
+            ...s,
+            isVerified: !newStatus,
+            verificationStatus: !newStatus ? 'completed' : 'pending'
+          }
+        }
+        return s
+      }))
+      if (String(editingSetId || setId) === targetId) setNewSetIsVerified(!newStatus)
+      alert('Network error updating verification status')
     }
   }
 
