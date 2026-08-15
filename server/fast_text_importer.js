@@ -751,19 +751,79 @@ async function main() {
       let qType = (rawParsed.type || 'mcq').toLowerCase();
       let text = (rawParsed.text || rawParsed.question || `Question ${targetIndex}`).trim();
       const rawText = rawItem ? rawItem.text : '';
+      const rawLines = rawText ? rawText.split('\n').map(l => l.trim()).filter(Boolean) : [];
 
-      // Match-column detection
-      const hasListItems = (Array.isArray(rawParsed.list1) && rawParsed.list1.length > 0) || (Array.isArray(rawParsed.list2) && rawParsed.list2.length > 0);
+      // 1. Fix Scrambled OCR Prompt Title (e.g. "3. B and E only.")
+      const isScrambledTitle = /^\d+\.\s+[A-E]/i.test(text) || text.length < 15;
+      if (isScrambledTitle && rawLines.length > 0) {
+        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match)/i];
+        let detectedPrompt = '';
+        for (const line of rawLines) {
+          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line)) continue;
+          if (/^\(?\d+\)?\s*[\.:]/i.test(line) && (/\bonly\b/i.test(line) || /[A-E]\s*,\s*[A-E]/i.test(line))) continue;
+
+          if (questionKeywords.some(rx => rx.test(line)) || (line.endsWith('?') || line.endsWith(':') || line.endsWith('—') || line.endsWith('-'))) {
+            if (!detectedPrompt || line.length > detectedPrompt.length) {
+              detectedPrompt = line;
+            }
+          }
+        }
+        if (detectedPrompt) text = detectedPrompt;
+      }
+
+      // 2. Deterministic Statement Harvester
+      let statements = Array.isArray(rawParsed.statements) ? [...rawParsed.statements] : [];
+      if (statements.length === 0 && rawLines.length > 0) {
+        const stmtsMap = new Map();
+        for (const line of rawLines) {
+          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^Choose the/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line)) continue;
+          const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
+          if (stmtMatch) {
+            const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
+            const content = stmtMatch[2].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description)[\s\S]*$/i, '').trim();
+            if (content.length > 1) {
+              if (!stmtsMap.has(letter) || stmtsMap.get(letter).length < content.length) {
+                stmtsMap.set(letter, `${letter}. ${content}`);
+              }
+            }
+          }
+        }
+        const parsedStmts = Array.from(stmtsMap.values()).sort();
+        if (parsedStmts.length >= 2) {
+          statements = parsedStmts;
+        }
+      }
+
+      // 3. Match-column detection & Side-by-Side Line Splitter
+      let list1 = Array.isArray(rawParsed.list1) ? [...rawParsed.list1] : [];
+      let list2 = Array.isArray(rawParsed.list2) ? [...rawParsed.list2] : [];
       const isMatchPattern = /Match\s+(?:the\s+)?List|सूची\s*I\s*को\s*सूची\s*II/i.test(text) || /Match\s+(?:the\s+)?List|सूची\s*I\s*को\s*सूची\s*II/i.test(rawText);
 
-      if (hasListItems || isMatchPattern) {
+      if (isMatchPattern || list1.length > 0 || list2.length > 0) {
         qType = 'match-column';
         if (text.length > 50 && /^Match/i.test(text)) {
           text = LANGUAGE === 'Hindi' ? 'सूची - I को सूची - II से सुमेलित कीजिए।' : 'Match List - I with List - II.';
         }
+
+        // Check if List I and List II were merged side-by-side on same lines
+        const needsSplit = list1.some(item => /[\/\|\–—]\s*(?:I|II|III|IV|[1-4])\./i.test(item) || /\b(?:I|II|III|IV|[1-4])\.\s+[A-Za-z]/i.test(item));
+        if ((list1.length === 0 || list2.length === 0 || needsSplit) && rawLines.length > 0) {
+          const l1Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([A-D]\)|[A-D]\.)\s*([^\n]+)/gi)];
+          const l2Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([I|V|X]+\)|[I|V|X]+\.|\([1-4]\))\s*([^\n]+)/gi)];
+
+          if (l1Matches.length >= 4 && l2Matches.length >= 4) {
+            list1 = [];
+            list2 = [];
+            for (let j = 0; j < 4; j++) {
+              const lLetter = String.fromCharCode(65 + j);
+              list1.push(`${lLetter}. ${l1Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim()}`);
+              list2.push(`${['I', 'II', 'III', 'IV'][j]}. ${l2Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim()}`);
+            }
+          }
+        }
       } else if ((rawParsed.assertion && rawParsed.reason) || (/(?:Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)/i.test(rawText) && /(?:Reason\s*\(?R\)?|कारण\s*\(?R\)?)/i.test(rawText))) {
         qType = 'assertion-reason';
-      } else if (Array.isArray(rawParsed.statements) && rawParsed.statements.length > 0) {
+      } else if (statements.length > 0) {
         qType = 'multiple-statement';
       } else if (rawParsed.passage || (!isPaperII && targetIndex <= 5)) {
         qType = !isPaperII && targetIndex <= 5 ? 'di' : 'comprehension';
@@ -771,7 +831,7 @@ async function main() {
         qType = 'comprehension';
       } else if (!isPaperII && targetIndex >= 46 && targetIndex <= 50) {
         qType = 'comprehension';
-      } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType) || (qType === 'multiple-statement' && (!Array.isArray(rawParsed.statements) || rawParsed.statements.length === 0))) {
+      } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType) || (qType === 'multiple-statement' && statements.length === 0)) {
         qType = 'mcq';
       }
 
@@ -816,13 +876,13 @@ async function main() {
         type: qType,
         text: text,
         options: options,
-        statements: Array.isArray(rawParsed.statements) ? rawParsed.statements : [],
+        statements: statements,
         correct: correct,
         explanation: (typeof rawParsed.explanation === 'string' ? rawParsed.explanation.trim() : '<p>Detailed explanation.</p>'),
         assertion: rawParsed.assertion || '',
         reason: rawParsed.reason || '',
-        list1: Array.isArray(rawParsed.list1) ? rawParsed.list1 : [],
-        list2: Array.isArray(rawParsed.list2) ? rawParsed.list2 : [],
+        list1: qType === 'match-column' ? list1 : [],
+        list2: qType === 'match-column' ? list2 : [],
         list1Header: qType === 'match-column' ? list1Header : '',
         list2Header: qType === 'match-column' ? list2Header : '',
         passage: passage
