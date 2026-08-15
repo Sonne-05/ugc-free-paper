@@ -48,7 +48,7 @@ const pyqSetSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }
-}, { timestamps: true });
+}, { timestamps: true, strict: false });
 
 // Transform _id to id when sending to frontend
 pyqSetSchema.set('toJSON', {

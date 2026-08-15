@@ -231,7 +231,7 @@ app.put('/api/pyqsets/:id', async (req, res) => {
     const count = await Question.countDocuments({ setId: req.params.id });
     updateData.questionsLoaded = count;
 
-    const updatedSet = await PyqSet.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const updatedSet = await PyqSet.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
     if (!updatedSet) return res.status(404).json({ message: 'Set not found' });
     res.json(updatedSet);
   } catch (err) {
