@@ -182,10 +182,12 @@ app.get('/api/pyqsets', async (req, res) => {
     const isAdmin = req.query.admin === 'true';
     const cacheKey = isAdmin ? 'pyqsets:all:admin' : 'pyqsets:published';
 
-    // 1. Check Redis Cache First
-    const cached = await getCache(cacheKey);
-    if (cached) {
-      return res.json(cached);
+    // 1. Check Redis Cache for students (Admins always get real-time DB data)
+    if (!isAdmin) {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
     }
 
     const filter = {};
@@ -209,8 +211,10 @@ app.get('/api/pyqsets', async (req, res) => {
       return setObj;
     });
 
-    // 2. Cache in Redis for 30 minutes (1800s)
-    await setCache(cacheKey, updatedSets, 1800);
+    // 2. Cache in Redis for public students for 30 minutes (1800s)
+    if (!isAdmin) {
+      await setCache(cacheKey, updatedSets, 1800);
+    }
 
     res.json(updatedSets);
   } catch (err) {
@@ -295,15 +299,18 @@ app.delete('/api/pyqsets/:id', async (req, res) => {
 // Get all questions for a set (First visitor loads from DB -> All other students served instantly from RAM)
 app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   try {
+    const isAdmin = req.query.admin === 'true';
     const cacheKey = `pyqset:${req.params.setId}:questions`;
 
-    // 1. FAST PATH: Check in-memory Redis cache (~0.5ms)
-    const cachedQuestions = await getCache(cacheKey);
-    if (cachedQuestions) {
-      return res.json(cachedQuestions);
+    // 1. FAST PATH: Check in-memory Redis cache for students (~0.5ms)
+    if (!isAdmin) {
+      const cachedQuestions = await getCache(cacheKey);
+      if (cachedQuestions) {
+        return res.json(cachedQuestions);
+      }
     }
 
-    // 2. SLOW PATH (First visitor only): Fetch from MongoDB Atlas
+    // 2. Fetch from MongoDB Atlas
     const questions = await Question.find({ setId: req.params.setId }).sort({ qIndex: 1, createdAt: 1 });
     const set = await PyqSet.findById(req.params.setId);
     const questionsWithYear = questions.map(q => {
@@ -312,7 +319,7 @@ app.get('/api/pyqsets/:setId/questions', async (req, res) => {
       return qObj;
     });
 
-    // 3. Save to Redis in-memory cache for 4 hours (14400s)
+    // 3. Save to Redis in-memory cache
     await setCache(cacheKey, questionsWithYear, 14400);
 
     res.json(questionsWithYear);
