@@ -1116,6 +1116,11 @@ async function main() {
                 q.list1[idx] = prefix + '"' + completeStr.replace(/^["“”]/, '');
                 preFlightRepairs++;
               }
+            }
+          }
+        }
+      }
+
       // 6. Strict Language Enforcement Guard
       const devanagariRegex = /[\u0900-\u097F]/;
       if (LANGUAGE === 'English') {
