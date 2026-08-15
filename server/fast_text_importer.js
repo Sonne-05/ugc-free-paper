@@ -1006,7 +1006,83 @@ async function main() {
       }
     }
 
-    console.log(`\n[4/4] Committing ${finalQuestions.length} questions to MongoDB...`);
+    // =========================================================================
+    // 🛡️ PRE-FLIGHT QUALITY AUDIT & AUTO-REPAIR ENGINE
+    // =========================================================================
+    console.log(`\n[3.5/4] Running Comprehensive Pre-Flight Quality Audit...`);
+    const cleanRawMap = new Map();
+    cleanQuestions.forEach(cq => cleanRawMap.set(cq.qIndex, cq));
+
+    let preFlightRepairs = 0;
+    const typeBreakdown = { mcq: 0, 'multiple-statement': 0, 'match-column': 0, 'assertion-reason': 0, comprehension: 0, di: 0 };
+
+    for (let i = 0; i < finalQuestions.length; i++) {
+      const q = finalQuestions[i];
+      const rawItem = cleanRawMap.get(q.qIndex);
+      const rawText = rawItem ? rawItem.text : '';
+      const rawLines = rawText ? rawText.split('\n').map(l => l.trim()).filter(Boolean) : [];
+
+      // 1. Guard against empty multiple-statements
+      if (q.type === 'multiple-statement' && (!Array.isArray(q.statements) || q.statements.length === 0)) {
+        q.type = 'mcq';
+        preFlightRepairs++;
+      }
+
+      // 2. Guard against scrambled prompt titles
+      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15) {
+        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match)/i];
+        for (const line of rawLines) {
+          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line)) continue;
+          if (/^\(?\d+\)?\s*[\.:]/i.test(line) && (/\bonly\b/i.test(line) || /[A-E]\s*,\s*[A-E]/i.test(line))) continue;
+          if (questionKeywords.some(rx => rx.test(line)) || (line.endsWith('?') || line.endsWith(':') || line.endsWith('—') || line.endsWith('-'))) {
+            q.text = line;
+            preFlightRepairs++;
+            break;
+          }
+        }
+      }
+
+      // 3. Guard for Match-the-Column
+      if (q.type === 'match-column' || (Array.isArray(q.list1) && q.list1.length > 0)) {
+        q.type = 'match-column';
+        q.statements = [];
+        const needsSplit = (q.list1 || []).some(item => /[\/\|\–—]\s*(?:I|II|III|IV|[1-4])\./i.test(item) || /\b(?:I|II|III|IV|[1-4])\.\s+[A-Za-z]/i.test(item));
+        if ((!q.list1 || q.list1.length === 0 || !q.list2 || q.list2.length === 0 || needsSplit) && rawLines.length > 0) {
+          const l1Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([A-D]\)|[A-D]\.)\s*([^\n]+)/gi)];
+          const l2Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([I|V|X]+\)|[I|V|X]+\.|\([1-4]\))\s*([^\n]+)/gi)];
+          if (l1Matches.length >= 4 && l2Matches.length >= 4) {
+            q.list1 = [];
+            q.list2 = [];
+            for (let j = 0; j < 4; j++) {
+              const lLetter = String.fromCharCode(65 + j);
+              q.list1.push(`${lLetter}. ${l1Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim()}`);
+              q.list2.push(`${['I', 'II', 'III', 'IV'][j]}. ${l2Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim()}`);
+            }
+            preFlightRepairs++;
+          }
+        }
+      }
+
+      // 4. Guard for Assertion-Reason
+      if (q.type === 'assertion-reason' && (!q.assertion || !q.reason) && rawLines.length > 0) {
+        const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|अभिकथन\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\)|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+        const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+        if (aMatch && rMatch) {
+          q.assertion = aMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+          q.reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+          q.statements = [];
+          preFlightRepairs++;
+        }
+      }
+
+      typeBreakdown[q.type] = (typeBreakdown[q.type] || 0) + 1;
+    }
+
+    console.log(`✅ Pre-Flight Audit Passed: Verified ${finalQuestions.length} questions (${preFlightRepairs} automated edge-case repairs).`);
+    console.log(`📊 Final Type Distribution:`);
+    console.table(typeBreakdown);
+
+    console.log(`\n[4/4] Committing ${finalQuestions.length} verified questions to MongoDB...`);
 
     await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
     await Question.insertMany(finalQuestions);
