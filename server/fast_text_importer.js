@@ -1116,12 +1116,43 @@ async function main() {
                 q.list1[idx] = prefix + '"' + completeStr.replace(/^["“”]/, '');
                 preFlightRepairs++;
               }
+      // 6. Strict Language Enforcement Guard
+      const devanagariRegex = /[\u0900-\u097F]/;
+      if (LANGUAGE === 'English') {
+        const stripHindiFromStr = (str) => (str || '').replace(/\s*\/[\u0900-\u097F\s\(\)\.\-,\:–—]+$/g, '').trim();
+
+        q.text = stripHindiFromStr(q.text);
+        if (devanagariRegex.test(q.text) && rawLines.length > 0) {
+          for (const line of rawLines) {
+            if (/^[A-Za-z0-9\s\,\.\?\!\'\"\-–—\(\)\:\;\/]+$/.test(line) && line.length > 15 && !/\[Option ID|\[Question ID|^SI\.?\s*No|^QBID/i.test(line)) {
+              if (line.endsWith('?') || line.endsWith(':') || /^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match)/i.test(line)) {
+                q.text = line.trim();
+                preFlightRepairs++;
+                break;
+              }
             }
           }
         }
-      }
 
-      typeBreakdown[q.type] = (typeBreakdown[q.type] || 0) + 1;
+        if (Array.isArray(q.options)) {
+          q.options = q.options.map(opt => stripHindiFromStr(opt));
+        }
+
+        if (Array.isArray(q.statements)) {
+          q.statements = q.statements.map((stmt, sIdx) => {
+            const cleanStmt = stripHindiFromStr(stmt);
+            if (devanagariRegex.test(cleanStmt) && rawLines.length > 0) {
+              const letter = String.fromCharCode(65 + sIdx);
+              const engLine = rawLines.find(l => new RegExp(`^\\(?${letter}\\)?[\\.:]\\s*([A-Za-z0-9\\s\\,\\.\\'\\"\\-–—\\(\\)]+)`, 'i').test(l) && !devanagariRegex.test(l));
+              if (engLine) {
+                preFlightRepairs++;
+                return `${letter}. ${engLine.replace(/^\(?[A-E]\)?[\.:]\s*/i, '').trim()}`;
+              }
+            }
+            return cleanStmt.replace(/[\u0900-\u097F]+/g, '').trim();
+          });
+        }
+      }
     }
 
     console.log(`✅ Pre-Flight Audit Passed: Verified ${finalQuestions.length} questions (${preFlightRepairs} automated edge-case repairs).`);
