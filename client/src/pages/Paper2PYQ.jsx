@@ -112,23 +112,37 @@ const Paper2PYQ = () => {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const normalizeSubject = (sub) => (sub || '').toLowerCase().replace(/\s+language$/i, '').trim();
+          const normalizeSubject = (sub) => {
+            if (!sub) return '';
+            return sub
+              .toLowerCase()
+              .replace(/[\s\-_()]+/g, '')
+              .replace(/language$/i, '')
+              .trim();
+          };
           const activeSubNorm = normalizeSubject(activeSubject);
           const paper2Sets = data.filter(set => {
             if (set.paperType !== 'Paper II') return false;
             const setSubNorm = normalizeSubject(set.subject || 'Sociology');
-            return setSubNorm === activeSubNorm;
+            return setSubNorm === activeSubNorm ||
+                   (activeSubNorm.includes('sindhi') && setSubNorm.includes('sindhi')) ||
+                   (activeSubNorm.includes('sociology') && setSubNorm.includes('sociology')) ||
+                   setSubNorm.includes(activeSubNorm) ||
+                   activeSubNorm.includes(setSubNorm);
           });
           const grouped = {}
           paper2Sets.forEach(set => {
             if (!grouped[set.year]) grouped[set.year] = []
+            const cleanedCycle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || '';
+            const desktopTitle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || '';
+            
             grouped[set.year].push({
               id: set.id,
               subject: activeSubject,
-              cycle: cleanExamTitle(set.subtitle, activeSubject, set.year),
-              desktopTitle: cleanExamTitle(set.subtitle, activeSubject, set.year),
+              cycle: cleanedCycle,
+              desktopTitle: desktopTitle,
               questions: set.questionsCount,
-              seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle})`,
+              seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle || 'Official Shift'})`,
               title: set.title
             })
           })
