@@ -18,6 +18,7 @@ const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { PDFParse } = require('pdf-parse');
 const fs = require('fs');
+const { getCache, setCache, delCache, delCachePattern } = require('./config/redis');
 
 // Fallback: read Gemini keys directly from .env file (dotenv/dotenvx may not parse AQ.Ab8RN6... keys correctly)
 function loadGeminiKeysFromEnvFile() {
@@ -175,11 +176,20 @@ app.post('/api/notes/:unitId', async (req, res) => {
 
 // --- PYQ Set Routes ---
 
-// Get all PYQ sets
+// Get all PYQ sets (Cached in Redis for high-throughput reads)
 app.get('/api/pyqsets', async (req, res) => {
   try {
+    const isAdmin = req.query.admin === 'true';
+    const cacheKey = isAdmin ? 'pyqsets:all:admin' : 'pyqsets:published';
+
+    // 1. Check Redis Cache First
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const filter = {};
-    if (req.query.admin !== 'true') {
+    if (!isAdmin) {
       filter.isPublished = true;
     }
     const sets = await PyqSet.find(filter).sort({ createdAt: 1 });
@@ -199,6 +209,9 @@ app.get('/api/pyqsets', async (req, res) => {
       return setObj;
     });
 
+    // 2. Cache in Redis for 30 minutes (1800s)
+    await setCache(cacheKey, updatedSets, 1800);
+
     res.json(updatedSets);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch PYQ sets' });
@@ -210,6 +223,11 @@ app.post('/api/pyqsets', async (req, res) => {
   try {
     const newSet = new PyqSet(req.body);
     await newSet.save();
+
+    // Invalidate list caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+
     res.status(201).json(newSet);
   } catch (err) {
     res.status(500).json({ message: 'Failed to create PYQ set', error: err.message });
@@ -233,6 +251,12 @@ app.put('/api/pyqsets/:id', async (req, res) => {
 
     const updatedSet = await PyqSet.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true });
     if (!updatedSet) return res.status(404).json({ message: 'Set not found' });
+
+    // Invalidate related caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${req.params.id}:questions`);
+
     res.json(updatedSet);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update PYQ set', error: err.message });
@@ -253,6 +277,13 @@ app.delete('/api/pyqsets/:id', async (req, res) => {
     await PyqSet.findByIdAndDelete(req.params.id);
     await Question.deleteMany({ setId: req.params.id });
     
+    // Invalidate caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${req.params.id}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     res.json({ message: 'Set and associated questions deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete PYQ set', error: err.message });
@@ -261,9 +292,18 @@ app.delete('/api/pyqsets/:id', async (req, res) => {
 
 // --- Question Routes ---
 
-// Get all questions for a set
+// Get all questions for a set (First visitor loads from DB -> All other students served instantly from RAM)
 app.get('/api/pyqsets/:setId/questions', async (req, res) => {
   try {
+    const cacheKey = `pyqset:${req.params.setId}:questions`;
+
+    // 1. FAST PATH: Check in-memory Redis cache (~0.5ms)
+    const cachedQuestions = await getCache(cacheKey);
+    if (cachedQuestions) {
+      return res.json(cachedQuestions);
+    }
+
+    // 2. SLOW PATH (First visitor only): Fetch from MongoDB Atlas
     const questions = await Question.find({ setId: req.params.setId }).sort({ qIndex: 1, createdAt: 1 });
     const set = await PyqSet.findById(req.params.setId);
     const questionsWithYear = questions.map(q => {
@@ -271,15 +311,27 @@ app.get('/api/pyqsets/:setId/questions', async (req, res) => {
       qObj.year = set ? set.year : null;
       return qObj;
     });
+
+    // 3. Save to Redis in-memory cache for 4 hours (14400s)
+    await setCache(cacheKey, questionsWithYear, 14400);
+
     res.json(questionsWithYear);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch questions' });
   }
 });
 
-// Get total counts of questions for each unit (Paper 1 unit-wise)
+// Get total counts of questions for each unit (Cached in Redis)
 app.get('/api/questions/unit-counts', async (req, res) => {
   try {
+    const cacheKey = 'questions:unit-counts';
+
+    // 1. Check Redis Cache
+    const cachedCounts = await getCache(cacheKey);
+    if (cachedCounts) {
+      return res.json(cachedCounts);
+    }
+
     const units = [
       { id: '1', name: 'Unit 1: Teaching Aptitude' },
       { id: '2', name: 'Unit 2: Research Aptitude' },
@@ -312,6 +364,9 @@ app.get('/api/questions/unit-counts', async (req, res) => {
       counts[u.id] = count;
     }
 
+    // 2. Cache in Redis for 1 hour (3600s)
+    await setCache(cacheKey, counts, 3600);
+
     res.json(counts);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch unit counts', error: err.message });
@@ -324,6 +379,12 @@ app.get('/api/questions/unit', async (req, res) => {
     const { unitName, skip, limit } = req.query;
     if (!unitName) {
       return res.status(400).json({ message: 'unitName query parameter is required' });
+    }
+
+    const cacheKey = `questions:unit:${unitName}:s${skip || 0}:l${limit || 0}`;
+    const cachedUnitQuestions = await getCache(cacheKey);
+    if (cachedUnitQuestions) {
+      return res.json(cachedUnitQuestions);
     }
     
     // Perform a case-insensitive regex query starting with the unit prefix
@@ -369,6 +430,9 @@ app.get('/api/questions/unit', async (req, res) => {
       return qObj;
     });
 
+    // Cache in Redis for 2 hours (7200s)
+    await setCache(cacheKey, questionsWithYear, 7200);
+
     res.json(questionsWithYear);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch unit questions', error: err.message });
@@ -385,6 +449,13 @@ app.post('/api/questions/bulk', async (req, res) => {
     const count = await Question.countDocuments({ setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(setId, { questionsLoaded: count }, { new: true });
     
+    // Invalidate caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${setId}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     res.status(201).json({ inserted, updatedSet });
   } catch (err) {
     res.status(500).json({ message: 'Failed to bulk insert questions', error: err.message });
@@ -1465,6 +1536,13 @@ async function processImportJob(jobId, fileBuffer, setId, answerKeyBuffer, useOc
     const count = await Question.countDocuments({ setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(setId, { questionsLoaded: count }, { new: true });
 
+    // Invalidate Redis caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${setId}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     // Mark job success
     const job = importJobs.get(jobId);
     if (job) {
@@ -1595,6 +1673,13 @@ app.post('/api/questions', async (req, res) => {
     const count = await Question.countDocuments({ setId: req.body.setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(req.body.setId, { questionsLoaded: count }, { new: true });
     
+    // Invalidate caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${req.body.setId}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     res.status(201).json({ question: newQuestion, updatedSet });
   } catch (err) {
     res.status(500).json({ message: 'Failed to create question', error: err.message });
@@ -1610,6 +1695,13 @@ app.put('/api/questions/:id', async (req, res) => {
     const count = await Question.countDocuments({ setId: updated.setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(updated.setId, { questionsLoaded: count }, { new: true });
     
+    // Invalidate caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${updated.setId}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     res.json({ question: updated, updatedSet });
   } catch (err) {
     res.status(500).json({ message: 'Failed to update question', error: err.message });
@@ -1625,6 +1717,13 @@ app.delete('/api/questions/:id', async (req, res) => {
     const count = await Question.countDocuments({ setId: deleted.setId });
     const updatedSet = await PyqSet.findByIdAndUpdate(deleted.setId, { questionsLoaded: count }, { new: true });
     
+    // Invalidate caches
+    await delCache('pyqsets:published');
+    await delCache('pyqsets:all:admin');
+    await delCache(`pyqset:${deleted.setId}:questions`);
+    await delCache('questions:unit-counts');
+    await delCachePattern('questions:unit:*');
+
     res.json({ message: 'Question deleted', updatedSet });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete question', error: err.message });
