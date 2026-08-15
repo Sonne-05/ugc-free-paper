@@ -505,6 +505,26 @@ async function main() {
     process.exit(1);
   }
 
+  // Automatic High-Resolution OCR Companion Detection
+  const pdfDir = path.dirname(PDF_PATH);
+  const pdfBase = path.basename(PDF_PATH);
+  const candidateOcrPaths = [
+    path.join(pdfDir, 'OCR', pdfBase),
+    path.join(pdfDir, 'OCR', pdfBase.replace(/\.pdf$/i, ' P2.pdf')),
+    path.join(pdfDir, 'OCR', pdfBase.replace(/Shift\s*(\d)/i, 'Shift $1') + ' P2.pdf'),
+    path.join(pdfDir, 'P2', pdfBase),
+    path.join(pdfDir, 'P2', pdfBase.replace(/\.pdf$/i, ' P2.pdf'))
+  ];
+
+  for (const ocrPath of candidateOcrPaths) {
+    if (ocrPath !== PDF_PATH && fs.existsSync(ocrPath)) {
+      console.log(`\n✨ Auto-detected cleaner high-resolution OCR companion file:`);
+      console.log(`   ➜ ${ocrPath}`);
+      PDF_PATH = ocrPath;
+      break;
+    }
+  }
+
   if (!TARGET_SET_ID) {
     TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
   }
@@ -1075,6 +1095,29 @@ async function main() {
           q.reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
           q.statements = [];
           preFlightRepairs++;
+        }
+      }
+
+      // 5. Unbroken Text / Dangling Sentence Healer (List I, Statements, Prompt)
+      const isDangling = (str) => /\b(?:that\s+a|that|the|of|in|and|with|to|for|or|a|an|as|by|from|is|was|are|were|which|who|whose|must|be)$/i.test(str.trim()) || ((str.match(/"/g) || []).length % 2 !== 0 && !str.endsWith('"'));
+
+      if (Array.isArray(q.list1)) {
+        for (let idx = 0; idx < q.list1.length; idx++) {
+          let item = q.list1[idx];
+          if (isDangling(item) && rawText) {
+            const cleanSnip = item.replace(/^[A-D]\.\s*/, '').replace(/^[“"']/, '').substring(0, 15);
+            const snipIdx = rawText.indexOf(cleanSnip);
+            if (snipIdx !== -1) {
+              const fullSnippet = rawText.substring(snipIdx, snipIdx + 300);
+              const secondQuote = fullSnippet.indexOf('"', 1);
+              if (secondQuote !== -1) {
+                const completeStr = fullSnippet.substring(0, secondQuote + 1).replace(/\s+/g, ' ').trim();
+                const prefix = item.match(/^[A-D]\.\s*/)?.[0] || '';
+                q.list1[idx] = prefix + '"' + completeStr.replace(/^["“”]/, '');
+                preFlightRepairs++;
+              }
+            }
+          }
         }
       }
 
