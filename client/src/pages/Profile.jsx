@@ -2590,7 +2590,7 @@ const Profile = () => {
                         >
                           <option value="All">All Statuses</option>
                           <option value="pending">⏳ Verification: Pending</option>
-                          <option value="completed">✓ Verification: Complete</option>
+                          <option value="completed">✓ Verification: Verified</option>
                           <option value="draft">Drafts Only</option>
                           <option value="published">Published Only</option>
                         </select>
@@ -2669,9 +2669,9 @@ const Profile = () => {
                                             )}
 
                                             {(set.isVerified || set.verificationStatus === 'completed' || set.verificationStatus === 'complete') ? (
-                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Complete</span>
+                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Verified (Click to mark Pending)">✓ Verified</span>
                                             ) : (
-                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Pending</span>
+                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Verified)">⏳ Pending</span>
                                             )}
                                           </div>
                                         </div>
@@ -2769,9 +2769,9 @@ const Profile = () => {
                                             )}
 
                                             {(set.isVerified || set.verificationStatus === 'completed' || set.verificationStatus === 'complete') ? (
-                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Complete</span>
+                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Verified (Click to mark Pending)">✓ Verified</span>
                                             ) : (
-                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Pending</span>
+                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Verified)">⏳ Pending</span>
                                             )}
                                           </div>
                                         </div>
@@ -2876,7 +2876,7 @@ const Profile = () => {
                         style={{ width: 'auto', margin: 0 }}
                       />
                       <label htmlFor="verifySetProfile" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                        Manual Verification Complete (Reviewed and approved)
+                        Manual Verification: Verified (Reviewed and approved)
                       </label>
                     </div>
 

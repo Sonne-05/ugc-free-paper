@@ -4744,9 +4744,9 @@ const ManageSet = () => {
               )}
 
               {(activeSet.isVerified || activeSet.verificationStatus === 'completed' || activeSet.verificationStatus === 'complete') ? (
-                <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Verification: Complete</span>
+                <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Verified (Click to mark Pending)">✓ Verification: Verified</span>
               ) : (
-                <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Verification: Pending</span>
+                <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Verified)">⏳ Verification: Pending</span>
               )}
             </div>
           )}
@@ -4860,7 +4860,7 @@ const ManageSet = () => {
                         style={{ width: 'auto', margin: 0 }}
                       />
                       <label htmlFor="verifySetManage" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                        Manual Verification Complete (Reviewed and approved)
+                        Manual Verification: Verified (Reviewed and approved)
                       </label>
                     </div>
 
