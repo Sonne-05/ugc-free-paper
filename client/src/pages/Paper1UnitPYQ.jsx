@@ -27,9 +27,10 @@ const Paper1UnitPYQ = () => {
   const units = [
     { 
       id: '1', 
-      name: 'Teaching Aptitude', 
-      fullName: 'Unit 1: Teaching Aptitude', 
-      desc: 'Master teaching concepts, learning characteristics, methods, support systems, and evaluation methods.',
+      name: 'Unit 1: Teaching Aptitude', 
+      seoTitle: 'UGC NET Unit 1: Teaching Aptitude Solved PYQs & MCQs',
+      badge: 'Levels of Teaching • Learner Psychology • Evaluation Systems',
+      desc: 'Practice official solved previous year questions (PYQs) on Memory, Understanding & Reflective levels of teaching, learner characteristics, Swayam, Swayam Prabha, and CBCS evaluation systems.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -39,9 +40,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '2', 
-      name: 'Research Aptitude', 
-      fullName: 'Unit 2: Research Aptitude', 
-      desc: 'Master qualitative vs quantitative methodologies, steps of research, thesis formatting, and publication ethics.',
+      name: 'Unit 2: Research Aptitude', 
+      seoTitle: 'UGC NET Unit 2: Research Aptitude Solved PYQs & Methodology Questions',
+      badge: 'Research Methods • Positivism • Thesis Formatting • Ethics',
+      desc: 'Master qualitative vs quantitative research, hypothesis formulation, experimental & historical methods, APA formatting, thesis writing, and academic publication ethics.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
@@ -51,9 +53,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '3', 
-      name: 'Comprehension', 
-      fullName: 'Unit 3: Comprehension', 
-      desc: 'Practice reading passages, summarizing arguments, and answering contextual vocabulary questions.',
+      name: 'Unit 3: Reading Comprehension', 
+      seoTitle: 'UGC NET Unit 3: Reading Comprehension PYQs & Solved Passages',
+      badge: 'Unseen Passages • Critical Analysis • Contextual Vocabulary',
+      desc: 'Practice UGC NET unseen comprehension passages with step-by-step reading strategies, main-idea extraction, and contextual multiple-choice questions.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -66,9 +69,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '4', 
-      name: 'Communication', 
-      fullName: 'Unit 4: Communication', 
-      desc: 'Master verbal & non-verbal communication channels, classroom communication dynamics, and barriers.',
+      name: 'Unit 4: Communication', 
+      seoTitle: 'UGC NET Unit 4: Communication Solved PYQs & Classroom Dynamics',
+      badge: 'Verbal & Non-Verbal • Barriers • Intercultural • Mass Media',
+      desc: 'Practice questions on types of communication, effective classroom communication, semantic & psychological barriers, and mass-media society interactions.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -77,9 +81,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '5', 
-      name: 'Mathematical Reasoning & Aptitude', 
-      fullName: 'Unit 5: Mathematical Reasoning', 
-      desc: 'Practice number series, letter codes, relationship puzzles, speed, distance, time, and percentage calculations.',
+      name: 'Unit 5: Mathematical Reasoning & Aptitude', 
+      seoTitle: 'UGC NET Unit 5: Mathematical Reasoning & Aptitude Solved PYQs',
+      badge: 'Number Series • Coding-Decoding • Speed & Distance • Profit-Loss',
+      desc: 'Master numerical aptitude with solved PYQs on letter series, coding-decoding, blood relations, ratios, percentages, time-speed-distance, and simple/compound interest.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -90,9 +95,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '6', 
-      name: 'Logical Reasoning', 
-      fullName: 'Unit 6: Logical Reasoning', 
-      desc: 'Crack arguments structure, deductive/inductive logic, Venn Diagrams, and Indian classical logic (Pramanas).',
+      name: 'Unit 6: Logical Reasoning', 
+      seoTitle: 'UGC NET Unit 6: Logical Reasoning PYQs (Pramanas & Syllogisms)',
+      badge: 'Classical Indian Logic • Venn Diagrams • Formal Fallacies • Deductive',
+      desc: 'Solve high-yield questions on structure of arguments, categorical propositions, formal & informal fallacies, Venn diagrams, and Indian Logic (Pratyaksha, Anumana, Upamana, Shabda, Arthapatti, Anupalabdhi).',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -101,9 +107,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '7', 
-      name: 'Data Interpretation', 
-      fullName: 'Unit 7: Data Interpretation', 
-      desc: 'Interpret complex quantitative data charts, table structures, bar graphs, and calculate percentage distributions.',
+      name: 'Unit 7: Data Interpretation', 
+      seoTitle: 'UGC NET Unit 7: Data Interpretation (DI) Solved Questions & Tables',
+      badge: 'Table Charts • Bar Graphs • Pie Charts • Percentage Calculation',
+      desc: 'Practice full 5-question Data Interpretation sets based on authentic NTA table charts, percentage changes, ratios, and quantitative analysis techniques.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -114,9 +121,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '8', 
-      name: 'Information & Communication Technology (ICT)', 
-      fullName: 'Unit 8: Information and Communication Technology', 
-      desc: 'Learn high-frequency terminology, internet protocols, digital initiatives in higher education, and email standards.',
+      name: 'Unit 8: Information & Communication Technology (ICT)', 
+      seoTitle: 'UGC NET Unit 8: ICT (Information & Communication Technology) PYQs',
+      badge: 'Digital Initiatives • Internet & Email • Digital Governance • Terminology',
+      desc: 'Solve high-frequency questions on ICT abbreviations, computer memory, networking basics, Swayam, Swayam Prabha, digital higher education initiatives, and cyber security.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -127,9 +135,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '9', 
-      name: 'People, Development & Environment', 
-      fullName: 'Unit 9: People, Development and Environment', 
-      desc: 'Review MDGs, SDGs, human-environment interactions, pollution types, hazards, and international environment treaties.',
+      name: 'Unit 9: People, Development & Environment', 
+      seoTitle: 'UGC NET Unit 9: People, Development & Environment Solved PYQs',
+      badge: 'MDGs & SDGs • Environmental Treaties • Pollution • Renewable Energy',
+      desc: 'Practice official PYQs on Millennium & Sustainable Development Goals, Kyoto Protocol, Paris Agreement, International Solar Alliance, renewable energy sources, and air/water pollutants.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2a10 10 0 0 0-10 10c0 5.523 4.477 10 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path>
@@ -139,9 +148,10 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '10', 
-      name: 'Higher Education System', 
-      fullName: 'Unit 10: Higher Education', 
-      desc: 'Master evolution of ancient Indian learning, value education, administrative frameworks, governance, and policy systems.',
+      name: 'Unit 10: Higher Education System', 
+      seoTitle: 'UGC NET Unit 10: Higher Education System Solved PYQs & Policies',
+      badge: 'Ancient Learning • NEP 2020 • Value Education • Regulatory Governance',
+      desc: 'Master UGC NET questions on ancient Indian universities (Takshashila, Nalanda), NEP 2020 recommendations, UGC/AICTE regulations, and higher educational policy governance.',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -155,8 +165,8 @@ const Paper1UnitPYQ = () => {
     navigate('/mocktest', {
       state: {
         isUnitWise: true,
-        unitName: unit.fullName,
-        title: `Paper 1 - ${unit.name} (Session 1)`,
+        unitName: unit.name,
+        title: `Paper 1 - ${unit.name} Practice Questions`,
         subtitle: 'Unit-wise Practice PYQ',
         questionsCount: 25,
         skip: 0,
@@ -184,7 +194,7 @@ const Paper1UnitPYQ = () => {
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
-              <h2>About Unit-wise Practice</h2>
+              <h2>About UGC NET Paper 1 Unit-Wise PYQ Practice</h2>
               <p>
                 Practicing previous years' questions (PYQs) organized by unit allows you to isolate specific areas of the UGC NET Paper 1 syllabus and strengthen your conceptual understanding. Master individual topic weights, test your speed, and review explanations for each question in a target-focused practice environment.
               </p>
@@ -199,8 +209,8 @@ const Paper1UnitPYQ = () => {
               <table className="pyq-table pyq-table--unit">
                 <thead>
                   <tr>
-                    <th className="pyq-table__th" style={{ width: '80px', textAlign: 'center' }}>Unit</th>
-                    <th className="pyq-table__th col-cycle">Syllabus Unit Name & Description</th>
+                    <th className="pyq-table__th" style={{ width: '70px', textAlign: 'center' }}>Unit</th>
+                    <th className="pyq-table__th col-cycle">Syllabus Unit Name & Topic Details</th>
                     <th className="pyq-table__th col-action col-action-th">Practice</th>
                   </tr>
                 </thead>
@@ -208,22 +218,26 @@ const Paper1UnitPYQ = () => {
                   {units.map((unit, index) => (
                     <Fragment key={unit.id}>
                       <tr className="pyq-table__tr">
-                        <td className="pyq-table__td font-semibold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', fontSize: '1.1rem' }}>
+                        <td className="pyq-table__td font-semibold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', fontSize: '1.1rem', color: 'var(--primary, #2563eb)' }}>
                           {unit.id}
                         </td>
                         <td className="pyq-table__td">
-                          <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                              {unit.name}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '1rem', lineHeight: '1.4' }}>
+                              {unit.seoTitle}
                             </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                            <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
                               {unit.desc}
+                            </div>
+                            <div className="pyq-card-questions" style={{ alignSelf: 'flex-start', marginTop: '4px' }}>
+                              {unit.badge}
                             </div>
                           </div>
                         </td>
                         <td className="pyq-table__td col-action">
                           <button 
                             className="pyq-table__btn"
+                            aria-label={`Practice ${unit.seoTitle}`}
                             onClick={() => handleStartPractice(unit)}
                           >
                             Practice
