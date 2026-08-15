@@ -49,7 +49,7 @@ const Home = () => {
     {
       feature: 'Full-Length Solved PYQs',
       other: 'Only 1-2 free sample tests; remainder locked',
-      ugc: 'Complete 100-Question Year Papers (2021–2024)'
+      ugc: 'Complete 100-Question Year Papers (2020–2025)'
     },
     {
       feature: 'Solution Quality',
@@ -107,7 +107,7 @@ const Home = () => {
             </h1>
 
             <p className="hero-sec__subtitle">
-              Stop paying ₹3,000–₹5,000 for mock test subscriptions. Practice with the authentic NTA Computer Based Test (CBT) interface, 15,000+ verified previous year questions (2021–2024), and step-by-step academic solutions.
+              Stop paying ₹3,000–₹5,000 for mock test subscriptions. Practice with the authentic NTA Computer Based Test (CBT) interface, 15,000+ verified previous year questions (2020–2025), and step-by-step academic solutions.
             </p>
 
             <div className="hero-sec__actions">
@@ -284,7 +284,7 @@ const Home = () => {
                   <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                   </svg>
-                  <span><strong>Full 100-Question Papers:</strong> Complete subject papers from 2021 to 2024 without missing questions.</span>
+                  <span><strong>Full 100-Question Papers:</strong> Complete subject papers from 2020 to 2025 without missing questions.</span>
                 </li>
                 <li>
                   <svg className="check-icon" viewBox="0 0 20 20" fill="currentColor">

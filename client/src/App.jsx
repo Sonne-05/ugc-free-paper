@@ -53,20 +53,20 @@ function App() {
 
     // Matches for static paths
     if (path === '/') {
-      title = 'UGC Free Paper - Free UGC NET Paper 1 & 2 PYQ Practice & Mock Tests';
-      description = 'Practice UGC NET Paper 1 (General Aptitude) and Paper 2 previous year questions (PYQs) and realistic CBT mock tests. Study notes, detailed explanations, completely free.';
+      title = 'UGC NET Free Mock Test & Solved PYQs (2020–2025) - UGC Free Paper';
+      description = 'Free UGC NET mock tests and solved previous year question papers (2020–2025). Practice Paper 1 general aptitude and Paper 2 core subjects on authentic NTA CBT simulator.';
     } else if (path === '/paper1') {
-      title = 'UGC NET Paper 1 PYQ Practice - UGC Free Paper';
-      description = 'Practice UGC NET Paper 1 (General Paper on Teaching & Research Aptitude) previous year questions by year and unit. Free mock tests and answers.';
+      title = 'UGC NET Paper 1 Mock Test & Solved PYQs (2020–2025 CBT) Free - UGC Free Paper';
+      description = 'Attempt free UGC NET Paper 1 mock tests and solved previous year question papers (2020–2025). 100% authentic NTA CBT pattern with detailed academic explanations.';
     } else if (path === '/paper1-unit-pyq') {
-      title = 'UGC NET Paper 1 (Unit Wise) PYQ Practice - UGC Free Paper';
-      description = 'Practice UGC NET Paper 1 previous year questions unit-wise. Completely free CBT practice tests for all 10 general aptitude syllabus units.';
+      title = 'UGC NET Paper 1 Unit Wise PYQ Practice & Mock Tests (All 10 Units) - UGC Free Paper';
+      description = 'Topic-wise UGC NET Paper 1 previous year questions for Teaching Aptitude, Research, ICT, Higher Education, and all 10 syllabus units. 100% free CBT tests.';
     } else if (path === '/paper2') {
-      title = 'UGC NET Paper 2 PYQ Practice - UGC Free Paper';
-      description = 'Practice UGC NET Paper 2 subject-specific previous year questions. Free online CBT mock tests and detailed explanations for your subject.';
+      title = 'UGC NET Paper 2 Previous Year Questions & CBT Mock Tests Free - UGC Free Paper';
+      description = 'Free UGC NET Paper 2 subject-specific mock tests and full 100-question solved previous year papers for Sociology, Sindhi, and core disciplines.';
     } else if (path === '/paper1-notes') {
-      title = 'UGC NET Paper 1 Study Notes - UGC Free Paper';
-      description = 'Access free unit-wise study notes, revision guides, and short summaries for UGC NET Paper 1. Boost your preparation with expert resources.';
+      title = 'UGC NET Paper 1 Notes PDF (All 10 Units) - Free Study Material 2025 - UGC Free Paper';
+      description = 'Download and read free UGC NET Paper 1 revision notes, concept summaries, and short study guides for all 10 units. High-yield JRF exam preparation.';
     } else if (path === '/signin') {
       title = 'Sign In - UGC Free Paper';
       description = 'Log in to your UGC Free Paper account to track your mock test progress and study history.';
@@ -77,8 +77,8 @@ function App() {
       title = 'About Us - UGC Free Paper';
       description = 'Learn about the mission and the team behind UGC Free Paper. We democratize UGC NET exam preparation resources.';
     } else if (path === '/blog') {
-      title = 'UGC NET Prep Blog - UGC Free Paper';
-      description = 'Read the latest news, prep strategies, syllabus updates, and tips to crack UGC NET / JRF.';
+      title = 'UGC NET 2025 Prep Blog - Syllabus, Cutoffs & Study Strategy - UGC Free Paper';
+      description = 'Read the latest UGC NET exam syllabus updates, category cutoffs analysis, topic weightage, and high-yield preparation tips to crack JRF.';
     } else if (path === '/contact') {
       title = 'Contact Us - UGC Free Paper';
       description = 'Have questions, suggestions, or feedback? Get in touch with the UGC Free Paper team.';
@@ -92,8 +92,8 @@ function App() {
       title = 'Terms of Service - UGC Free Paper';
       description = 'Read the Terms of Service and user agreement for accessing UGC Free Paper mock tests and notes.';
     } else if (path === '/mocktest') {
-      title = 'Free UGC NET CBT Mock Test - UGC Free Paper';
-      description = 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment.';
+      title = 'NTA UGC NET CBT Mock Test Free Simulator (2025 Pattern) - UGC Free Paper';
+      description = 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment with official palette and scoring.';
     } else if (path === '/profile') {
       title = 'Student Dashboard - UGC Free Paper';
       description = 'View your UGC NET practice progress, mock test scores, and performance analytics.';

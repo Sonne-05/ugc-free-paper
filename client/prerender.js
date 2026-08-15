@@ -70,19 +70,19 @@ async function run() {
 
   // 3. Define routes
   const staticRoutes = [
-    { path: '/', title: 'UGC Free Paper - Free UGC NET Paper 1 & 2 PYQ Practice & Mock Tests', desc: 'Practice UGC NET Paper 1 (General Aptitude) and Paper 2 previous year questions (PYQs) and realistic CBT mock tests. Study notes, detailed explanations, completely free.' },
-    { path: '/paper1', title: 'UGC NET Paper 1 PYQ Practice - UGC Free Paper', desc: 'Practice UGC NET Paper 1 (General Paper on Teaching & Research Aptitude) previous year questions by year and unit. Free mock tests and answers.' },
-    { path: '/paper1-unit-pyq', title: 'UGC NET Paper 1 (Unit Wise) PYQ Practice - UGC Free Paper', desc: 'Practice UGC NET Paper 1 previous year questions unit-wise. Completely free CBT practice tests for all 10 general aptitude syllabus units.' },
-    { path: '/paper2', title: 'UGC NET Paper 2 PYQ Practice - UGC Free Paper', desc: 'Practice UGC NET Paper 2 subject-specific previous year questions. Free online CBT mock tests and detailed explanations for your subject.' },
-    { path: '/paper1-notes', title: 'UGC NET Paper 1 Study Notes - UGC Free Paper', desc: 'Access free unit-wise study notes, revision guides, and short summaries for UGC NET Paper 1. Boost your preparation with expert resources.' },
+    { path: '/', title: 'UGC NET Free Mock Test & Solved PYQs (2020–2025) - UGC Free Paper', desc: 'Free UGC NET mock tests and solved previous year question papers (2020–2025). Practice Paper 1 general aptitude and Paper 2 core subjects on authentic NTA CBT simulator.' },
+    { path: '/paper1', title: 'UGC NET Paper 1 Mock Test & Solved PYQs (2020–2025 CBT) Free - UGC Free Paper', desc: 'Attempt free UGC NET Paper 1 mock tests and solved previous year question papers (2020–2025). 100% authentic NTA CBT pattern with detailed academic explanations.' },
+    { path: '/paper1-unit-pyq', title: 'UGC NET Paper 1 Unit Wise PYQ Practice & Mock Tests (All 10 Units) - UGC Free Paper', desc: 'Topic-wise UGC NET Paper 1 previous year questions for Teaching Aptitude, Research, ICT, Higher Education, and all 10 syllabus units. 100% free CBT tests.' },
+    { path: '/paper2', title: 'UGC NET Paper 2 Previous Year Questions & CBT Mock Tests Free - UGC Free Paper', desc: 'Free UGC NET Paper 2 subject-specific mock tests and full 100-question solved previous year papers for Sociology, Sindhi, and core disciplines.' },
+    { path: '/paper1-notes', title: 'UGC NET Paper 1 Notes PDF (All 10 Units) - Free Study Material 2025 - UGC Free Paper', desc: 'Download and read free UGC NET Paper 1 revision notes, concept summaries, and short study guides for all 10 units. High-yield JRF exam preparation.' },
     { path: '/about', title: 'About Us - UGC Free Paper', desc: 'Learn about the mission and the team behind UGC Free Paper. We democratize UGC NET exam preparation resources.' },
-    { path: '/blog', title: 'UGC NET Prep Blog - UGC Free Paper', desc: 'Read the latest news, prep strategies, syllabus updates, and tips to crack UGC NET / JRF.' },
+    { path: '/blog', title: 'UGC NET 2025 Prep Blog - Syllabus, Cutoffs & Study Strategy - UGC Free Paper', desc: 'Read the latest UGC NET exam syllabus updates, category cutoffs analysis, topic weightage, and high-yield preparation tips to crack JRF.' },
     { path: '/contact', title: 'Contact Us - UGC Free Paper', desc: 'Have questions, suggestions, or feedback? Get in touch with the UGC Free Paper team.' },
     { path: '/support', title: 'Help & Support - UGC Free Paper', desc: 'Get help and support for using UGC Free Paper mock tests, study materials, and account issues.' },
     { path: '/privacy', title: 'Privacy Policy - UGC Free Paper', desc: 'Read the Privacy Policy of UGC Free Paper to understand how we collect, use, and protect your data.' },
     { path: '/terms', title: 'Terms of Service - UGC Free Paper', desc: 'Read the Terms of Service and user agreement for accessing UGC Free Paper mock tests and notes.' },
     { path: '/refund-policy', title: 'Refund Policy - UGC Free Paper', desc: 'Read the Refund Policy for UGC Free Paper mock tests and premium materials.' },
-    { path: '/mocktest', title: 'Free UGC NET CBT Mock Test - UGC Free Paper', desc: 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment.' },
+    { path: '/mocktest', title: 'NTA UGC NET CBT Mock Test Free Simulator (2025 Pattern) - UGC Free Paper', desc: 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment with official palette and scoring.' },
     { path: '/404', title: '404 - Page Not Found | UGC Free Paper', desc: 'The requested page could not be found on UGC Free Paper.' }
   ]
 
