@@ -3214,7 +3214,7 @@ const ManageSet = () => {
 
   const loadQuestionsForSet = async (setId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${setId}/questions`)
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${setId}/questions?admin=true`)
       if (res.ok) {
         const data = await res.json()
         setEditingSetQuestions(Array.isArray(data) ? data : [])
