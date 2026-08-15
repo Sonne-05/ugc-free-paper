@@ -165,15 +165,22 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
+// Active Working OpenCode Models
 const OPENCODE_FREE_MODELS = [
-  'nemotron-3-ultra-free',
-  'mimo-v2.5-free',
-  'deepseek-v4-flash-free',
-  'hy3-free',
-  'laguna-s-2.1-free',
   'big-pickle',
-  'nemotron-3.5-lightning-free'
+  'hy3-free',
+  'deepseek-v4-flash-free',
+  'nemotron-3-ultra-free'
 ];
+
+const OMNIROUTE_OPENCODE_MODELS = [
+  'oc/big-pickle',
+  'oc/hy3-free',
+  'oc/deepseek-v4-flash-free',
+  'oc/nemotron-3-ultra-free'
+];
+
+let globalActiveHealthyModel = null;
 
 // Unified API Caller (Supports OmniRoute Local Gateway + Direct OpenCode Zen)
 async function callOpenCodeApi(prompt, model, retryCount = 0) {
@@ -182,7 +189,7 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
     baseUrl = 'https://opencode.ai/zen/v1';
   }
   
-  const isOmniRoute = baseUrl.includes('20128') || model.startsWith('auto') || process.env.USE_OMNIROUTE === 'true';
+  const isOmniRoute = baseUrl.includes('20128') || model.startsWith('auto') || model.startsWith('oc/') || process.env.USE_OMNIROUTE === 'true';
   let apiKey = (process.env.OPENCODE_API_KEY || '').replace(/\"/g, '').trim();
 
   if (isOmniRoute && !apiKey) {
@@ -193,10 +200,23 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
 
   const urlEndpoint = `${baseUrl}/chat/completions`;
 
-  // Build model cascade list
-  const modelCascade = isOmniRoute 
-    ? [model, 'auto/coding', 'auto', 'auto/fast']
-    : [model, ...OPENCODE_FREE_MODELS.filter(m => m !== model)];
+  // Start with the currently healthy model if available
+  const startModel = (retryCount === 0 && globalActiveHealthyModel) ? globalActiveHealthyModel : model;
+
+  // Build model cascade list strictly using the 4 verified active OpenCode models
+  let modelCascade;
+  if (isOmniRoute) {
+    const formattedModel = startModel.startsWith('oc/') ? startModel : (startModel.startsWith('auto') ? 'oc/big-pickle' : `oc/${startModel}`);
+    modelCascade = [
+      formattedModel,
+      ...OMNIROUTE_OPENCODE_MODELS.filter(m => m !== formattedModel)
+    ];
+  } else {
+    modelCascade = [
+      startModel,
+      ...OPENCODE_FREE_MODELS.filter(m => m !== startModel)
+    ];
+  }
     
   const currentModel = modelCascade[retryCount % modelCascade.length];
 
@@ -207,7 +227,7 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      signal: AbortSignal.timeout(90000),
+      signal: AbortSignal.timeout(50000),
       body: JSON.stringify({
         model: currentModel,
         messages: [
@@ -252,17 +272,19 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
       }
 
       const parsed = JSON.parse(cleanJsonString(rawJson));
-      return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      const questionsList = parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      if (questionsList.length > 0) {
+        globalActiveHealthyModel = currentModel; // Remember this healthy model for future batches!
+      }
+      return questionsList;
     }
 
     const errText = await res.text();
-    if ((res.status === 429 || res.status === 503) && retryCount < 10) {
+    if (retryCount < 10) {
       const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-      console.warn(`[AI Gateway ${res.status}] ${currentModel} busy. Switching to "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
+      console.warn(`[AI Gateway ${res.status}] ${currentModel} error (${errText.substring(0, 80)}). Switching to "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
       return callOpenCodeApi(prompt, model, retryCount + 1);
     }
-
-    console.warn(`[AI Gateway Error] Status ${res.status} on ${currentModel}: ${errText.substring(0, 150)}`);
   } catch (err) {
     if (isOmniRoute && err.message.includes('ECONNREFUSED')) {
       console.error('\n❌ Could not connect to local OmniRoute on http://localhost:20128.');
@@ -274,8 +296,7 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
 
   if (retryCount < 10) {
     const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-    console.warn(`[AI Gateway] Switching to backup "${nextModel}" after 2s (Attempt ${retryCount + 1}/10)...`);
-    await new Promise(r => setTimeout(r, 2000));
+    console.warn(`[AI Gateway] Switching to backup "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
     return callOpenCodeApi(prompt, model, retryCount + 1);
   }
 
@@ -440,12 +461,10 @@ async function main() {
   } else {
     // Available AI Models & Gateways
     const availableModels = [
-      { name: '🚀 OmniRoute Local Gateway (Auto-fallback across 90+ free models)', id: 'auto/coding', isOmni: true },
+      { name: '🚀 OmniRoute Local Gateway (Auto-fallback across active OpenCode free models)', id: 'oc/hy3-free', isOmni: true },
+      { name: 'Hy3 Free (Active & Fast)', id: 'hy3-free' },
       { name: 'Nemotron 3 Ultra Free', id: 'nemotron-3-ultra-free' },
       { name: 'DeepSeek V4 Flash Free', id: 'deepseek-v4-flash-free' },
-      { name: 'MiMo-V2.5 Free', id: 'mimo-v2.5-free' },
-      { name: 'Hy3 Free', id: 'hy3-free' },
-      { name: 'Laguna S 2.1 Free', id: 'laguna-s-2.1-free' },
       { name: 'Big Pickle', id: 'big-pickle' }
     ];
 
@@ -550,17 +569,26 @@ async function main() {
       }
     }
 
-    // Format D: SI. No. X \n QBID: Y
+    // Format D: Robust SI. No. / QBID / OBID / Description parser
     if (matchesList.length === 0) {
-      const siNoRegex = /SI\.\s*No\.(\d+)\s*\n?QBID\s*:?\s*(\d+)/g;
-      while ((match = siNoRegex.exec(text)) !== null) {
-        matchesList.push({ index: match.index, qNum: parseInt(match[1], 10), qId: match[2] });
+      const robustDRegex = /(?:SI\.?\s*No\.?\s*(\d+)\s*)?[\r\n\s]*(?:QBID|OBID|Q8ID|QB\s*ID)\s*:?\s*(\d+)/gi;
+      while ((match = robustDRegex.exec(text)) !== null) {
+        let qNum = match[1] ? parseInt(match[1], 10) : null;
+        let qId = match[2];
+        if (!qNum) {
+          const block = text.substring(match.index, Math.min(text.length, match.index + 800));
+          const descMatch = /Question\s*Description\s*:\s*[^\n]*?_q(\d+)/i.exec(block);
+          if (descMatch) {
+            qNum = parseInt(descMatch[1], 10);
+          }
+        }
+        matchesList.push({ index: match.index, qNum: qNum || (matchesList.length + 1), qId });
       }
     }
 
-    // Format E: [Question ID = X][Question Description = ...Q01]
+    // Format E: Robust [Question ID = X][Question Description = ...Q01]
     if (matchesList.length === 0) {
-      const qIdRegex = /\[Question ID\s*=\s*(\d+)\](?:\[Question Description\s*=\s*([^\]]+)\])?/g;
+      const qIdRegex = /(?:\[|\b)[\s\r\n]*Question ID\s*=\s*(\d+)\](?:[\s\r\n]*\[[\s\r\n]*Question Description\s*=\s*([^\]]+)\])?/gi;
       const allFormatEMatches = [];
       while ((match = qIdRegex.exec(text)) !== null) {
         let qNum = null;
@@ -625,6 +653,10 @@ async function main() {
             text: rawQText + '\n' + rawOptText
           });
         }
+        cleanQuestions.sort((a, b) => (a.pdfQNum || a.qIndex) - (b.pdfQNum || b.qIndex));
+        cleanQuestions.forEach((q, idx) => {
+          q.qIndex = idx + 1;
+        });
       }
     }
 
@@ -645,10 +677,22 @@ async function main() {
       let endQNum = isPaperII ? 100 : 50;
       let qNumOffset = 0;
 
-      if (isPaperII && matchesList.some(m => m.qNum >= 51 && m.qNum <= 150)) {
-        startQNum = 51;
-        endQNum = 150;
-        qNumOffset = 50;
+      const maxMatchedNum = Math.max(...matchesList.map(m => m.qNum || 0));
+
+      if (isPaperII) {
+        if (maxMatchedNum > 100) {
+          startQNum = 51;
+          endQNum = 150;
+          qNumOffset = 50;
+        } else {
+          startQNum = 1;
+          endQNum = 100;
+          qNumOffset = 0;
+        }
+      } else {
+        startQNum = 1;
+        endQNum = 50;
+        qNumOffset = 0;
       }
 
       const questionsMap = new Map();
@@ -669,13 +713,99 @@ async function main() {
         }
       }
 
-      cleanQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
+      cleanQuestions = Array.from(questionsMap.values()).sort((a, b) => (a.pdfQNum || a.qIndex) - (b.pdfQNum || b.qIndex));
+      cleanQuestions.forEach((q, idx) => {
+        q.qIndex = idx + 1;
+      });
     }
 
     console.log(`Filtered ${cleanQuestions.length} unique questions for processing.`);
 
     if (cleanQuestions.length === 0) {
       throw new Error('No structured questions could be sliced from the PDF text.');
+    }
+
+    // Helper: Standardize and sanitize all question types
+    function sanitizeQuestion(rawParsed, rawItem, targetIndex) {
+      let qType = (rawParsed.type || 'mcq').toLowerCase();
+      let text = (rawParsed.text || `Question ${targetIndex}`).trim();
+      const rawText = rawItem ? rawItem.text : '';
+
+      // Match-column detection
+      const hasListItems = (Array.isArray(rawParsed.list1) && rawParsed.list1.length > 0) || (Array.isArray(rawParsed.list2) && rawParsed.list2.length > 0);
+      const isMatchPattern = /Match\s+(?:the\s+)?List|सूची\s*I\s*को\s*सूची\s*II/i.test(text) || /Match\s+(?:the\s+)?List|सूची\s*I\s*को\s*सूची\s*II/i.test(rawText);
+
+      if (hasListItems || isMatchPattern) {
+        qType = 'match-column';
+        if (text.length > 50 && /^Match/i.test(text)) {
+          text = LANGUAGE === 'Hindi' ? 'सूची - I को सूची - II से सुमेलित कीजिए।' : 'Match List - I with List - II.';
+        }
+      } else if ((rawParsed.assertion && rawParsed.reason) || (/(?:Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)/i.test(rawText) && /(?:Reason\s*\(?R\)?|कारण\s*\(?R\)?)/i.test(rawText))) {
+        qType = 'assertion-reason';
+      } else if ((Array.isArray(rawParsed.statements) && rawParsed.statements.length > 0) || /(?:Choose the correct (?:answer|option) from the options given below|नीचे दिए गए विकल्पों में से सही उत्तर चुनिए)/i.test(rawText)) {
+        qType = 'multiple-statement';
+      } else if (rawParsed.passage || (!isPaperII && targetIndex <= 5)) {
+        qType = !isPaperII && targetIndex <= 5 ? 'di' : 'comprehension';
+      } else if (isPaperII && targetIndex >= 91 && targetIndex <= 100) {
+        qType = 'comprehension';
+      } else if (!isPaperII && targetIndex >= 46 && targetIndex <= 50) {
+        qType = 'comprehension';
+      } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+        qType = 'mcq';
+      }
+
+      // Comprehension/DI Passage Attachment
+      let passage = rawParsed.passage || '';
+      if (!passage && compPassages) {
+        const compKeys = Object.keys(compPassages);
+        if (!isPaperII) {
+          if (targetIndex >= 1 && targetIndex <= 5 && compKeys[0]) passage = compPassages[compKeys[0]];
+          if (targetIndex >= 46 && targetIndex <= 50 && compKeys[1]) passage = compPassages[compKeys[1]];
+        } else {
+          if (targetIndex >= 91 && targetIndex <= 95 && compKeys[0]) passage = compPassages[compKeys[0]];
+          if (targetIndex >= 96 && targetIndex <= 100 && (compKeys[1] || compKeys[0])) passage = compPassages[compKeys[1] || compKeys[0]];
+        }
+      }
+
+      // Options Array Formatting
+      let options = Array.isArray(rawParsed.options) && rawParsed.options.length >= 4 
+        ? rawParsed.options.slice(0, 4) 
+        : ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
+      options = options.map((opt, i) => String(opt || `Option ${i + 1}`).trim());
+
+      // Match-column Headers
+      let list1Header = rawParsed.list1Header || (LANGUAGE === 'Hindi' ? 'सूची - I' : 'List - I');
+      let list2Header = rawParsed.list2Header || (LANGUAGE === 'Hindi' ? 'सूची - II' : 'List - II');
+
+      // Correct Answer Resolution
+      let correct = parseInt(rawParsed.correct, 10);
+      if (isNaN(correct) || correct < 1 || correct > 4) correct = 1;
+
+      if (answerKeyMap) {
+        const lookup = (rawItem && rawItem.pdfQNum) || targetIndex;
+        const ans = answerKeyMap[lookup] || (rawItem && rawItem.qId && answerKeyMap[`qid:${rawItem.qId}`]);
+        if (ans !== undefined && ans >= 1 && ans <= 4) correct = ans;
+      }
+
+      return {
+        setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
+        qIndex: targetIndex,
+        ntaQuestionId: rawItem ? (rawItem.qId || '') : (rawParsed.ntaQuestionId || ''),
+        unit: rawParsed.unit || '',
+        type: qType,
+        text: text,
+        options: options,
+        statements: Array.isArray(rawParsed.statements) ? rawParsed.statements : [],
+        correct: correct,
+        explanation: (rawParsed.explanation || '<p>Detailed explanation.</p>').trim(),
+        assertion: rawParsed.assertion || '',
+        reason: rawParsed.reason || '',
+        list1: Array.isArray(rawParsed.list1) ? rawParsed.list1 : [],
+        list2: Array.isArray(rawParsed.list2) ? rawParsed.list2 : [],
+        list1Header: qType === 'match-column' ? list1Header : '',
+        list2Header: qType === 'match-column' ? list2Header : '',
+        passage: passage
+      };
     }
 
     // 3. Batch AI Processing with Checkpoint
@@ -697,8 +827,8 @@ async function main() {
     const batches = [];
     const pendingQuestions = cleanQuestions.filter(q => !processedIndices.has(q.qIndex));
 
-    for (let i = 0; i < pendingQuestions.length; i += 5) {
-      batches.push(pendingQuestions.slice(i, i + 5));
+    for (let i = 0; i < pendingQuestions.length; i += 3) {
+      batches.push(pendingQuestions.slice(i, i + 3));
     }
 
     console.log(`\n[3/4] Processing ${batches.length} remaining batches using OpenCode Zen (${selectedModel})...`);
@@ -738,48 +868,8 @@ async function main() {
       (batchResults || []).forEach((q, idx) => {
         const matched = batch.find(item => item.qIndex === q.qIndex) || batch[idx];
         const qIndex = matched ? matched.qIndex : (q.qIndex || completedQuestions.length + 1);
+        const structuredQ = sanitizeQuestion(q, matched, qIndex);
 
-        let finalPromptText = (q.text || `Question ${qIndex}`).trim();
-        let qType = (q.type || 'mcq').toLowerCase();
-        if ((Array.isArray(q.list1) && q.list1.length > 0) || (Array.isArray(q.list2) && q.list2.length > 0) || /^Match\s+(?:the\s+)?List/i.test(finalPromptText)) {
-          qType = 'match-column';
-          if (finalPromptText.length > 40 && /^Match/i.test(finalPromptText)) {
-            finalPromptText = 'Match List - I with List - II.';
-          }
-        } else if (q.assertion && q.reason) {
-          qType = 'assertion-reason';
-        } else if (Array.isArray(q.statements) && q.statements.length > 0) {
-          qType = 'multiple-statement';
-        } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
-          qType = 'mcq';
-        }
-
-        const structuredQ = {
-          setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-          qIndex: qIndex,
-          ntaQuestionId: matched ? matched.qId : (q.ntaQuestionId || ''),
-          unit: '',
-          type: qType,
-          text: finalPromptText,
-          options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-          statements: Array.isArray(q.statements) ? q.statements : [],
-          correct: parseInt(q.correct, 10) || 1,
-          explanation: (q.explanation || '<p>Detailed explanation.</p>').trim(),
-          assertion: q.assertion || '',
-          reason: q.reason || '',
-          list1: Array.isArray(q.list1) ? q.list1 : [],
-          list2: Array.isArray(q.list2) ? q.list2 : [],
-          list1Header: q.list1Header || '',
-          list2Header: q.list2Header || '',
-          passage: q.passage || ''
-        };
-
-        if (answerKeyMap) {
-          const ans = answerKeyMap[qIndex] || (matched && answerKeyMap[`qid:${matched.qId}`]);
-          if (ans !== undefined) structuredQ.correct = ans;
-        }
-
-        // Overwrite or add by qIndex to prevent any duplicate index pushes
         const existingIdx = completedQuestions.findIndex(item => item.qIndex === qIndex);
         if (existingIdx !== -1) {
           completedQuestions[existingIdx] = structuredQ;
@@ -815,30 +905,7 @@ async function main() {
           const singlePrompt = buildPrompt([misQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
           const singleRes = await callOpenCodeApi(singlePrompt, selectedModel);
           if (singleRes && singleRes.length > 0) {
-            const q = singleRes[0];
-            const structuredQ = {
-              setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
-              qIndex: misQ.qIndex,
-              ntaQuestionId: misQ.qId || '',
-              unit: '',
-              type: q.type || 'mcq',
-              text: (q.text || `Question ${misQ.qIndex}`).trim(),
-              options: Array.isArray(q.options) && q.options.length >= 4 ? q.options.slice(0, 4) : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-              statements: Array.isArray(q.statements) ? q.statements : [],
-              correct: parseInt(q.correct, 10) || 1,
-              explanation: (q.explanation || '<p>Detailed explanation.</p>').trim(),
-              assertion: q.assertion || '',
-              reason: q.reason || '',
-              list1: Array.isArray(q.list1) ? q.list1 : [],
-              list2: Array.isArray(q.list2) ? q.list2 : [],
-              list1Header: q.list1Header || '',
-              list2Header: q.list2Header || '',
-              passage: q.passage || ''
-            };
-            if (answerKeyMap) {
-              const ans = answerKeyMap[misQ.qIndex] || (misQ.qId && answerKeyMap[`qid:${misQ.qId}`]);
-              if (ans !== undefined) structuredQ.correct = ans;
-            }
+            const structuredQ = sanitizeQuestion(singleRes[0], misQ, misQ.qIndex);
             finalMap.set(misQ.qIndex, structuredQ);
           }
         } catch (recErr) {
@@ -847,10 +914,16 @@ async function main() {
       }
     }
 
-    // 4. Save to Database (Strictly bounded from 1 to cleanQuestions.length)
-    const finalQuestions = Array.from(finalMap.values())
-      .filter(q => q.qIndex >= 1 && q.qIndex <= cleanQuestions.length)
-      .sort((a, b) => a.qIndex - b.qIndex);
+    // 4. Save to Database (Strictly continuous sequence from 1 to cleanQuestions.length)
+    const finalQuestions = [];
+    for (let i = 1; i <= cleanQuestions.length; i++) {
+      if (finalMap.has(i)) {
+        const item = finalMap.get(i);
+        item.qIndex = i; // Strict contiguous guarantee
+        finalQuestions.push(item);
+      }
+    }
+
     console.log(`\n[4/4] Committing ${finalQuestions.length} questions to MongoDB...`);
 
     await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
@@ -862,7 +935,7 @@ async function main() {
     }
 
     console.log(`\n======================================================`);
-    console.log(`🎉 SUCCESS: Imported ${finalQuestions.length} questions into Set "${targetSet.title}" using OpenCode Zen!`);
+    console.log(`🎉 SUCCESS: Imported ${finalQuestions.length} questions into Set "${targetSet.title}" with strict sequence & type integrity!`);
     console.log(`======================================================\n`);
 
   } catch (err) {

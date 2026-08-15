@@ -3074,6 +3074,7 @@ const ManageSet = () => {
   const [newSetSubtitle, setNewSetSubtitle] = useState('')
   const [newSetCount, setNewSetCount] = useState(50)
   const [newSetIsPublished, setNewSetIsPublished] = useState(false)
+  const [newSetIsVerified, setNewSetIsVerified] = useState(false)
   const [newSetSubject, setNewSetSubject] = useState('Sociology')
   
   const [editingSetId, setEditingSetId] = useState(null)
@@ -3187,6 +3188,7 @@ const ManageSet = () => {
             setNewSetSubtitle(target.subtitle)
             setNewSetCount(target.questionsCount)
             setNewSetIsPublished(target.isPublished || false)
+            setNewSetIsVerified(target.isVerified || target.verificationStatus === 'completed' || target.verificationStatus === 'complete' || false)
             setNewSetSubject(target.subject || 'Sociology')
             loadQuestionsForSet(setId)
           }
@@ -3198,6 +3200,7 @@ const ManageSet = () => {
           setNewSetSubtitle('')
           setNewSetCount(50)
           setNewSetIsPublished(false)
+          setNewSetIsVerified(false)
           setNewSetSubject('Sociology')
           setEditingSetQuestions([])
         }
@@ -3339,6 +3342,8 @@ const ManageSet = () => {
           year: newSetYear,
           questionsCount: Number(newSetCount),
           isPublished: newSetIsPublished,
+          isVerified: newSetIsVerified,
+          verificationStatus: newSetIsVerified ? 'completed' : 'pending',
           subject: newSetPaperType === 'Paper II' ? newSetSubject : 'General Paper'
         }
         const res = await fetch(`${API_BASE_URL}/api/pyqsets/${editingSetId}`, {
@@ -3360,6 +3365,8 @@ const ManageSet = () => {
         questionsCount: Number(newSetCount),
         questionsLoaded: 0,
         isPublished: newSetIsPublished,
+        isVerified: newSetIsVerified,
+        verificationStatus: newSetIsVerified ? 'completed' : 'pending',
         subject: newSetPaperType === 'Paper II' ? newSetSubject : 'General Paper'
       }
 
@@ -3377,6 +3384,50 @@ const ManageSet = () => {
       alert('Failed to save PYQ Set')
     }
   }
+
+  const handleTogglePublish = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: newStatus })
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
+        if ((editingSetId || setId) === id) setNewSetIsPublished(newStatus)
+      } else {
+        alert('Failed to update publish status')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error updating publish status')
+    }
+  }
+
+  const handleToggleVerification = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isVerified: newStatus,
+          verificationStatus: newStatus ? 'completed' : 'pending'
+        })
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
+        if ((editingSetId || setId) === id) setNewSetIsVerified(newStatus)
+      } else {
+        alert('Failed to update verification status')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error updating verification status')
+    }
+  }
+
   const handleOptChange = (idx, val) => {
     setNewQOpts(prev => {
       const next = [...prev]
@@ -4604,8 +4655,25 @@ const ManageSet = () => {
     <div className="manage-set-page">
     <div className="manage-set-container">
       <div className="manage-set-header">
-        <h1>{setId ? `Manage Exam Set #${setId}` : 'Manage Exam Sets'}</h1>
-        <p>{setId ? 'Edit set details and manage questions' : 'Select or create a set to manage questions'}</p>
+        <div>
+          <h1>{setId ? `Manage Exam Set #${setId}` : 'Manage Exam Sets'}</h1>
+          <p>{setId ? 'Edit set details and manage questions' : 'Select or create a set to manage questions'}</p>
+          {activeSet && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+              {activeSet.isPublished ? (
+                <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(activeSet.id || activeSet._id, false)} style={{ cursor: 'pointer' }} title="Published (Click to Unpublish / Draft)">Published</span>
+              ) : (
+                <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(activeSet.id || activeSet._id, true)} style={{ cursor: 'pointer' }} title="Draft (Click to Publish)">Draft</span>
+              )}
+
+              {(activeSet.isVerified || activeSet.verificationStatus === 'completed' || activeSet.verificationStatus === 'complete') ? (
+                <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Verification: Complete</span>
+              ) : (
+                <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(activeSet.id || activeSet._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Verification: Pending</span>
+              )}
+            </div>
+          )}
+        </div>
         <button className="btn-back" onClick={() => navigate('/profile#pyq')}>&larr; Back to Profile</button>
       </div>
       <div className="manage-set-layout">
@@ -4628,11 +4696,14 @@ const ManageSet = () => {
                         }}
                       >
                         <option value="">-- Create New Set --</option>
-                        {pyqSets.map(s => (
-                          <option key={s.id || s._id} value={s.id || s._id}>
-                            {s.title} ({s.questionsLoaded || 0} / {s.questionsCount || 100} Qs)
-                          </option>
-                        ))}
+                        {pyqSets.map(s => {
+                          const isVer = s.isVerified || s.verificationStatus === 'completed' || s.verificationStatus === 'complete'
+                          return (
+                            <option key={s.id || s._id} value={s.id || s._id}>
+                              {s.title} ({s.questionsLoaded || 0} / {s.questionsCount || 100} Qs) — {s.isPublished ? 'Published' : 'Draft'} • {isVer ? 'Verified' : 'Pending'}
+                            </option>
+                          )
+                        })}
                       </select>
                     </div>
                   </div>
@@ -4701,6 +4772,19 @@ const ManageSet = () => {
                         <option value="50">50 Questions (Standard Paper I)</option>
                         <option value="100">100 Questions (Standard Paper II)</option>
                       </select>
+                    </div>
+
+                    <div className="ms-form-field-checkbox" style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="verifySetManage"
+                        checked={newSetIsVerified}
+                        onChange={(e) => setNewSetIsVerified(e.target.checked)}
+                        style={{ width: 'auto', margin: 0 }}
+                      />
+                      <label htmlFor="verifySetManage" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        Manual Verification Complete (Reviewed and approved)
+                      </label>
                     </div>
 
                     <div className="ms-form-field-checkbox" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>

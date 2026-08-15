@@ -128,6 +128,10 @@ mongoose.connect(process.env.MONGODB_URI).then(async () => {
     if (result.modifiedCount > 0) {
       console.log(`Migrated ${result.modifiedCount} existing PYQ sets to isPublished: true`);
     }
+    await PyqSet.updateMany(
+      { verificationStatus: { $exists: false } },
+      { $set: { verificationStatus: 'pending', isVerified: false } }
+    );
   } catch (err) {
     console.error('Migration error:', err);
   }
@@ -217,6 +221,12 @@ app.put('/api/pyqsets/:id', async (req, res) => {
   try {
     const updateData = { ...req.body };
     delete updateData.questionsLoaded;
+
+    if (updateData.isVerified !== undefined && updateData.verificationStatus === undefined) {
+      updateData.verificationStatus = updateData.isVerified ? 'completed' : 'pending';
+    } else if (updateData.verificationStatus !== undefined && updateData.isVerified === undefined) {
+      updateData.isVerified = (updateData.verificationStatus === 'completed' || updateData.verificationStatus === 'complete');
+    }
 
     const count = await Question.countDocuments({ setId: req.params.id });
     updateData.questionsLoaded = count;

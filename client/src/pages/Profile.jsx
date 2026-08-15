@@ -173,6 +173,22 @@ const Profile = () => {
   const [selectedFilterYear, setSelectedFilterYear] = useState('All')
   const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
   const [selectedFilterSubject, setSelectedFilterSubject] = useState('All')
+  const [selectedFilterStatus, setSelectedFilterStatus] = useState('All')
+  const [newSetIsVerified, setNewSetIsVerified] = useState(false)
+
+  const matchesFilterStatus = (s) => {
+    if (selectedFilterStatus === 'All') return true
+    if (selectedFilterStatus === 'pending') {
+      return !s.isVerified && s.verificationStatus !== 'completed' && s.verificationStatus !== 'complete'
+    }
+    if (selectedFilterStatus === 'completed') {
+      return s.isVerified === true || s.verificationStatus === 'completed' || s.verificationStatus === 'complete'
+    }
+    if (selectedFilterStatus === 'draft') return !s.isPublished
+    if (selectedFilterStatus === 'published') return !!s.isPublished
+    return true
+  }
+
   const uniqueSetYears = useMemo(() => {
     const years = pyqSets.map(s => s.year).filter(Boolean).map(y => String(y))
     return [...new Set(years)].sort((a, b) => b - a)
@@ -1026,6 +1042,7 @@ const Profile = () => {
     setNewSetSubtitle('')
     setNewSetCount(50)
     setNewSetIsPublished(false)
+    setNewSetIsVerified(false)
   }
 
   const handleDeleteQuestion = async (questionId) => {
@@ -1082,7 +1099,9 @@ const Profile = () => {
           subject: newSetPaperType === 'Paper II' ? newSetSubject : '',
           year: newSetYear,
           questionsCount: Number(newSetCount),
-          isPublished: newSetIsPublished
+          isPublished: newSetIsPublished,
+          isVerified: newSetIsVerified,
+          verificationStatus: newSetIsVerified ? 'completed' : 'pending'
         }
         const res = await fetch(`${API_BASE_URL}/api/pyqsets/${editingSetId}`, {
           method: 'PUT',
@@ -1105,6 +1124,8 @@ const Profile = () => {
         questionsCount: Number(newSetCount),
         questionsLoaded: 0,
         isPublished: newSetIsPublished,
+        isVerified: newSetIsVerified,
+        verificationStatus: newSetIsVerified ? 'completed' : 'pending',
         createdBy: localStorage.getItem('userId')
       }
 
@@ -1155,6 +1176,28 @@ const Profile = () => {
     } catch (err) {
       console.error(err)
       alert('Error updating publish status')
+    }
+  }
+
+  const handleToggleVerification = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pyqsets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isVerified: newStatus,
+          verificationStatus: newStatus ? 'completed' : 'pending'
+        })
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setPyqSets(prev => prev.map(s => (s.id === id || s._id === id) ? updated : s))
+      } else {
+        alert('Failed to update verification status')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error updating verification status')
     }
   }
 
@@ -2463,6 +2506,20 @@ const Profile = () => {
                           ))}
                         </select>
                       </div>
+                      <div className="pyq-filter-group">
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Verification / Status:</label>
+                        <select 
+                          className="pane-select pyq-filter-select" 
+                          value={selectedFilterStatus} 
+                          onChange={(e) => setSelectedFilterStatus(e.target.value)}
+                        >
+                          <option value="All">All Statuses</option>
+                          <option value="pending">⏳ Verification: Pending</option>
+                          <option value="completed">✓ Verification: Complete</option>
+                          <option value="draft">Drafts Only</option>
+                          <option value="published">Published Only</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -2471,11 +2528,11 @@ const Profile = () => {
                     <div style={{ marginBottom: '24px' }}>
                       <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: '8px', height: '8px', background: 'var(--primary)', borderRadius: '50%' }}></span>
-                        Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length})
+                        Paper I (General Aptitude) Sets ({pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && matchesFilterStatus(s)).length})
                       </h4>
-                      {pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear)).length === 0 ? (
+                      {pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && matchesFilterStatus(s)).length === 0 ? (
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                          No active Paper I sets.
+                          No matching Paper I sets.
                         </p>
                       ) : (
                         <div className="admin-table-container" style={{ marginBottom: 0 }}>
@@ -2485,13 +2542,17 @@ const Profile = () => {
                               <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
                               <th style={{ width: '80px' }}>ID</th>
                               <th>Exam Set Title</th>
-                              <th>Status / Questions</th>
+                              <th>Status / Verification</th>
                               <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {(() => {
-                              const paper1Sets = pyqSets.filter(s => s.paperType === 'Paper I' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear))
+                              const paper1Sets = pyqSets.filter(s => 
+                                s.paperType === 'Paper I' && 
+                                (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) &&
+                                matchesFilterStatus(s)
+                              )
                               const grouped = getGroupedSetsByYear(paper1Sets)
                               return Object.keys(grouped)
                                 .sort((a, b) => b - a)
@@ -2521,15 +2582,21 @@ const Profile = () => {
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                          <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
                                           </span>
-                                          <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                                             {set.isPublished ? (
-                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Published on site (Click to Unpublish / Draft)">Published</span>
                                             ) : (
-                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Draft (Click to Publish)">Draft</span>
+                                            )}
+
+                                            {(set.isVerified || set.verificationStatus === 'completed' || set.verificationStatus === 'complete') ? (
+                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Complete</span>
+                                            ) : (
+                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Pending</span>
                                             )}
                                           </div>
                                         </div>
@@ -2560,11 +2627,11 @@ const Profile = () => {
                     <div>
                       <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#dc2626', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%' }}></span>
-                        Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)).length})
+                        Paper II (Core Subject) Sets ({pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject) && matchesFilterStatus(s)).length})
                       </h4>
-                      {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)).length === 0 ? (
+                      {pyqSets.filter(s => s.paperType === 'Paper II' && (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject) && matchesFilterStatus(s)).length === 0 ? (
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '12px', background: 'var(--surface)', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                          No active Paper II sets.
+                          No matching Paper II sets.
                         </p>
                       ) : (
                         <div className="admin-table-container" style={{ marginBottom: 0 }}>
@@ -2574,7 +2641,7 @@ const Profile = () => {
                               <th style={{ width: '70px', textAlign: 'center' }}>Year</th>
                               <th style={{ width: '90px' }}>ID</th>
                               <th>Exam Set Title</th>
-                              <th>Status / Qs</th>
+                              <th>Status / Verification</th>
                               <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
@@ -2583,7 +2650,8 @@ const Profile = () => {
                               const paper2Sets = pyqSets.filter(s => 
                                 s.paperType === 'Paper II' && 
                                 (selectedFilterYear === 'All' || String(s.year) === selectedFilterYear) && 
-                                (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject)
+                                (selectedFilterSubject === 'All' || s.subject === selectedFilterSubject) &&
+                                matchesFilterStatus(s)
                               )
                               const grouped = getGroupedSetsByYear(paper2Sets)
                               return Object.keys(grouped)
@@ -2614,15 +2682,21 @@ const Profile = () => {
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                          <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
                                           </span>
-                                          <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                                             {set.isPublished ? (
-                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Click to Unpublish (make Draft)">Published</span>
+                                              <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Published on site (Click to Unpublish / Draft)">Published</span>
                                             ) : (
-                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Click to Publish">Draft</span>
+                                              <span className="status-badge status-badge--draft" onClick={() => handleTogglePublish(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Draft (Click to Publish)">Draft</span>
+                                            )}
+
+                                            {(set.isVerified || set.verificationStatus === 'completed' || set.verificationStatus === 'complete') ? (
+                                              <span className="status-badge status-badge--verified" onClick={() => handleToggleVerification(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Manual Verification: Complete (Click to mark Pending)">✓ Complete</span>
+                                            ) : (
+                                              <span className="status-badge status-badge--pending" onClick={() => handleToggleVerification(set.id || set._id, true)} style={{ cursor: 'pointer' }} title="Manual Verification: Pending (Click to mark Complete)">⏳ Pending</span>
                                             )}
                                           </div>
                                         </div>
@@ -2656,7 +2730,7 @@ const Profile = () => {
                     <div className="form-field" style={{ marginBottom: '12px' }}>
                       <label>Paper Type</label>
                       <select 
-                        className="pane-select"
+                          className="pane-select"
                         value={newSetPaperType}
                         onChange={(e) => setNewSetPaperType(e.target.value)}
                       >
@@ -2716,6 +2790,19 @@ const Profile = () => {
                         <option value="50">50 Questions (Standard Paper I)</option>
                         <option value="100">100 Questions (Standard Paper II)</option>
                       </select>
+                    </div>
+
+                    <div className="form-field-checkbox" style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="verifySetProfile"
+                        checked={newSetIsVerified}
+                        onChange={(e) => setNewSetIsVerified(e.target.checked)}
+                        style={{ width: 'auto', margin: 0 }}
+                      />
+                      <label htmlFor="verifySetProfile" style={{ margin: 0, fontWeight: 'normal', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        Manual Verification Complete (Reviewed and approved)
+                      </label>
                     </div>
 
                     <div className="form-field-checkbox" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
