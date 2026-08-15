@@ -170,8 +170,8 @@ const Paper1UnitPYQ = () => {
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
-        <h1 className="pyq-page__title">UGC NET Paper I PYQs (Unit Wise)</h1>
-        <p className="pyq-page__subtitle">Practice previous year questions organized by syllabus units.</p>
+        <h1 className="pyq-page__title">UGC NET Paper 1 Unit-Wise PYQs & Topic Practice Tests (All 10 Units)</h1>
+        <p className="pyq-page__subtitle">Practice topic-wise UGC NET Paper 1 previous year questions with verified answer keys, full explanations, and NTA CBT test mode.</p>
 
         {/* Top Leaderboard Ad */}
         {adsEnabled && (

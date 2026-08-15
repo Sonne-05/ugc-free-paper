@@ -108,10 +108,11 @@ const Paper1PYQ = () => {
               ? set.subtitle.replace(/^General\s+Paper\s+\d{4}\s*/i, '').replace(/^General\s+Paper\s*/i, '')
               : '';
 
-            grouped[set.year].push({
+    grouped[set.year].push({
               id: set.id,
               cycle: cleanedCycle,
               desktopTitle: desktopTitle,
+              seoTitle: `UGC NET ${set.year} Paper 1 Solved Question Paper (${cleanedCycle || desktopTitle})`,
               questions: set.questionsCount,
               title: set.title
             })
@@ -126,8 +127,8 @@ const Paper1PYQ = () => {
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
-        <h1 className="pyq-page__title">UGC NET Paper I PYQs</h1>
-        <p className="pyq-page__subtitle">Solve official year-wise Previous Year Question papers for general teaching & research aptitude.</p>
+        <h1 className="pyq-page__title">UGC NET Paper 1 Solved PYQs & Free CBT Mock Tests (2020–2025)</h1>
+        <p className="pyq-page__subtitle">Solve official NTA year-wise Previous Year Question papers with step-by-step academic solutions and authentic exam timer.</p>
 
         {/* Top Leaderboard Ad */}
         {adsEnabled && (
@@ -140,9 +141,9 @@ const Paper1PYQ = () => {
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
-              <h2>Why Solve Paper 1 PYQs?</h2>
+              <h2>Why Solve Official UGC NET Paper 1 PYQs?</h2>
               <p>
-                Practicing previous years' question papers is the most effective way to understand the pattern, difficulty level, and types of questions asked in UGC NET Paper 1. It helps in speed optimization, time management, and recognizing recurring concepts across all 10 general aptitude units.
+                Practicing previous years' question papers (2020–2025) is the most effective way to understand the pattern, difficulty level, and types of questions asked in UGC NET Paper 1. It helps in speed optimization, time management, and recognizing recurring concepts across all 10 general aptitude units.
               </p>
             </section>
 
@@ -155,7 +156,7 @@ const Paper1PYQ = () => {
               <table className="pyq-table pyq-table--year">
                 <thead>
                   <tr>
-                    <th className="pyq-table__th col-cycle">Exam Cycle & Shift</th>
+                    <th className="pyq-table__th col-cycle">Exam Cycle & Shift Paper</th>
                     <th className="pyq-table__th col-action col-action-th">Practice</th>
                   </tr>
                 </thead>
@@ -169,9 +170,9 @@ const Paper1PYQ = () => {
                           <tr className="pyq-table__year-row">
                             <td colSpan={2} className="pyq-table__year-td">
                               <div className="pyq-table__year-content">
-                                <span className="pyq-table__year-title">{year} Papers</span>
+                                <span className="pyq-table__year-title">UGC NET {year} Question Papers</span>
                                 <span className="pyq-table__year-badge">
-                                  {yearPapers.length} {yearPapers.length === 1 ? 'Paper' : 'Papers'}
+                                  {yearPapers.length} {yearPapers.length === 1 ? 'Paper' : 'Papers'} Available
                                 </span>
                               </div>
                             </td>
@@ -181,20 +182,24 @@ const Paper1PYQ = () => {
                               <td className="pyq-table__td">
                                 <div className="pyq-card-meta">
                                   <span className="pyq-card-title pyq-card-title--desktop">
-                                    {paper.desktopTitle}
+                                    {paper.seoTitle}
                                   </span>
                                   <span className="pyq-card-title pyq-card-title--mobile">
-                                    {paper.cycle}
+                                    UGC NET {year} Paper 1 ({paper.cycle || paper.desktopTitle})
                                   </span>
+                                  <div className="pyq-card-questions">
+                                    {paper.questions || 50} Questions • 100 Marks • NTA CBT Pattern
+                                  </div>
                                 </div>
                               </td>
                               <td className="pyq-table__td col-action">
                                 <button 
                                   className="pyq-table__btn" 
+                                  aria-label={`Solve ${paper.seoTitle}`}
                                   onClick={() => navigate('/mocktest', { 
                                     state: { 
                                       paperId: paper.id, 
-                                      title: paper.title, 
+                                      title: paper.seoTitle, 
                                       subtitle: paper.cycle,
                                       questionsCount: paper.questions 
                                     } 

@@ -128,6 +128,7 @@ const Paper2PYQ = () => {
               cycle: cleanExamTitle(set.subtitle, activeSubject, set.year),
               desktopTitle: cleanExamTitle(set.subtitle, activeSubject, set.year),
               questions: set.questionsCount,
+              seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle})`,
               title: set.title
             })
           })
@@ -142,8 +143,8 @@ const Paper2PYQ = () => {
   return (
     <div className="pyq-page">
       <div className="pyq-page__container">
-        <h1 className="pyq-page__title">UGC NET Paper II {activeSubject} PYQs</h1>
-        <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} Previous Year Question papers.</p>
+        <h1 className="pyq-page__title">UGC NET Paper 2 {activeSubject} Solved PYQs & Free CBT Mock Tests</h1>
+        <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} 100-Question Previous Year Papers with verified keys & explanations.</p>
 
         {/* Top Leaderboard Ad */}
         {adsEnabled && (
@@ -156,9 +157,9 @@ const Paper2PYQ = () => {
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
-              <h2>Master Paper II {activeSubject}</h2>
+              <h2>Master UGC NET Paper 2 {activeSubject} with Real PYQs</h2>
               <p>
-                Paper 2 {activeSubject} tests your depth of knowledge in advanced subject curriculum, core concepts, research methodologies, and theoretical frameworks. Regularly solving {activeSubject} previous years' question papers allows you to analyze question patterns and maximize your JRF qualification rate.
+                Paper 2 {activeSubject} tests your depth of knowledge in advanced subject curriculum, core concepts, research methodologies, and theoretical frameworks. Regularly solving official {activeSubject} previous years' question papers allows you to analyze question patterns and maximize your JRF qualification rate.
               </p>
             </section>
 
@@ -171,7 +172,7 @@ const Paper2PYQ = () => {
               <table className="pyq-table pyq-table--subject">
                 <thead>
                   <tr>
-                    <th className="pyq-table__th col-cycle">Subject & Cycle</th>
+                    <th className="pyq-table__th col-cycle">Exam Cycle & Shift Paper</th>
                     <th className="pyq-table__th col-action col-action-th">Practice</th>
                   </tr>
                 </thead>
@@ -185,9 +186,9 @@ const Paper2PYQ = () => {
                           <tr className="pyq-table__year-row">
                             <td colSpan={2} className="pyq-table__year-td">
                               <div className="pyq-table__year-content">
-                                <span className="pyq-table__year-title">{year} Papers</span>
+                                <span className="pyq-table__year-title">UGC NET {year} {activeSubject} Papers</span>
                                 <span className="pyq-table__year-badge">
-                                  {yearPapers.length} {yearPapers.length === 1 ? 'Paper' : 'Papers'}
+                                  {yearPapers.length} {yearPapers.length === 1 ? 'Paper' : 'Papers'} Available
                                 </span>
                               </div>
                             </td>
@@ -196,23 +197,25 @@ const Paper2PYQ = () => {
                             <tr key={paper.id} className="pyq-table__tr">
                               <td className="pyq-table__td">
                                 <div className="pyq-card-meta">
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                     <span className="pyq-card-title pyq-card-title--desktop">
-                                       {paper.desktopTitle}
-                                     </span>
-                                    <span className="pyq-card-title pyq-card-title--mobile">
-                                      {paper.cycle}
-                                    </span>
+                                  <span className="pyq-card-title pyq-card-title--desktop">
+                                    {paper.seoTitle}
+                                  </span>
+                                  <span className="pyq-card-title pyq-card-title--mobile">
+                                    UGC NET {year} {activeSubject} ({paper.cycle || paper.desktopTitle})
+                                  </span>
+                                  <div className="pyq-card-questions">
+                                    {paper.questions || 100} Questions • 200 Marks • NTA CBT Pattern
                                   </div>
                                 </div>
                               </td>
                               <td className="pyq-table__td col-action">
                                 <button 
                                   className="pyq-table__btn" 
+                                  aria-label={`Solve ${paper.seoTitle}`}
                                   onClick={() => navigate('/mocktest', { 
                                     state: { 
                                       paperId: paper.id, 
-                                      title: paper.title, 
+                                      title: paper.seoTitle, 
                                       subtitle: paper.cycle,
                                       questionsCount: paper.questions 
                                     } 
