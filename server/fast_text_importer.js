@@ -1158,6 +1158,8 @@ async function main() {
           });
         }
       }
+
+      typeBreakdown[q.type] = (typeBreakdown[q.type] || 0) + 1;
     }
 
     console.log(`✅ Pre-Flight Audit Passed: Verified ${finalQuestions.length} questions (${preFlightRepairs} automated edge-case repairs).`);
