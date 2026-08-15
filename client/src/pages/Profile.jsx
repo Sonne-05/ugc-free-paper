@@ -2617,7 +2617,7 @@ const Profile = () => {
                               <th style={{ width: '100px', textAlign: 'center' }}>Year</th>
                               <th style={{ width: '80px' }}>ID</th>
                               <th>Exam Set Title</th>
-                              <th>Status / Verification</th>
+                              <th style={{ minWidth: '180px' }}>Status / Verification</th>
                               <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
@@ -2657,11 +2657,11 @@ const Profile = () => {
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                           <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
                                           </span>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                                             {set.isPublished ? (
                                               <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Published on site (Click to Unpublish / Draft)">Published</span>
                                             ) : (
@@ -2716,7 +2716,7 @@ const Profile = () => {
                               <th style={{ width: '70px', textAlign: 'center' }}>Year</th>
                               <th style={{ width: '90px' }}>ID</th>
                               <th>Exam Set Title</th>
-                              <th>Status / Verification</th>
+                              <th style={{ minWidth: '180px' }}>Status / Verification</th>
                               <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                           </thead>
@@ -2757,11 +2757,11 @@ const Profile = () => {
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                           <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>
                                             {set.questionsLoaded} / {set.questionsCount} Qs
                                           </span>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                                             {set.isPublished ? (
                                               <span className="status-badge status-badge--published" onClick={() => handleTogglePublish(set.id || set._id, false)} style={{ cursor: 'pointer' }} title="Published on site (Click to Unpublish / Draft)">Published</span>
                                             ) : (
