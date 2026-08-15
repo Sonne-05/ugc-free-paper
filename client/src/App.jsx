@@ -22,6 +22,7 @@ import ManageSet from './pages/ManageSet'
 import AdminNoteEditor from './pages/AdminNoteEditor'
 import Support from './pages/Support'
 import MockTest from './pages/MockTest'
+import NotFound from './pages/NotFound'
 import { API_BASE_URL } from './services/api'
 import './App.css'
 
@@ -189,6 +190,7 @@ function App() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route path="/mocktest" element={<MockTest />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {!isFullPage && !location.pathname.startsWith('/admin') && <Footer />}

@@ -82,7 +82,8 @@ async function run() {
     { path: '/privacy', title: 'Privacy Policy - UGC Free Paper', desc: 'Read the Privacy Policy of UGC Free Paper to understand how we collect, use, and protect your data.' },
     { path: '/terms', title: 'Terms of Service - UGC Free Paper', desc: 'Read the Terms of Service and user agreement for accessing UGC Free Paper mock tests and notes.' },
     { path: '/refund-policy', title: 'Refund Policy - UGC Free Paper', desc: 'Read the Refund Policy for UGC Free Paper mock tests and premium materials.' },
-    { path: '/mocktest', title: 'Free UGC NET CBT Mock Test - UGC Free Paper', desc: 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment.' }
+    { path: '/mocktest', title: 'Free UGC NET CBT Mock Test - UGC Free Paper', desc: 'Take a realistic, timed UGC NET Computer Based Test (CBT) mock exam to simulate the real NTA test environment.' },
+    { path: '/404', title: '404 - Page Not Found | UGC Free Paper', desc: 'The requested page could not be found on UGC Free Paper.' }
   ]
 
   const routes = [...staticRoutes]
@@ -162,14 +163,17 @@ async function run() {
     html = html.replace(/<meta property="twitter:description" content=".*?" \/>/g, `<meta property="twitter:description" content="${r.desc}" />`)
     html = html.replace(/<meta property="twitter:url" content=".*?" \/>/g, `<meta property="twitter:url" content="https://ugcfreepaper.com${r.path === '/' ? '' : r.path}" />`)
 
-    // Save index.html to file system
+    // Save index.html and .html to file system for direct server resolution
     const routeFolder = r.path === '/' ? '' : r.path
     const destDir = toAbsolute(`dist${routeFolder}`)
     
     if (routeFolder) {
       fs.mkdirSync(destDir, { recursive: true })
+      // Write dist/about.html for direct clean-URL server routing
+      fs.writeFileSync(toAbsolute(`dist${routeFolder}.html`), html)
     }
     
+    // Write dist/about/index.html for directory-based routing
     fs.writeFileSync(path.join(destDir, 'index.html'), html)
   }
 

@@ -1,0 +1,42 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Allow direct access to real files and directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # 1. Match exact .html file if it exists (e.g. /about -> /about.html)
+  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+  RewriteRule ^(.*)$ /$1.html [L]
+
+  # 2. Match directory index.html if it exists (e.g. /about -> /about/index.html)
+  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
+  RewriteRule ^(.*)$ /$1/index.html [L]
+
+  # 3. SPA Fallback: Serve clean fallback.html for unmatched dynamic client-side routes
+  # (Prevents flashing the home landing page during client hydration)
+  RewriteCond %{DOCUMENT_ROOT}/fallback.html -f
+  RewriteRule . /fallback.html [L]
+
+  # 4. Final fallback
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Custom 404 Error Document for Apache/cPanel
+ErrorDocument 404 /404.html
+
+# Enable compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Set correct MIME types
+<IfModule mod_mime.c>
+  AddType text/html .html
+  AddType text/css .css
+  AddType application/javascript .js
+  AddType application/json .json
+  AddType image/svg+xml .svg
+</IfModule>
