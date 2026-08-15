@@ -19,7 +19,7 @@ const About = () => {
   const metrics = [
     { value: '15,000+', label: 'Verified Questions' },
     { value: '10 / 10', label: 'Paper 1 Units' },
-    { value: '2021–2024', label: 'NTA Exam Shifts' },
+    { value: '2020–2025', label: 'NTA Exam Shifts' },
     { value: '100% Free', label: 'Open To All' },
   ]
 
@@ -158,7 +158,7 @@ const About = () => {
               <svg className="about-story__check-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              <span>Verified 2021–2024 previous year question papers categorized by year & shift.</span>
+              <span>Verified 2020–2025 previous year question papers categorized by year & shift.</span>
             </div>
             <div className="about-story__feature-item">
               <svg className="about-story__check-icon" fill="currentColor" viewBox="0 0 20 20">
