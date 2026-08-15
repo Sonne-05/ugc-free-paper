@@ -5,6 +5,35 @@ import { API_BASE_URL } from '../services/api'
 import { getQuestionUnit as getUnitFromHelper } from '../constants/paper1Units'
 import './MockTest.css'
 
+// Helper function to format a clean, concise short title for the CBT exam header
+export function formatMockTestShortTitle(paperDetails) {
+  if (!paperDetails) return 'UGC NET Mock Test';
+  if (paperDetails.isUnitWise) {
+    const unitShort = paperDetails.unitName ? paperDetails.unitName.replace(/Unit\s+\d+:\s+/i, '') : 'General Paper 1';
+    return `Paper 1 • ${unitShort}`;
+  }
+
+  const rawTitle = paperDetails.title || '';
+  const rawSub = paperDetails.subtitle || '';
+
+  // Extract shift / date information if available
+  const shiftMatch = rawSub.match(/(\d{1,2}\s+[A-Za-z]+|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})?\s*\(?Shift\s*\d+\)?/i)
+    || rawTitle.match(/(\d{1,2}\s+[A-Za-z]+|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})?\s*\(?Shift\s*\d+\)?/i);
+
+  const shiftText = shiftMatch ? shiftMatch[0].replace(/[()]/g, '').trim() : '';
+  const year = paperDetails.year || rawTitle.match(/\b(202[0-9])\b/)?.[1] || '';
+  const isPaper2 = rawTitle.includes('Paper II') || rawTitle.includes('Paper 2') || paperDetails.paperType === 'Paper II';
+  const paperLabel = isPaper2 ? 'Paper 2' : 'Paper 1';
+  const subject = paperDetails.subject && isPaper2 ? `(${paperDetails.subject})` : '';
+
+  const parts = ['UGC NET', year, paperLabel, subject].filter(Boolean);
+  let formatted = parts.join(' ');
+  if (shiftText) {
+    formatted += ` • ${shiftText}`;
+  }
+  return formatted.replace(/\s+/g, ' ').trim() || rawTitle;
+}
+
 // 5 Rich sample questions for UGC NET Paper I (General teaching & research aptitude)
 const paper1BaseQuestions = [
   {
@@ -1561,8 +1590,8 @@ Submitted by User: ${userName}
               </div>
               <span className="mt-header__logo-text-dark" style={{ marginLeft: '-5px' }}>GC Free Paper</span>
             </Link>
-            <div className="mt-header__title">
-              {paperDetails.title} {paperDetails.subtitle && `- ${paperDetails.subtitle}`}
+            <div className="mt-header__title" title={`${paperDetails.title || ''} ${paperDetails.subtitle ? `- ${paperDetails.subtitle}` : ''}`}>
+              {formatMockTestShortTitle(paperDetails)}
             </div>
           </div>
           <div className="mt-header__right">
