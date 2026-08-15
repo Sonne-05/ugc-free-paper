@@ -66,7 +66,7 @@ const cleanJsonString = (str) => {
 
 async function callAIChatForStructure(prompt, apiKey, provider, retryCount = 0, overrideModel = null) {
   if (provider === 'gemini') {
-    const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',

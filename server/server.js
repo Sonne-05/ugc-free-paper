@@ -423,7 +423,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     const keyObj = keyRotation.getNextKey('gemini');
     const apiKey = typeof keyObj === 'object' && keyObj ? keyObj.key : keyObj;
     const keyIndex = typeof keyObj === 'object' && keyObj ? keyObj.keyIndex : -1;
-    let rawModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+    let rawModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
@@ -1767,93 +1767,100 @@ app.post('/api/questions/explain', async (req, res) => {
       systemPrompt += ` CRITICAL: The question is written in Sindhi. You MUST generate the entire explanation in Sindhi (using ${scriptName}). All explanations, steps, lists, and headings must be in Sindhi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Sindhi.`;
     }
 
-    // 1. Try Google Gemini Direct if configured (Primary Option)
+    // 1. Try Google Gemini Direct with Multi-Model Cascade (Primary Option)
     let geminiSuccess = false;
     let geminiErrorMsg = '';
 
-    if (geminiApiKey) {
-      let rawModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
-      // Auto-upgrade legacy/deprecated models that return 404 or 429 quota limits on free-tier keys
-      if (['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.6-flash'].includes(rawModel)) {
-        rawModel = 'gemini-flash-latest';
-      }
-      const geminiModel = rawModel.replace(/^models\//, '');
-      console.log(`[AI Explain] Trying Gemini Direct using model ${geminiModel}...`);
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
-      
-      try {
-        const geminiResponse = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: userPrompt }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            generationConfig: { temperature: 0.2 }
-          })
-        });
+    if (geminiKeys.length > 0) {
+      const primaryEnvModel = (process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite').replace(/^models\//, '');
+      const candidateModels = Array.from(new Set([
+        primaryEnvModel,
+        'gemini-2.0-flash-lite',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash-latest'
+      ])).filter(Boolean);
 
-        if (geminiResponse.ok) {
-          geminiSuccess = true;
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
+      for (const geminiModel of candidateModels) {
+        const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
+        console.log(`[AI Explain] Trying Gemini Direct using model ${geminiModel} (key rotation #${geminiExplainIndex % geminiKeys.length})...`);
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${currentGeminiKey}`;
+        
+        try {
+          const geminiResponse = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: userPrompt }] }],
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              generationConfig: { temperature: 0.2 }
+            })
+          });
 
-          const reader = geminiResponse.body;
-          let buffer = '';
+          if (geminiResponse.ok) {
+            geminiSuccess = true;
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
 
-          if (reader) {
-            const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-            const processChunk = (chunkBytes) => {
-              const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
-              buffer += chunkText;
-              
-              let lineIndex;
-              while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-                const line = buffer.slice(0, lineIndex).trim();
-                buffer = buffer.slice(lineIndex + 1);
+            const reader = geminiResponse.body;
+            let buffer = '';
+
+            if (reader) {
+              const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+              const processChunk = (chunkBytes) => {
+                const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+                buffer += chunkText;
                 
-                if (line.startsWith('data: ')) {
-                  const dataStr = line.slice(6).trim();
-                  try {
-                    const parsed = JSON.parse(dataStr);
-                    const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    if (text) {
-                      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                    }
-                  } catch (_) {}
+                let lineIndex;
+                while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+                  const line = buffer.slice(0, lineIndex).trim();
+                  buffer = buffer.slice(lineIndex + 1);
+                  
+                  if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    try {
+                      const parsed = JSON.parse(dataStr);
+                      const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                      if (text) {
+                        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                      }
+                    } catch (_) {}
+                  }
+                }
+              };
+
+              if (typeof reader[Symbol.asyncIterator] === 'function') {
+                for await (const chunk of reader) {
+                  processChunk(chunk);
+                }
+              } else {
+                while (true) {
+                  const { done, value } = await streamReader.read();
+                  if (done) break;
+                  processChunk(value);
                 }
               }
-            };
-
-            if (typeof reader[Symbol.asyncIterator] === 'function') {
-              for await (const chunk of reader) {
-                processChunk(chunk);
-              }
-            } else {
-              while (true) {
-                const { done, value } = await streamReader.read();
-                if (done) break;
-                processChunk(value);
-              }
             }
-          }
 
-          res.write('data: [DONE]\n\n');
-          res.end();
-          return; // Complete request successfully
-        } else {
-          const errText = await geminiResponse.text();
-          geminiErrorMsg = 'Failed call to Google Gemini API';
-          try {
-            const errJson = JSON.parse(errText);
-            geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
-          } catch (_) {}
-          console.warn(`[AI Explain] Gemini primary failed: ${geminiErrorMsg}. Attempting fallback to Groq...`);
+            res.write('data: [DONE]\n\n');
+            res.end();
+            return; // Complete request successfully
+          } else {
+            const errText = await geminiResponse.text();
+            geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
+            try {
+              const errJson = JSON.parse(errText);
+              geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
+            } catch (_) {}
+            console.warn(`[AI Explain] Gemini model ${geminiModel} failed (${geminiResponse.status}): ${geminiErrorMsg}. Trying next candidate model...`);
+          }
+        } catch (err) {
+          geminiErrorMsg = err.message;
+          console.warn(`[AI Explain] Gemini model ${geminiModel} failed with error: ${geminiErrorMsg}. Trying next candidate model...`);
         }
-      } catch (err) {
-        geminiErrorMsg = err.message;
-        console.warn(`[AI Explain] Gemini primary failed with error: ${geminiErrorMsg}. Attempting fallback to Groq...`);
       }
+      console.warn(`[AI Explain] All Gemini cascade models exhausted. Attempting fallback to Groq...`);
     }
 
     // 2. Fallback to Groq Direct if configured (Secondary Option)

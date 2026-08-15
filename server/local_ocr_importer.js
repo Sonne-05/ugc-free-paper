@@ -346,7 +346,7 @@ async function callAIChatForOcrPage(
 ) {
   const keyIndex = await getAvailableKeyIndex();
   const apiKey = apiKeys[keyIndex];
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash-lite";
   const urlEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
   const textPrompt = `You are an expert UGC NET ${isPaperII ? "Paper II" : "Paper I"} exam parser.
@@ -465,10 +465,9 @@ Schema:
 
   // 2. Fallback to Gemini Vision
   const geminiModels = [
-    process.env.GEMINI_MODEL || "gemini-3.6-flash",
-    "gemini-flash-latest",
-    "gemini-3.6-pro",
-    "gemini-pro-latest",
+    process.env.GEMINI_MODEL || "gemini-2.0-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
   ];
 
   for (const modelName of geminiModels) {
