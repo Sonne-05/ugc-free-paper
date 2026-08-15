@@ -763,7 +763,7 @@ async function main() {
         }
       } else if ((rawParsed.assertion && rawParsed.reason) || (/(?:Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)/i.test(rawText) && /(?:Reason\s*\(?R\)?|कारण\s*\(?R\)?)/i.test(rawText))) {
         qType = 'assertion-reason';
-      } else if ((Array.isArray(rawParsed.statements) && rawParsed.statements.length > 0) || /(?:Choose the correct (?:answer|option) from the options given below|नीचे दिए गए विकल्पों में से सही उत्तर चुनिए)/i.test(rawText)) {
+      } else if (Array.isArray(rawParsed.statements) && rawParsed.statements.length > 0) {
         qType = 'multiple-statement';
       } else if (rawParsed.passage || (!isPaperII && targetIndex <= 5)) {
         qType = !isPaperII && targetIndex <= 5 ? 'di' : 'comprehension';
@@ -771,7 +771,7 @@ async function main() {
         qType = 'comprehension';
       } else if (!isPaperII && targetIndex >= 46 && targetIndex <= 50) {
         qType = 'comprehension';
-      } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType)) {
+      } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType) || (qType === 'multiple-statement' && (!Array.isArray(rawParsed.statements) || rawParsed.statements.length === 0))) {
         qType = 'mcq';
       }
 
