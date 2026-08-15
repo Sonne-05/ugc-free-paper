@@ -1028,16 +1028,19 @@ async function main() {
         preFlightRepairs++;
       }
 
-      // 2. Guard against scrambled prompt titles
-      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15) {
-        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match)/i];
+      // 2. Guard against scrambled prompt titles & placeholders
+      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15 || /^Question\s*\d+$/i.test(q.text)) {
+        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match|Derek|The\s+|“|'|\d+\))/i];
         for (const line of rawLines) {
-          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line)) continue;
+          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line)) continue;
           if (/^\(?\d+\)?\s*[\.:]/i.test(line) && (/\bonly\b/i.test(line) || /[A-E]\s*,\s*[A-E]/i.test(line))) continue;
           if (questionKeywords.some(rx => rx.test(line)) || (line.endsWith('?') || line.endsWith(':') || line.endsWith('—') || line.endsWith('-'))) {
-            q.text = line;
-            preFlightRepairs++;
-            break;
+            const cleaned = line.replace(/^\d+[\)\.\s]+/, '').replace(/^KRWDYN\s*=\s*/, '').trim();
+            if (cleaned.length > 15) {
+              q.text = cleaned;
+              preFlightRepairs++;
+              break;
+            }
           }
         }
       }
