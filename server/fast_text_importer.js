@@ -299,9 +299,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     const { key, keyIndex } = geminiInfo;
     console.log(`[AI Fallback] Routing batch to Gemini Key #${keyIndex + 1}...`);
     const geminiModels = [
-      'gemini-3.5-flash',
-      'gemini-3.6-flash',
-      'gemini-flash-latest'
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-8b'
     ];
 
     for (const modelName of geminiModels) {
@@ -311,7 +312,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         const res = await fetch(geminiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(60000),
+          signal: AbortSignal.timeout(15000),
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
@@ -363,6 +364,12 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         }
 
         const errText = await res.text();
+        if (res.status === 400 && errText.includes('API_KEY_INVALID')) {
+          console.warn(`[Gemini 400] Key #${keyIndex + 1} is invalid. Disabling key.`);
+          keyPool.coolDownGeminiKey(keyIndex, 86400);
+          break;
+        }
+
         if (res.status === 503 || res.status === 404 || (res.status === 400 && errText.includes('models/'))) {
           console.warn(`[Gemini ${res.status} on ${modelName}] Trying next active Gemini model in cascade...`);
           continue;
@@ -378,6 +385,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         console.warn(`[Gemini API Error] Model ${modelName} Status ${res.status}: ${errText.substring(0, 150)}`);
       } catch (gErr) {
         console.warn(`[Gemini Network Error on ${modelName}]: ${gErr.message}`);
+        keyPool.coolDownGeminiKey(keyIndex, 30);
       }
     }
   }
