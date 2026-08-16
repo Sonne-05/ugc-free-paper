@@ -190,14 +190,18 @@ function setupKeyPool() {
         }
       }
 
-      const waitMs = Math.max(earliest - Date.now() + 200, 500);
-      if (waitMs > 0 && waitMs < 60000) {
-        console.log(`[Rate Limiter] All Gemini keys busy. Waiting ${(waitMs / 1000).toFixed(1)}s...`);
-        await new Promise(r => setTimeout(r, waitMs));
-        return this.getNextGeminiKey();
-      }
-
       return null;
+    },
+
+    getEarliestGeminiCooldown() {
+      const now = Date.now();
+      let earliest = Infinity;
+      for (let i = 0; i < this.geminiKeys.length; i++) {
+        if (this.geminiCooldowns[i] > now) {
+          earliest = Math.min(earliest, this.geminiCooldowns[i]);
+        }
+      }
+      return earliest === Infinity ? 0 : Math.max(0, earliest - now);
     },
 
     coolDownGeminiKey(keyIndex, seconds) {
@@ -297,9 +301,11 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     }
   }
 
-  // 2. Fallback to Gemini (Secondary) across 21 keys
-  const geminiInfo = await keyPool.getNextGeminiKey();
-  if (geminiInfo) {
+  // 2. Fallback to Gemini (Secondary) across all available keys with gentle pacing
+  for (let gemAttempt = 0; gemAttempt < (keyPool.geminiKeys.length || 1); gemAttempt++) {
+    const geminiInfo = await keyPool.getNextGeminiKey();
+    if (!geminiInfo) break;
+
     const { key, keyIndex } = geminiInfo;
     console.log(`[AI Fallback] Routing batch to Gemini Key #${keyIndex + 1}...`);
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
@@ -334,26 +340,37 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         keyPool.coolDownGeminiKey(keyIndex, 86400);
       } else if (res.status === 429 || res.status === 503) {
         const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
-        const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
-        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} busy/cooling for ${waitSec}s.`);
+        const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 20;
+        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} cooling for ${waitSec.toFixed(0)}s.`);
         keyPool.coolDownGeminiKey(keyIndex, waitSec);
       } else {
         console.warn(`[Gemini API Error] Status ${res.status}: ${errText.substring(0, 120)}`);
-        keyPool.coolDownGeminiKey(keyIndex, 15);
+        keyPool.coolDownGeminiKey(keyIndex, 20);
       }
     } catch (gErr) {
       console.warn(`[Gemini Timeout/Network on Key #${keyIndex + 1}]: ${gErr.message}`);
-      keyPool.coolDownGeminiKey(keyIndex, 15);
+      keyPool.coolDownGeminiKey(keyIndex, 20);
     }
+
+    // Respectful 1.5s pace between Gemini key attempts to prevent Google IP throttling
+    await new Promise(r => setTimeout(r, 1500));
   }
 
-  // 3. Circular Loop: If all providers are cooling, calculate exact wait time for Groq
+  // 3. Circular Loop: If all providers (Groq & Gemini) are cooling, wait for earliest key to recover
   if (retryCount < 30) {
     const now = Date.now();
     let earliestGroq = keyPool.groqCooldowns.length > 0 ? Math.min(...keyPool.groqCooldowns) : now + 5000;
-    let waitMs = Math.max(earliestGroq - now + 500, 3000);
+    let earliestGeminiMs = keyPool.getEarliestGeminiCooldown();
+
+    let waitMs = Math.min(
+      Math.max(earliestGroq - now + 500, 3000),
+      earliestGeminiMs > 0 ? earliestGeminiMs + 500 : 15000
+    );
+
     if (waitMs > 25000) waitMs = 15000;
-    console.warn(`⏳ [Rate Limiter] Groq free-tier window cooling. Waiting ${(waitMs / 1000).toFixed(0)}s before next batch...`);
+    if (waitMs < 3000) waitMs = 3000;
+
+    console.warn(`⏳ [Rate Limiter] All AI keys cooling down. Waiting ${(waitMs / 1000).toFixed(0)}s before next batch...`);
     await new Promise(r => setTimeout(r, waitMs));
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
