@@ -199,6 +199,24 @@ const Profile = () => {
     }
   })
   const [newSetIsVerified, setNewSetIsVerified] = useState(false)
+  const [activePresences, setActivePresences] = useState({})
+
+  useEffect(() => {
+    const fetchPresences = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/pyqsets/presence/active`)
+        if (res.ok) {
+          const data = await res.json()
+          setActivePresences(data || {})
+        }
+      } catch (err) {
+        console.warn('Failed to fetch active presences in Profile:', err)
+      }
+    }
+    fetchPresences()
+    const timer = setInterval(fetchPresences, 15000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     try {
@@ -2738,7 +2756,36 @@ const Profile = () => {
                                       )}
                                       <td className="table-cell-id" title={`#${set.id}`}>#{set.id ? (String(set.id).length > 8 ? `${String(set.id).substring(0, 8)}…` : set.id) : ''}</td>
                                       <td className="table-cell-title">
-                                        <strong style={{ display: 'block' }}>{set.title}</strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                          <strong style={{ display: 'inline-block' }}>{set.title}</strong>
+                                          {(() => {
+                                            const setId = set.id || set._id;
+                                            const editors = (activePresences[setId] || []).filter(e => 
+                                              (localStorage.getItem('userId') ? e.userId !== localStorage.getItem('userId') : true) && 
+                                              (localStorage.getItem('userEmail') ? e.userEmail !== localStorage.getItem('userEmail') : true)
+                                            );
+                                            if (editors.length > 0) {
+                                              return (
+                                                <span style={{
+                                                  background: '#fef3c7',
+                                                  color: '#b45309',
+                                                  border: '1px solid #fcd34d',
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: '700',
+                                                  padding: '2px 7px',
+                                                  borderRadius: '4px',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '4px'
+                                                }} title={`Active Admin: ${editors.map(e => e.userName || e.userEmail).join(', ')}`}>
+                                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }}></span>
+                                                  In Use by {editors.map(e => e.userName || 'Admin').join(', ')}
+                                                </span>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+                                        </div>
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">
@@ -2838,7 +2885,36 @@ const Profile = () => {
                                       )}
                                       <td className="table-cell-id" title={`#${set.id}`}>#{set.id ? (String(set.id).length > 8 ? `${String(set.id).substring(0, 8)}…` : set.id) : ''}</td>
                                       <td className="table-cell-title">
-                                        <strong style={{ display: 'block' }}>{set.title}</strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                          <strong style={{ display: 'inline-block' }}>{set.title}</strong>
+                                          {(() => {
+                                            const setId = set.id || set._id;
+                                            const editors = (activePresences[setId] || []).filter(e => 
+                                              (localStorage.getItem('userId') ? e.userId !== localStorage.getItem('userId') : true) && 
+                                              (localStorage.getItem('userEmail') ? e.userEmail !== localStorage.getItem('userEmail') : true)
+                                            );
+                                            if (editors.length > 0) {
+                                              return (
+                                                <span style={{
+                                                  background: '#fef3c7',
+                                                  color: '#b45309',
+                                                  border: '1px solid #fcd34d',
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: '700',
+                                                  padding: '2px 7px',
+                                                  borderRadius: '4px',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '4px'
+                                                }} title={`Active Admin: ${editors.map(e => e.userName || e.userEmail).join(', ')}`}>
+                                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }}></span>
+                                                  In Use by {editors.map(e => e.userName || 'Admin').join(', ')}
+                                                </span>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+                                        </div>
                                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{set.subtitle}</span>
                                       </td>
                                       <td className="table-cell-status">

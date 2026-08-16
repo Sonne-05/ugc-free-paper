@@ -174,6 +174,100 @@ app.post('/api/notes/:unitId', async (req, res) => {
   }
 });
 
+// --- Multi-Admin Presence Management for PYQ Sets ---
+// Map of setId -> Array of { userId, userName, userEmail, lastSeen }
+const activeSetPresences = new Map();
+const PRESENCE_TIMEOUT_MS = 60 * 1000; // 60 seconds
+
+function cleanExpiredPresences() {
+  const now = Date.now();
+  for (const [setId, editors] of activeSetPresences.entries()) {
+    const activeEditors = editors.filter(e => now - e.lastSeen < PRESENCE_TIMEOUT_MS);
+    if (activeEditors.length === 0) {
+      activeSetPresences.delete(setId);
+    } else {
+      activeSetPresences.set(setId, activeEditors);
+    }
+  }
+}
+
+// 1. Get all active set presences (for overview / dropdowns / tables)
+app.get('/api/pyqsets/presence/active', (req, res) => {
+  cleanExpiredPresences();
+  const result = {};
+  for (const [setId, editors] of activeSetPresences.entries()) {
+    result[setId] = editors;
+  }
+  res.json(result);
+});
+
+// 2. Heartbeat ping for an admin working on a specific set
+app.post('/api/pyqsets/:setId/presence', (req, res) => {
+  const { setId } = req.params;
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (_) {}
+  }
+  const { userId, userName, userEmail } = body || {};
+  if (!setId) return res.status(400).json({ message: 'Missing setId' });
+
+  cleanExpiredPresences();
+  const now = Date.now();
+  const currentEditors = activeSetPresences.get(setId) || [];
+  
+  // Filter out the current user's previous record
+  const otherEditors = currentEditors.filter(e => 
+    (userId ? e.userId !== userId : true) && 
+    (userEmail ? e.userEmail !== userEmail : true)
+  );
+
+  const updatedEditors = [
+    ...otherEditors,
+    {
+      userId: userId || 'anonymous',
+      userName: userName || 'Admin',
+      userEmail: userEmail || '',
+      lastSeen: now
+    }
+  ];
+  activeSetPresences.set(setId, updatedEditors);
+
+  res.json({
+    success: true,
+    activeEditors: updatedEditors,
+    otherEditors: otherEditors
+  });
+});
+
+// 3. Clear presence when admin leaves the set / closes page
+const handleLeavePresence = (req, res) => {
+  const { setId } = req.params;
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (_) {}
+  }
+  const { userId, userEmail } = body || {};
+  
+  if (activeSetPresences.has(setId)) {
+    const currentEditors = activeSetPresences.get(setId) || [];
+    const remaining = currentEditors.filter(e => {
+      if (userId && e.userId === userId) return false;
+      if (userEmail && e.userEmail === userEmail) return false;
+      return true;
+    });
+    if (remaining.length === 0) {
+      activeSetPresences.delete(setId);
+    } else {
+      activeSetPresences.set(setId, remaining);
+    }
+  }
+  cleanExpiredPresences();
+  res.json({ success: true });
+};
+
+app.delete('/api/pyqsets/:setId/presence', handleLeavePresence);
+app.post('/api/pyqsets/:setId/presence/leave', handleLeavePresence);
+
 // --- PYQ Set Routes ---
 
 // Get all PYQ sets (Cached in Redis for high-throughput reads)

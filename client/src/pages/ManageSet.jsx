@@ -3095,6 +3095,80 @@ const ManageSet = () => {
   const [editingQuestionId, setEditingQuestionId] = useState(null)
   const [newQType, setNewQType] = useState('mcq')
   const [newQUnit, setNewQUnit] = useState('')
+  const [activePresences, setActivePresences] = useState({})
+  const [otherActiveEditors, setOtherActiveEditors] = useState([])
+
+  // Fetch all active set presences periodically
+  useEffect(() => {
+    const fetchActivePresences = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/pyqsets/presence/active`)
+        if (res.ok) {
+          const data = await res.json()
+          setActivePresences(data || {})
+        }
+      } catch (err) {
+        console.warn('Failed to fetch active presences:', err)
+      }
+    }
+    fetchActivePresences()
+    const interval = setInterval(fetchActivePresences, 20000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Heartbeat presence for the currently active set
+  useEffect(() => {
+    const targetSetId = setId || selectedSetId
+    if (!targetSetId) {
+      setOtherActiveEditors([])
+      return
+    }
+
+    const userId = localStorage.getItem('userId') || ''
+    const userName = localStorage.getItem('userName') || 'Admin'
+    const userEmail = localStorage.getItem('userEmail') || ''
+
+    const sendHeartbeat = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/pyqsets/${targetSetId}/presence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, userName, userEmail })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setOtherActiveEditors(data.otherEditors || [])
+        }
+      } catch (err) {
+        console.warn('Presence heartbeat error:', err)
+      }
+    }
+
+    sendHeartbeat()
+    const heartbeatTimer = setInterval(sendHeartbeat, 25000)
+
+    const handleLeave = () => {
+      const payload = JSON.stringify({ userId, userEmail })
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(`${API_BASE_URL}/api/pyqsets/${targetSetId}/presence/leave`, payload)
+      } else {
+        fetch(`${API_BASE_URL}/api/pyqsets/${targetSetId}/presence`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(() => {})
+      }
+    }
+
+    window.addEventListener('beforeunload', handleLeave)
+
+    return () => {
+      clearInterval(heartbeatTimer)
+      window.removeEventListener('beforeunload', handleLeave)
+      handleLeave()
+    }
+  }, [setId, selectedSetId])
   
   const getSyllabusUnits = () => {
     const activeSet = pyqSets.find(s => (s.id || s._id) === (editingSetId || setId));
@@ -4753,6 +4827,33 @@ const ManageSet = () => {
         </div>
         <button className="btn-back" onClick={() => navigate(window.location.pathname.startsWith('/admin') ? '/admin#pyq' : '/profile#pyq')}>&larr; Back to Profile</button>
       </div>
+
+      {/* MULTI-ADMIN COLLISION WARNING BANNER */}
+      {otherActiveEditors.length > 0 && (
+        <div style={{
+          background: '#fffbeb',
+          border: '1.5px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '12px 18px',
+          marginBottom: '18px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 2px 10px rgba(245, 158, 11, 0.15)'
+        }}>
+          <span style={{ fontSize: '1.6rem' }}>⚠️</span>
+          <div>
+            <div style={{ fontWeight: '800', color: '#b45309', fontSize: '0.95rem' }}>
+              Multi-Admin In Use Warning:
+            </div>
+            <div style={{ color: '#92400e', fontSize: '0.86rem', marginTop: '2px', lineHeight: '1.4' }}>
+              Admin <strong>{otherActiveEditors.map(e => e.userName || e.userEmail || 'Another Admin').join(', ')}</strong> is currently active on this set. 
+              To avoid conflicting or overwriting each other's questions, please coordinate before updating.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="manage-set-layout">
         <div className="manage-set-left">
                   {/* SET SELECTOR DROPDOWN */}
@@ -4774,10 +4875,16 @@ const ManageSet = () => {
                       >
                         <option value="">-- Create New Set --</option>
                         {pyqSets.map(s => {
+                          const currentSetId = s.id || s._id
                           const isVer = s.isVerified || s.verificationStatus === 'completed' || s.verificationStatus === 'complete'
+                          const editors = (activePresences[currentSetId] || []).filter(e => 
+                            (localStorage.getItem('userId') ? e.userId !== localStorage.getItem('userId') : true) && 
+                            (localStorage.getItem('userEmail') ? e.userEmail !== localStorage.getItem('userEmail') : true)
+                          )
+                          const editorTag = editors.length > 0 ? ` [⚠️ In Use: ${editors.map(e => e.userName || 'Admin').join(', ')}]` : ''
                           return (
-                            <option key={s.id || s._id} value={s.id || s._id}>
-                              {s.title} ({s.questionsLoaded || 0} / {s.questionsCount || 100} Qs) — {s.isPublished ? 'Published' : 'Draft'} • {isVer ? 'Verified' : 'Pending'}
+                            <option key={currentSetId} value={currentSetId}>
+                              {s.title} ({s.questionsLoaded || 0} / {s.questionsCount || 100} Qs) — {s.isPublished ? 'Published' : 'Draft'} • {isVer ? 'Verified' : 'Pending'}{editorTag}
                             </option>
                           )
                         })}
