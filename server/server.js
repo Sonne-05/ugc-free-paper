@@ -1979,11 +1979,11 @@ app.post('/api/questions/explain', async (req, res) => {
     let geminiErrorMsg = '';
 
     if (geminiKeys.length > 0) {
-      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-2.0-flash').replace(/^models\//, '');
+      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-flash-latest').replace(/^models\//, '');
       const candidateModels = Array.from(new Set([
         preferredModel,
+        'gemini-flash-latest',
         'gemini-2.0-flash',
-        'gemini-2.0-flash-lite',
         'gemini-1.5-flash'
       ])).filter(Boolean);
 
@@ -1999,7 +1999,7 @@ app.post('/api/questions/explain', async (req, res) => {
           attemptsCount++;
           const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
           console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${currentGeminiKey}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
 
           try {
             const controller = new AbortController();
@@ -2007,7 +2007,10 @@ app.post('/api/questions/explain', async (req, res) => {
 
             const geminiResponse = await fetch(geminiUrl, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': currentGeminiKey
+              },
               body: JSON.stringify({
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
