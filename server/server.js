@@ -557,7 +557,14 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
             },
             required: ["questions"]
           }
-        }
+        },
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
+        ]
       })
     });
     if (!response.ok) {
@@ -1910,7 +1917,17 @@ app.post('/api/questions/explain', async (req, res) => {
               body: JSON.stringify({
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { temperature: 0.2 }
+                generationConfig: { 
+                  temperature: 0.2,
+                  maxOutputTokens: 3000
+                },
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
+                ]
               }),
               signal: controller.signal
             });
@@ -2008,7 +2025,8 @@ app.post('/api/questions/explain', async (req, res) => {
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.2
+            temperature: 0.2,
+            max_tokens: 3000
           }),
           signal: controller.signal
         });
