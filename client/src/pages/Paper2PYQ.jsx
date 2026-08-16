@@ -1,5 +1,5 @@
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, Fragment } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useMemo, useCallback, Fragment } from 'react'
 import { API_BASE_URL } from '../services/api'
 import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import SuggestedBlogs from '../components/layout/SuggestedBlogs'
@@ -30,18 +30,18 @@ const getSortValue = (paper) => {
   const match1 = subtitle.match(/(\d{1,2})-(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
   if (match1) {
     day = parseInt(match1[1], 10)
-    month = monthMap[match1[2]]
+    month = monthMap[match1[2]] ?? 0
   } else {
     // Format 2: 02 jan or 25 june or 31 december
     const match2 = subtitle.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
     if (match2) {
       day = parseInt(match2[1], 10)
-      month = monthMap[match2[2]]
+      month = monthMap[match2[2]] ?? 0
     } else {
       // Format 3: just month name like "june morning shift"
       const match3 = subtitle.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/)
       if (match3) {
-        month = monthMap[match3[1]]
+        month = monthMap[match3[1]] ?? 0
       }
     }
   }
@@ -61,37 +61,37 @@ const getSortValue = (paper) => {
 }
 
 const cleanExamTitle = (subtitle, subject, year) => {
-  if (!subtitle) return '';
-  let cleaned = subtitle;
+  if (!subtitle) return ''
+  let cleaned = subtitle
 
   // Build a list of potential prefixes to remove from the start
-  const prefixes = [];
+  const prefixes = []
   if (subject && year) {
-    prefixes.push(`${subject} ${year}`);
-    const normSub = subject.replace(/\s+language$/i, '').trim();
-    prefixes.push(`${normSub} ${year}`);
+    prefixes.push(`${subject} ${year}`)
+    const normSub = subject.replace(/\s+language$/i, '').trim()
+    prefixes.push(`${normSub} ${year}`)
   }
   
   // Sort prefixes by length descending to match the longest prefix first
-  prefixes.sort((a, b) => b.length - a.length);
+  prefixes.sort((a, b) => b.length - a.length)
 
   for (const prefix of prefixes) {
-    // Escape regex characters in the prefix
-    const escapedPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-    const regex = new RegExp('^' + escapedPrefix + '\\s*', 'i');
+    const escapedPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+    const regex = new RegExp('^' + escapedPrefix + '\\s*', 'i')
     if (regex.test(cleaned)) {
-      cleaned = cleaned.replace(regex, '');
-      break; // Only strip the longest matching prefix
+      cleaned = cleaned.replace(regex, '')
+      break // Only strip the longest matching prefix
     }
   }
 
-  return cleaned.trim() || subtitle;
+  return cleaned.trim() || subtitle
 }
 
 const Paper2PYQ = () => {
-  const navigate = useNavigate()
   const { search } = useLocation()
-  const [groupedPapers, setGroupedPapers] = useState({})
+  const [papersData, setPapersData] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
   const [settings, setSettings] = useState(null)
 
   useEffect(() => {
@@ -106,56 +106,106 @@ const Paper2PYQ = () => {
   const query = new URLSearchParams(search)
   const activeSubject = query.get('subject') || 'Sociology'
 
-  useEffect(() => {
+  const fetchPyqSets = useCallback(() => {
+    setIsLoading(true)
+    setHasError(false)
     document.title = `UGC NET Paper II ${activeSubject} PYQs - UGC Free Paper`
+
     fetch(`${API_BASE_URL}/api/pyqsets`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch pyq sets')
+        return res.json()
+      })
       .then(data => {
         if (Array.isArray(data)) {
           const normalizeSubject = (sub) => {
-            if (!sub) return '';
+            if (!sub) return ''
             return sub
               .toLowerCase()
               .replace(/[\s\-_()]+/g, '')
               .replace(/language$/i, '')
-              .trim();
-          };
-          const activeSubNorm = normalizeSubject(activeSubject);
+              .trim()
+          }
+          const activeSubNorm = normalizeSubject(activeSubject)
           const paper2Sets = data.filter(set => {
-            if (set.paperType !== 'Paper II') return false;
-            const setSubNorm = normalizeSubject(set.subject || 'Sociology');
+            if (set.paperType !== 'Paper II') return false
+            const setSubNorm = normalizeSubject(set.subject || 'Sociology')
             return setSubNorm === activeSubNorm ||
                    (activeSubNorm.includes('sindhi') && setSubNorm.includes('sindhi')) ||
                    (activeSubNorm.includes('sociology') && setSubNorm.includes('sociology')) ||
                    setSubNorm.includes(activeSubNorm) ||
-                   activeSubNorm.includes(setSubNorm);
-          });
-          const grouped = {}
-          paper2Sets.forEach(set => {
-            if (!grouped[set.year]) grouped[set.year] = []
-            const cleanedCycle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || '';
-            const desktopTitle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || '';
-            
-            grouped[set.year].push({
-              id: set.id,
-              subject: activeSubject,
-              cycle: cleanedCycle,
-              desktopTitle: desktopTitle,
-              questions: set.questionsCount,
-              seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle || 'Official Shift'})`,
-              title: set.title
-            })
+                   activeSubNorm.includes(setSubNorm)
           })
-          setGroupedPapers(grouped)
+          setPapersData(paper2Sets)
         }
+        setIsLoading(false)
       })
-      .catch(err => console.error('Failed to fetch pyq sets:', err))
+      .catch(err => {
+        console.error('Failed to fetch pyq sets:', err)
+        setHasError(true)
+        setIsLoading(false)
+      })
   }, [activeSubject])
+
+  useEffect(() => {
+    fetchPyqSets()
+  }, [fetchPyqSets])
+
+  // Memoize grouped & sorted papers
+  const sortedYears = useMemo(() => {
+    const grouped = {}
+    papersData.forEach(set => {
+      if (!grouped[set.year]) grouped[set.year] = []
+      const cleanedCycle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || ''
+      const desktopTitle = cleanExamTitle(set.subtitle, activeSubject, set.year) || set.subtitle || ''
+      
+      grouped[set.year].push({
+        id: set.id,
+        subject: activeSubject,
+        cycle: cleanedCycle,
+        desktopTitle: desktopTitle,
+        questions: set.questionsCount,
+        seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle || 'Official Shift'})`,
+        title: set.title
+      })
+    })
+
+    const years = Object.keys(grouped).sort((a, b) => b - a)
+    return years.map(year => ({
+      year,
+      papers: grouped[year].sort((a, b) => getSortValue(a) - getSortValue(b))
+    }))
+  }, [papersData, activeSubject])
 
   const adsEnabled = settings ? settings.adsenseEnabled : false
 
   return (
     <div className="pyq-page">
+      {/* Dynamic Schema.org BreadcrumbList Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://ugcfreepaper.com/'
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: `UGC NET Paper 2 ${activeSubject} PYQs`,
+                item: `https://ugcfreepaper.com/paper2?subject=${encodeURIComponent(activeSubject)}`
+              }
+            ]
+          })
+        }}
+      />
+
       <div className="pyq-page__container">
         <h1 className="pyq-page__title">UGC NET Paper 2 {activeSubject} Solved PYQs & Free CBT Mock Tests</h1>
         <p className="pyq-page__subtitle">Solve official year-wise UGC NET {activeSubject} 100-Question Previous Year Papers with verified keys & explanations.</p>
@@ -186,70 +236,112 @@ const Paper2PYQ = () => {
               <table className="pyq-table pyq-table--subject">
                 <thead>
                   <tr>
-                    <th className="pyq-table__th col-cycle">Exam Cycle & Shift Paper</th>
-                    <th className="pyq-table__th col-action col-action-th">Practice</th>
+                    <th scope="col" className="pyq-table__th col-cycle">Exam Cycle & Shift Paper</th>
+                    <th scope="col" className="pyq-table__th col-action col-action-th">Practice</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.keys(groupedPapers)
-                    .sort((a, b) => b - a) // Show latest years first
-                    .map((year, yearIndex) => {
-                      const yearPapers = [...groupedPapers[year]].sort((a, b) => getSortValue(a) - getSortValue(b))
-                      return (
-                        <Fragment key={year}>
-                          <tr className="pyq-table__year-row">
-                            <td colSpan={2} className="pyq-table__year-td">
-                              <div className="pyq-table__year-content">
-                                <span className="pyq-table__year-title">UGC NET {year} {activeSubject} Papers</span>
-                                <span className="pyq-table__year-badge">
-                                  {yearPapers.length} {yearPapers.length === 1 ? 'Paper' : 'Papers'} Available
-                                </span>
+                  {isLoading ? (
+                    // Skeleton rows during initial fetch to eliminate Cumulative Layout Shift (CLS)
+                    [2024, 2023, 2022].map((skeletonYear) => (
+                      <Fragment key={`skeleton-p2-group-${skeletonYear}`}>
+                        <tr className="pyq-table__year-row">
+                          <th scope="rowgroup" colSpan={2} className="pyq-table__year-td">
+                            <div className="pyq-table__year-content">
+                              <div className="pyq-skeleton-line" style={{ width: '220px', height: '18px' }} />
+                              <div className="pyq-skeleton-line" style={{ width: '90px', height: '18px', borderRadius: '12px' }} />
+                            </div>
+                          </th>
+                        </tr>
+                        {[1, 2].map((sIndex) => (
+                          <tr key={`skeleton-p2-row-${skeletonYear}-${sIndex}`} className="pyq-table__tr pyq-skeleton-row">
+                            <td className="pyq-table__td">
+                              <div className="pyq-card-meta">
+                                <div className="pyq-skeleton-line pyq-skeleton-line--title" />
+                                <div className="pyq-skeleton-line pyq-skeleton-line--sub" />
                               </div>
                             </td>
+                            <td className="pyq-table__td col-action">
+                              <div className="pyq-skeleton-line pyq-skeleton-line--btn" />
+                            </td>
                           </tr>
-                          {yearPapers.map((paper) => (
-                            <tr key={paper.id} className="pyq-table__tr">
-                              <td className="pyq-table__td">
-                                <div className="pyq-card-meta">
-                                  <span className="pyq-card-title pyq-card-title--desktop">
-                                    {paper.seoTitle}
-                                  </span>
-                                  <span className="pyq-card-title pyq-card-title--mobile">
-                                    UGC NET {year} {activeSubject} ({paper.cycle || paper.desktopTitle})
-                                  </span>
-                                  <div className="pyq-card-questions">
-                                    {paper.questions || 100} Questions • 200 Marks • NTA CBT Pattern
-                                  </div>
+                        ))}
+                      </Fragment>
+                    ))
+                  ) : hasError ? (
+                    <tr>
+                      <td colSpan={2}>
+                        <div className="pyq-page__state-box">
+                          <p className="pyq-page__state-msg">Unable to load Paper 2 question papers. Please check your internet connection.</p>
+                          <button type="button" className="pyq-page__retry-btn" onClick={fetchPyqSets}>
+                            Retry Loading
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sortedYears.length === 0 ? (
+                    <tr>
+                      <td colSpan={2}>
+                        <div className="pyq-page__state-box">
+                          <p className="pyq-page__state-msg">No question papers found for {activeSubject} Paper 2.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedYears.map(({ year, papers }, yearIndex) => (
+                      <Fragment key={year}>
+                        <tr className="pyq-table__year-row">
+                          <th scope="rowgroup" colSpan={2} className="pyq-table__year-td">
+                            <div className="pyq-table__year-content">
+                              <span className="pyq-table__year-title">UGC NET {year} {activeSubject} Papers</span>
+                              <span className="pyq-table__year-badge">
+                                {papers.length} {papers.length === 1 ? 'Paper' : 'Papers'} Available
+                              </span>
+                            </div>
+                          </th>
+                        </tr>
+                        {papers.map((paper) => (
+                          <tr key={paper.id} className="pyq-table__tr">
+                            <td className="pyq-table__td">
+                              <div className="pyq-card-meta">
+                                <span className="pyq-card-title pyq-card-title--desktop">
+                                  {paper.seoTitle}
+                                </span>
+                                <span className="pyq-card-title pyq-card-title--mobile">
+                                  UGC NET {year} {activeSubject} ({paper.cycle || paper.desktopTitle})
+                                </span>
+                                <div className="pyq-card-questions">
+                                  {paper.questions || 100} Questions • 200 Marks • NTA CBT Pattern
                                 </div>
-                              </td>
-                              <td className="pyq-table__td col-action">
-                                <button 
-                                  className="pyq-table__btn" 
-                                  aria-label={`Solve ${paper.seoTitle}`}
-                                  onClick={() => navigate('/mocktest', { 
-                                    state: { 
-                                      paperId: paper.id, 
-                                      title: paper.seoTitle, 
-                                      subtitle: paper.cycle,
-                                      questionsCount: paper.questions 
-                                    } 
-                                  })}
-                                >
-                                  Solve Paper
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                          {adsEnabled && (yearIndex + 1) % 2 === 0 && (
-                            <tr className="pyq-table__in-feed-ad-row">
-                              <td colSpan={2} className="pyq-table__in-feed-ad-td">
-                                <AdSensePlaceholder type="display" format="horizontal" config={settings} />
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      )
-                    })}
+                              </div>
+                            </td>
+                            <td className="pyq-table__td col-action">
+                              <Link 
+                                to="/mocktest"
+                                state={{ 
+                                  paperId: paper.id, 
+                                  title: paper.seoTitle, 
+                                  subtitle: paper.cycle,
+                                  questionsCount: paper.questions 
+                                }}
+                                className="pyq-table__btn" 
+                                aria-label={`Solve ${paper.seoTitle}`}
+                              >
+                                Solve Paper
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                        {adsEnabled && (yearIndex + 1) % 2 === 0 && (
+                          <tr className="pyq-table__in-feed-ad-row">
+                            <td colSpan={2} className="pyq-table__in-feed-ad-td">
+                              <AdSensePlaceholder type="display" format="horizontal" config={settings} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

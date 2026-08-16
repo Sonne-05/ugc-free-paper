@@ -191,12 +191,16 @@
 }
 
 .pyq-table__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 8px 16px;
   background: var(--primary);
-  color: white;
+  color: #ffffff;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -206,14 +210,87 @@
   white-space: nowrap;
 }
 
+.pyq-table__btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .pyq-table__btn:hover {
   background: var(--primary-dark);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(37, 99, 235, 0.15);
+  color: #ffffff;
 }
 
 .pyq-table__btn:active {
   transform: translateY(0);
+}
+
+/* Skeleton Loading State to prevent CLS */
+.pyq-skeleton-row {
+  animation: pyqSkeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pyqSkeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.25; }
+  100% { opacity: 0.6; }
+}
+
+.pyq-skeleton-line {
+  background: var(--border, #e2e8f0);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.pyq-skeleton-line--title {
+  width: 70%;
+  height: 18px;
+}
+
+.pyq-skeleton-line--sub {
+  width: 40%;
+  height: 12px;
+}
+
+.pyq-skeleton-line--btn {
+  width: 96px;
+  height: 36px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+/* Error / State Fallback Box */
+.pyq-page__state-box {
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  margin-top: 16px;
+}
+
+.pyq-page__state-msg {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 16px;
+}
+
+.pyq-page__retry-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 20px;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pyq-page__retry-btn:hover {
+  background: var(--primary-dark);
 }
 
 .col-cycle {

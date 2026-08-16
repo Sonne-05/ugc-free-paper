@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useState, useEffect, Fragment } from 'react'
 import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
 import SuggestedBlogs from '../components/layout/SuggestedBlogs'
@@ -6,7 +6,6 @@ import { API_BASE_URL } from '../services/api'
 import './PaperPYQ.css'
 
 const Paper1UnitPYQ = () => {
-  const navigate = useNavigate()
   const [settings, setSettings] = useState(null)
 
   useEffect(() => {
@@ -21,7 +20,7 @@ const Paper1UnitPYQ = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = 'UGC NET Paper I PYQs (Unit Wise) - UGC Free Paper'
+    document.title = 'UGC NET Paper 1 Unit Wise PYQ Practice & Mock Tests (All 10 Units) - UGC Free Paper'
   }, [])
 
   const units = [
@@ -161,24 +160,35 @@ const Paper1UnitPYQ = () => {
     }
   ]
 
-  const handleStartPractice = (unit) => {
-    navigate('/mocktest', {
-      state: {
-        isUnitWise: true,
-        unitName: unit.name,
-        title: `Paper 1 - ${unit.name} Practice Questions`,
-        subtitle: 'Unit-wise Practice PYQ',
-        questionsCount: 25,
-        skip: 0,
-        limit: 25
-      }
-    })
-  }
-
   const adsEnabled = settings ? settings.adsenseEnabled : false
 
   return (
     <div className="pyq-page">
+      {/* Dynamic Schema.org BreadcrumbList Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://ugcfreepaper.com/'
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'UGC NET Paper 1 Unit Wise PYQ Practice',
+                item: 'https://ugcfreepaper.com/paper1-unit-pyq'
+              }
+            ]
+          })
+        }}
+      />
+
       <div className="pyq-page__container">
         <h1 className="pyq-page__title">UGC NET Paper 1 Unit-Wise PYQs & Topic Practice Tests (All 10 Units)</h1>
         <p className="pyq-page__subtitle">Practice topic-wise UGC NET Paper 1 previous year questions with verified answer keys, full explanations, and NTA CBT test mode.</p>
@@ -209,9 +219,9 @@ const Paper1UnitPYQ = () => {
               <table className="pyq-table pyq-table--unit">
                 <thead>
                   <tr>
-                    <th className="pyq-table__th" style={{ width: '70px', textAlign: 'center' }}>Unit</th>
-                    <th className="pyq-table__th col-cycle">Syllabus Unit Name & Topic Details</th>
-                    <th className="pyq-table__th col-action col-action-th">Practice</th>
+                    <th scope="col" className="pyq-table__th" style={{ width: '70px', textAlign: 'center' }}>Unit</th>
+                    <th scope="col" className="pyq-table__th col-cycle">Syllabus Unit Name & Topic Details</th>
+                    <th scope="col" className="pyq-table__th col-action col-action-th">Practice</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -235,13 +245,22 @@ const Paper1UnitPYQ = () => {
                           </div>
                         </td>
                         <td className="pyq-table__td col-action">
-                          <button 
+                          <Link 
+                            to="/mocktest"
+                            state={{
+                              isUnitWise: true,
+                              unitName: unit.name,
+                              title: `Paper 1 - ${unit.name} Practice Questions`,
+                              subtitle: 'Unit-wise Practice PYQ',
+                              questionsCount: 25,
+                              skip: 0,
+                              limit: 25
+                            }}
                             className="pyq-table__btn"
                             aria-label={`Practice ${unit.seoTitle}`}
-                            onClick={() => handleStartPractice(unit)}
                           >
                             Practice
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                       {adsEnabled && index === 4 && (
