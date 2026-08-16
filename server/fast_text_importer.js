@@ -442,6 +442,7 @@ Common Formatting Rules:
    - 'di': Data Interpretation (Q1-5 in Paper I). Fill "passage" field with table/data.
    - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.
 4. Generate a rich, high-quality step-by-step HTML explanation (100-150 words) with <p>, <strong>, <ul>, <li> tags in the selected target language.
+5. For fill-in-the-blank or incomplete sentence prompts (e.g. ending in "would refer to as", "is known as", "is called", "defined as", "associated with"), format the end cleanly with "_________." or a colon ":" so it forms a complete grammatical sentence.
 
 Questions to process:\n\n`;
 
@@ -1156,6 +1157,20 @@ async function main() {
             }
             return cleanStmt.replace(/[\u0900-\u097F]+/g, '').trim();
           });
+        }
+      }
+
+      // 7. Fill-in-the-blank & Incomplete Prompt Grammatical Formatter
+      if (q.text && !/[?.:!—_]$/.test(q.text.trim())) {
+        if (/\b(?:refer to as|refers to as|referred to as|known as|termed as|defined as|called|associated with|characterized by|consists of|classified as|meaning of|such as|denotes)$/i.test(q.text.trim())) {
+          q.text = q.text.trim() + ' _________.';
+          preFlightRepairs++;
+        } else if (/\b(?:is|are|was|were|to|of|in|for|from|with|by|as)$/i.test(q.text.trim())) {
+          q.text = q.text.trim() + ' _________.';
+          preFlightRepairs++;
+        } else {
+          q.text = q.text.trim() + ':';
+          preFlightRepairs++;
         }
       }
 
