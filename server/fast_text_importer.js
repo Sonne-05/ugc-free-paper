@@ -280,7 +280,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
 
     for (const groqModel of groqModels) {
       try {
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        let groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -289,12 +289,36 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           signal: AbortSignal.timeout(35000),
           body: JSON.stringify({
             model: groqModel,
-            messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching {"questions": [...]}.' }],
+            messages: [
+              { role: 'system', content: 'You are an expert UGC NET question parser. Always respond with a strictly valid JSON object with the root key "questions".' },
+              { role: 'user', content: prompt }
+            ],
             temperature: 0.1,
             response_format: { type: 'json_object' },
-            max_tokens: 2048
+            max_tokens: 4096
           })
         });
+
+        // Fallback without json_object constraint if Groq schema validator had a hiccup
+        if (!groqRes.ok && groqRes.status === 400) {
+          groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`
+            },
+            signal: AbortSignal.timeout(35000),
+            body: JSON.stringify({
+              model: groqModel,
+              messages: [
+                { role: 'system', content: 'You are an expert UGC NET question parser. Always respond with a valid JSON object matching {"questions": [...]}.' },
+                { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
+              ],
+              temperature: 0.1,
+              max_tokens: 4096
+            })
+          });
+        }
 
         if (groqRes.ok) {
           const groqData = await groqRes.json();
