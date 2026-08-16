@@ -439,7 +439,7 @@ Common Formatting Rules:
      * Put the 4 combination choices (e.g. "(A)-(III), (B)-(I), (C)-(IV), (D)-(II)") into the "options" array.
      * Set "list1Header" to "List - I" and "list2Header" to "List - II".
      * NEVER leave "list1" or "list2" empty for a match-column question!
-   - 'multiple-statement': statements (A, B, C, D, E or I, II, III, IV / कथन) followed by combination options (e.g., "(1) A and B only" / "(1) केवल A और B"). Fill "statements" array and combination options in "options".
+   - 'multiple-statement': The question has statements (A, B, C, D, E or I, II, III, IV / कथन). Extract all statements into the "statements" array. The 4 combination choices (e.g. "(1) A, B and C only" / "(1) केवल A, B और C") MUST be put in the "options" array. NEVER put statements A, B, C, D into the "options" array!
    - 'di': Data Interpretation (Q1-5 in Paper I). Fill "passage" field with table/data.
    - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.
 4. Generate a rich, high-quality step-by-step HTML explanation (100-150 words) with <p>, <strong>, <ul>, <li> tags in the selected target language.
@@ -1130,6 +1130,25 @@ async function main() {
           q.subPrompt = LANGUAGE === 'Hindi'
             ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :'
             : 'Choose the correct answer from the options given below:';
+        }
+
+        // Guard against statements accidentally placed into options array
+        if (q.type === 'multiple-statement' && Array.isArray(q.statements) && q.statements.length > 0 && rawLines.length > 0) {
+          const isOptionsDuplicateOfStatements = q.options && q.options.length === q.statements.length && q.options.every((opt, i) => opt === q.statements[i]);
+          const optionsLookLikeStatements = q.options && q.options.some(opt => /^[A-E]\.\s+[A-Za-z]/i.test(opt) && !/\bonly\b/i.test(opt) && !/,\s*[A-E]/i.test(opt));
+
+          if (isOptionsDuplicateOfStatements || optionsLookLikeStatements || !q.options || q.options.length < 4) {
+            const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4]\.|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर]+)/gi;
+            const matches = [...rawText.matchAll(comboRegex)];
+            if (matches.length >= 4) {
+              q.options = matches.slice(0, 4).map(m => {
+                let opt = m[1].replace(/\[Option ID[\s\S]*$/, '').replace(/^[<>\s]+/, '').trim();
+                opt = opt.replace(/([A-E])only/i, '$1 only').replace(/\s+/g, ' ');
+                return opt;
+              });
+              preFlightRepairs++;
+            }
+          }
         }
       }
 
