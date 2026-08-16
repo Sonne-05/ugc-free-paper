@@ -1983,12 +1983,14 @@ app.post('/api/questions/explain', async (req, res) => {
       const candidateModels = Array.from(new Set([
         preferredModel,
         'gemini-flash-latest',
+        'gemini-2.5-flash',
         'gemini-2.0-flash',
-        'gemini-1.5-flash'
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b'
       ])).filter(Boolean);
 
       // Try up to min(geminiKeys.length, 10) attempts across available keys
-      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
+      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 15);
       let attemptsCount = 0;
 
       for (const geminiModel of candidateModels) {
