@@ -162,6 +162,7 @@ function setupKeyPool() {
 
   const geminiHistory = geminiKeys.map(() => []);
   const geminiCooldowns = geminiKeys.map(() => 0);
+  const geminiLastUsed = geminiKeys.map(() => 0);
   const groqCooldowns = groqKeys.map(() => 0);
 
   return {
@@ -169,39 +170,35 @@ function setupKeyPool() {
     groqKeys,
     geminiHistory,
     geminiCooldowns,
+    geminiLastUsed,
     groqCooldowns,
     geminiIndex: 0,
     groqIndex: 0,
-    PER_KEY_RPM: 15, // Conservative safe RPM per project
+    PER_KEY_RPM: 12, // Strict safe margin below Google's 15 RPM ceiling
+    MIN_KEY_INTERVAL_MS: 4500, // Enforce min 4.5s between requests to the SAME key
     
     async getNextGeminiKey() {
       if (this.geminiKeys.length === 0) return null;
       const now = Date.now();
       const windowMs = 60000;
 
-      // Purge expired timestamps
+      // Purge expired timestamps older than 60s
       for (let i = 0; i < this.geminiHistory.length; i++) {
         this.geminiHistory[i] = this.geminiHistory[i].filter(ts => now - ts < windowMs);
       }
 
-      // Round-Robin search across all available keys
+      // Round-Robin search across all available keys with strict rate-limit checks
       for (let attempt = 0; attempt < this.geminiKeys.length; attempt++) {
         const idx = (this.geminiIndex + attempt) % this.geminiKeys.length;
-        if (this.geminiCooldowns[idx] <= now && this.geminiHistory[idx].length < this.PER_KEY_RPM) {
+        const isNotCooling = this.geminiCooldowns[idx] <= now;
+        const isUnderRpm = this.geminiHistory[idx].length < this.PER_KEY_RPM;
+        const hasPassedInterval = (now - this.geminiLastUsed[idx]) >= this.MIN_KEY_INTERVAL_MS;
+
+        if (isNotCooling && isUnderRpm && hasPassedInterval) {
           this.geminiIndex = (idx + 1) % this.geminiKeys.length;
           this.geminiHistory[idx].push(now);
+          this.geminiLastUsed[idx] = now;
           return { key: this.geminiKeys[idx], keyIndex: idx };
-        }
-      }
-
-      // If all keys busy/cooling, calculate earliest free time
-      let earliest = Infinity;
-      for (let i = 0; i < this.geminiKeys.length; i++) {
-        if (this.geminiCooldowns[i] > now) {
-          earliest = Math.min(earliest, this.geminiCooldowns[i]);
-        }
-        if (this.geminiHistory[i].length >= this.PER_KEY_RPM && this.geminiHistory[i].length > 0) {
-          earliest = Math.min(earliest, this.geminiHistory[i][0] + windowMs);
         }
       }
 
@@ -211,9 +208,20 @@ function setupKeyPool() {
     getEarliestGeminiCooldown() {
       const now = Date.now();
       let earliest = Infinity;
+      const windowMs = 60000;
+
       for (let i = 0; i < this.geminiKeys.length; i++) {
         if (this.geminiCooldowns[i] > now) {
           earliest = Math.min(earliest, this.geminiCooldowns[i]);
+        }
+        if (this.geminiHistory[i].length >= this.PER_KEY_RPM && this.geminiHistory[i].length > 0) {
+          earliest = Math.min(earliest, this.geminiHistory[i][0] + windowMs);
+        }
+        if (this.geminiLastUsed[i] > 0) {
+          const nextAllowed = this.geminiLastUsed[i] + this.MIN_KEY_INTERVAL_MS;
+          if (nextAllowed > now) {
+            earliest = Math.min(earliest, nextAllowed);
+          }
         }
       }
       return earliest === Infinity ? 0 : Math.max(0, earliest - now);
@@ -221,7 +229,8 @@ function setupKeyPool() {
 
     coolDownGeminiKey(keyIndex, seconds) {
       if (keyIndex >= 0 && keyIndex < this.geminiCooldowns.length) {
-        this.geminiCooldowns[keyIndex] = Date.now() + (seconds * 1000) + 1000;
+        const safeSec = Math.max(seconds, 15);
+        this.geminiCooldowns[keyIndex] = Date.now() + Math.ceil(safeSec * 1000) + 1500;
       }
     },
 
@@ -354,9 +363,15 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         console.warn(`[Gemini 400] Key #${keyIndex + 1} is invalid. Disabling key.`);
         keyPool.coolDownGeminiKey(keyIndex, 86400);
       } else if (res.status === 429 || res.status === 503) {
+        const retryAfterHeader = res.headers?.get?.('retry-after');
         const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
-        const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 20;
-        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} cooling for ${waitSec.toFixed(0)}s.`);
+        let waitSec = 20;
+        if (retryAfterHeader && !isNaN(parseFloat(retryAfterHeader))) {
+          waitSec = parseFloat(retryAfterHeader);
+        } else if (retryMatch) {
+          waitSec = parseFloat(retryMatch[1]);
+        }
+        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} cooling for ${waitSec.toFixed(0)}s (Official Google Reset Window).`);
         keyPool.coolDownGeminiKey(keyIndex, waitSec);
       } else {
         console.warn(`[Gemini API Error] Status ${res.status}: ${errText.substring(0, 120)}`);
