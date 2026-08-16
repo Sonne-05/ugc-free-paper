@@ -265,6 +265,21 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
+function cleanRawPdfBlock(str) {
+  if (!str) return '';
+  return str
+    .replace(/file:\/\/\/[^\n]+/gi, '')
+    .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+    .replace(/\b\d{1,3}\/\d{1,3}\b/g, '')
+    .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4},?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '')
+    .replace(/\b\d{1,3}_[A-Za-z0-9_\-]+\.html\b/gi, '')
+    .replace(/\[Question ID\s*=\s*\d+\]/gi, '')
+    .replace(/\[Option ID\s*=\s*\d+\]/gi, '')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // Call AI using Groq (Primary) across all Groq keys, with fallback to Gemini (Secondary) and back to Groq
 async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   // 1. Try all active Groq keys with Llama 3.3 70B and Llama 3.1 8B
@@ -484,6 +499,7 @@ Common Formatting Rules:
    - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.
 4. Generate a rich, high-quality step-by-step HTML explanation (100-150 words) with <p>, <strong>, <ul>, <li> tags in the selected target language.
 5. For fill-in-the-blank or incomplete sentence prompts (e.g. ending in "would refer to as", "is known as", "is called", "defined as", "associated with"), format the end cleanly with "_________." or a colon ":" so it forms a complete grammatical sentence.
+6. ZERO DUPLICATE RULE: Each question in this batch is strictly unique. If a question block starts with repeated text from another question, extract ONLY the actual new question content. Do NOT duplicate options or prompts across different questions.
 
 Questions to process:\n\n`;
 
@@ -758,7 +774,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         for (let i = 0; i < questionsList.length; i++) {
           const cur = questionsList[i];
           const next = i + 1 < questionsList.length ? questionsList[i + 1] : null;
-          const block = text.substring(cur.index, next ? next.index : text.length).trim();
+          const block = cleanRawPdfBlock(text.substring(cur.index, next ? next.index : text.length)).trim();
           cleanQuestions.push({
             qIndex: i + 1,
             pdfQNum: i + 1,
@@ -769,7 +785,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
     }
 
-    // Comprehension Passages
+    // Comprehension Passages Extraction
     const compPassages = {};
     const compRegex = /Question Id\s*:\s*(\d+)\s+Question Type\s*:\s*(COMPREHENSION)/g;
     while ((match = compRegex.exec(text)) !== null) {
@@ -777,6 +793,21 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       if (!compPassages[qId]) {
         const nextIdx = text.indexOf('Sub questions', match.index);
         compPassages[qId] = text.substring(match.index, nextIdx > -1 ? nextIdx : match.index + 2000);
+      }
+    }
+
+    // Auto-detect shared passages for Q91-Q95 and Q96-Q100 (HTML/OCR web exports)
+    if (Object.keys(compPassages).length === 0 && cleanQuestions.length >= 95) {
+      const passageBlocks = [];
+      // Check Q91-Q95 block
+      const q91Text = cleanQuestions.find(q => q.qIndex === 91)?.text || '';
+      if (q91Text.length > 500) {
+        compPassages['passage_1'] = q91Text.substring(0, 2000);
+      }
+      // Check Q96-Q100 block
+      const q96Text = cleanQuestions.find(q => q.qIndex === 96)?.text || '';
+      if (q96Text.length > 500) {
+        compPassages['passage_2'] = q96Text.substring(0, 2000);
       }
     }
 
@@ -1421,6 +1452,28 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
           let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
           return cleanOpt || `Option ${i + 1}`;
         });
+      }
+
+      // 10. Automated Deduplication Guard against HTML/Page-break echoes
+      if (i > 0) {
+        const prevQ = finalQuestions[i - 1];
+        const normCurrent = (q.text || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+        const normPrev = (prevQ.text || '').toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 60);
+
+        if (normCurrent.length > 20 && normCurrent === normPrev && !normCurrent.includes('givenbelowaretwostatements') && !normCurrent.includes('matchlist') && !normCurrent.includes('chronologicallyarrange')) {
+          console.warn(`[Pre-Flight Guard] Detected duplicate prompt between Q${prevQ.qIndex} and Q${q.qIndex}. Recovering distinct prompt...`);
+          if (rawLines.length > 0) {
+            const distinctLines = rawLines.filter(l => 
+              l.length > 15 && 
+              !/^(?:SI\.?\s*No|QBID|\[Option ID|\[Question ID|Topic:|--\s*\d+\s+of)/i.test(l) &&
+              !l.toLowerCase().includes(prevQ.text.substring(0, 25).toLowerCase())
+            );
+            if (distinctLines.length > 0) {
+              q.text = distinctLines[0].trim();
+              preFlightRepairs++;
+            }
+          }
+        }
       }
 
       typeBreakdown[q.type] = (typeBreakdown[q.type] || 0) + 1;
