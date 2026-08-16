@@ -504,79 +504,35 @@ Questions to process:\n\n`;
   return prompt;
 }
 
-// Main CLI Execution
-async function main() {
-  console.log('\n======================================================');
-  console.log('⚡ High-Speed Zero-Token Text Question Importer');
-  console.log('======================================================\n');
+// Main Fast Importer Engine (Supports both CLI and Web API invocation)
+async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer, answerKeyPath, importLanguage = 'English', onProgress = () => {} }) {
+  const TARGET_SET_ID = setId;
+  const LANGUAGE = importLanguage || 'English';
 
-  let PDF_PATH = process.argv[2];
-  let TARGET_SET_ID = process.argv[3];
-  let LANGUAGE = process.argv[4];
-  let ANSWER_KEY_PATH = process.argv[5];
-
-  if (!PDF_PATH) {
-    PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
-  }
-  if (!fs.existsSync(PDF_PATH)) {
-    console.error(`Error: PDF file does not exist: "${PDF_PATH}"`);
-    process.exit(1);
-  }
-
-  // Automatic High-Resolution OCR Companion Detection
-  const pdfDir = path.dirname(PDF_PATH);
-  const pdfBase = path.basename(PDF_PATH);
-  const candidateOcrPaths = [
-    path.join(pdfDir, 'OCR', pdfBase),
-    path.join(pdfDir, 'OCR', pdfBase.replace(/\.pdf$/i, ' P2.pdf')),
-    path.join(pdfDir, 'OCR', pdfBase.replace(/Shift\s*(\d)/i, 'Shift $1') + ' P2.pdf'),
-    path.join(pdfDir, 'P2', pdfBase),
-    path.join(pdfDir, 'P2', pdfBase.replace(/\.pdf$/i, ' P2.pdf'))
-  ];
-
-  for (const ocrPath of candidateOcrPaths) {
-    if (ocrPath !== PDF_PATH && fs.existsSync(ocrPath)) {
-      console.log(`\n✨ Auto-detected cleaner high-resolution OCR companion file:`);
-      console.log(`   ➜ ${ocrPath}`);
-      PDF_PATH = ocrPath;
-      break;
-    }
-  }
-
-  if (!TARGET_SET_ID) {
-    TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
-  }
-  if (!mongoose.Types.ObjectId.isValid(TARGET_SET_ID)) {
-    console.error('Error: Invalid MongoDB ObjectId.');
-    process.exit(1);
-  }
-
-  if (!LANGUAGE) {
-    LANGUAGE = process.argv[2] ? 'English' : ((await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English');
-  }
-  if (!ANSWER_KEY_PATH && !process.argv[2]) {
-    ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
-  }
   let answerKeyMap = null;
-
-  if (ANSWER_KEY_PATH && fs.existsSync(ANSWER_KEY_PATH)) {
-    console.log('Parsing Answer Key PDF...');
+  if (answerKeyBuffer) {
     try {
-      const keyBuffer = fs.readFileSync(ANSWER_KEY_PATH);
-      const keyParser = new PDFParse({ data: keyBuffer });
+      if (onProgress) onProgress(6, 'Parsing Answer Key...');
+      const keyParser = new PDFParse({ data: answerKeyBuffer });
       const parsedKey = await keyParser.getText();
       answerKeyMap = parseAnswerKey(parsedKey.text);
       console.log(`Mapped ${Object.keys(answerKeyMap).length} answers from Answer Key.`);
     } catch (kErr) {
-      console.warn(`Warning: Could not parse answer key: ${kErr.message}`);
+      console.warn(`Warning: Could not parse answer key buffer: ${kErr.message}`);
+    }
+  } else if (answerKeyPath && fs.existsSync(answerKeyPath)) {
+    try {
+      const kBuf = fs.readFileSync(answerKeyPath);
+      const keyParser = new PDFParse({ data: kBuf });
+      const parsedKey = await keyParser.getText();
+      answerKeyMap = parseAnswerKey(parsedKey.text);
+      console.log(`Mapped ${Object.keys(answerKeyMap).length} answers from Answer Key.`);
+    } catch (kErr) {
+      console.warn(`Warning: Could not parse answer key path: ${kErr.message}`);
     }
   }
 
   try {
-    console.log('\nConnecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to database!');
-
     const targetSet = await PyqSet.findById(TARGET_SET_ID);
     if (!targetSet) {
       throw new Error(`Target set ${TARGET_SET_ID} not found in database.`);
@@ -585,21 +541,29 @@ async function main() {
     console.log(`Target Set: "${targetSet.title}" (${targetSet.paperType || 'Paper I'})`);
 
     // 1. Extract raw text from PDF
-    console.log('\n[1/4] Extracting raw text from PDF on your local PC...');
-    const fileBuffer = fs.readFileSync(PDF_PATH);
-    const parser = new PDFParse({ data: fileBuffer });
+    console.log('\n[1/4] Extracting raw text from PDF...');
+    if (onProgress) onProgress(10, 'Extracting text from PDF...');
+
+    let rawBuffer = fileBuffer;
+    if (!rawBuffer && filePath && fs.existsSync(filePath)) {
+      rawBuffer = fs.readFileSync(filePath);
+    }
+    if (!rawBuffer) {
+      throw new Error('No PDF fileBuffer or valid filePath provided.');
+    }
+
+    const parser = new PDFParse({ data: rawBuffer });
     const parsedPdf = await parser.getText();
     const text = parsedPdf.text || '';
 
     console.log(`Extracted ${text.length} characters of raw text.`);
     if (text.length < 500) {
-      console.warn('⚠️  Warning: PDF text is extremely short or empty. This may be a scanned image PDF.');
-      const proceed = await askQuestion('Continue anyway? (y/n): ');
-      if (proceed.toLowerCase() !== 'y') process.exit(0);
+      console.warn('⚠️  Warning: PDF text is extremely short or empty.');
     }
 
     // 2. Multi-Format Question Header Detection
     console.log('[2/4] Slicing questions into structured blocks...');
+    if (onProgress) onProgress(15, 'Slicing questions into structured blocks...');
     const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
     let match;
     const matchesList = [];
@@ -1370,6 +1334,7 @@ async function main() {
     console.log(`📊 Final Type Distribution:`);
     console.table(typeBreakdown);
 
+    if (onProgress) onProgress(95, 'Committing verified questions to database...');
     console.log(`\n[4/4] Committing ${finalQuestions.length} verified questions to MongoDB...`);
 
     await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
@@ -1380,16 +1345,101 @@ async function main() {
       fs.unlinkSync(checkpointFile);
     }
 
+    if (onProgress) onProgress(100, `Successfully imported ${finalQuestions.length} questions!`);
     console.log(`\n======================================================`);
     console.log(`🎉 SUCCESS: Imported ${finalQuestions.length} questions into Set "${targetSet.title}" with strict sequence & type integrity!`);
     console.log(`======================================================\n`);
 
+    return {
+      success: true,
+      count: finalQuestions.length,
+      title: targetSet.title
+    };
   } catch (err) {
     console.error('\n❌ Fatal Import Error:', err.message);
+    throw err;
+  }
+}
+
+// Main CLI Execution
+async function main() {
+  console.log('\n======================================================');
+  console.log('⚡ High-Speed Zero-Token Text Question Importer');
+  console.log('======================================================\n');
+
+  let PDF_PATH = process.argv[2];
+  let TARGET_SET_ID = process.argv[3];
+  let LANGUAGE = process.argv[4];
+  let ANSWER_KEY_PATH = process.argv[5];
+
+  if (!PDF_PATH) {
+    PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
+  }
+  if (!fs.existsSync(PDF_PATH)) {
+    console.error(`Error: PDF file does not exist: "${PDF_PATH}"`);
+    process.exit(1);
+  }
+
+  // Automatic High-Resolution OCR Companion Detection
+  const pdfDir = path.dirname(PDF_PATH);
+  const pdfBase = path.basename(PDF_PATH);
+  const candidateOcrPaths = [
+    path.join(pdfDir, 'OCR', pdfBase),
+    path.join(pdfDir, 'OCR', pdfBase.replace(/\.pdf$/i, ' P2.pdf')),
+    path.join(pdfDir, 'OCR', pdfBase.replace(/Shift\s*(\d)/i, 'Shift $1') + ' P2.pdf'),
+    path.join(pdfDir, 'P2', pdfBase),
+    path.join(pdfDir, 'P2', pdfBase.replace(/\.pdf$/i, ' P2.pdf'))
+  ];
+
+  for (const ocrPath of candidateOcrPaths) {
+    if (ocrPath !== PDF_PATH && fs.existsSync(ocrPath)) {
+      console.log(`\n✨ Auto-detected cleaner high-resolution OCR companion file:`);
+      console.log(`   ➜ ${ocrPath}`);
+      PDF_PATH = ocrPath;
+      break;
+    }
+  }
+
+  if (!TARGET_SET_ID) {
+    TARGET_SET_ID = await askQuestion('Enter the Target PyqSet MongoDB ID: ');
+  }
+  if (!mongoose.Types.ObjectId.isValid(TARGET_SET_ID)) {
+    console.error('Error: Invalid MongoDB ObjectId.');
+    process.exit(1);
+  }
+
+  if (!LANGUAGE) {
+    LANGUAGE = process.argv[2] ? 'English' : ((await askQuestion('Enter Target Language (English/Hindi/Sindhi/Bilingual) [Default: English]: ')) || 'English');
+  }
+  if (!ANSWER_KEY_PATH && !process.argv[2]) {
+    ANSWER_KEY_PATH = await askQuestion('Enter Answer Key PDF path (optional, press Enter to skip): ');
+  }
+
+  try {
+    console.log('\nConnecting to MongoDB...');
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('Connected to database!');
+
+    await executeFastImport({
+      filePath: PDF_PATH,
+      setId: TARGET_SET_ID,
+      importLanguage: LANGUAGE,
+      answerKeyPath: ANSWER_KEY_PATH
+    });
+  } catch (err) {
+    console.error('CLI Execution Error:', err.message);
   } finally {
     await mongoose.connection.close();
     process.exit(0);
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  executeFastImport,
+  parseAnswerKey,
+  cleanJsonString
+};

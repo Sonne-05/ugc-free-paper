@@ -5007,14 +5007,10 @@ const ManageSet = () => {
                       {/* PDF IMPORTER CARD */}
                       <div className="ms-card" style={{ marginTop: '15px', marginBottom: '20px', border: '1px dashed #4f46e5', backgroundColor: '#f5f3ff', padding: '16px', borderRadius: '8px' }}>
                         <h4 style={{ color: '#4f46e5', margin: '0 0 8px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          ⚡ Automated PDF Question Importer (English Only)
+                          ⚡ Advanced High-Speed Question Importer (Auto-Audit & 100% Integrity)
                         </h4>
                         <p style={{ fontSize: '0.82rem', color: '#4b5563', margin: '0 0 12px 0', lineHeight: '1.4' }}>
-                          {newSetPaperType === 'Paper II' ? (
-                            "Upload the original bilingual PDF. We will automatically filter out the Hindi translation, solve correct answers, and write detailed explanations."
-                          ) : (
-                            "Upload the original bilingual PDF. We will automatically filter out the Hindi translation, map syllabus units (Q1-5 DI, Q6-10 Teaching, etc.), solve correct answers, and write detailed explanations."
-                          )}
+                          Upload any UGC NET PDF (Formats A, B, C, D, E). Powered by Groq (0.2s) & 30-Key Gemini Pool with automatic Hindi noise removal, match-columns formatting, multi-statement combination repairs, and comprehension passage preservation.
                         </p>
                         
 
