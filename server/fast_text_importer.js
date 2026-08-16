@@ -237,20 +237,21 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
-// Call AI using Groq (Primary) with Infinite Circular Fallback to Gemini (Secondary) and Back to Groq
+// Call AI using Groq (Primary) across all Groq keys, with fallback to Gemini (Secondary) and back to Groq
 async function callAiStructuring(prompt, keyPool, retryCount = 0) {
-  // 1. Try Groq first as Primary
-  const groqInfo = keyPool.getNextGroqKey();
-  if (groqInfo) {
+  // 1. Try all active Groq keys with Llama 3.3 70B and Llama 3.1 8B
+  for (let gAttempt = 0; gAttempt < (keyPool.groqKeys.length || 1); gAttempt++) {
+    const groqInfo = keyPool.getNextGroqKey();
+    if (!groqInfo) break;
+
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
-    try {
-      const groqModels = [
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'openai/gpt-oss-20b'
-      ];
-      
-      for (const groqModel of groqModels) {
+    const groqModels = [
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant'
+    ];
+
+    for (const groqModel of groqModels) {
+      try {
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -276,20 +277,20 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           const groqErrText = await groqRes.text();
           if (groqRes.status === 429) {
             if (groqModel !== 'llama-3.1-8b-instant') {
-              console.warn(`[Groq ${groqModel} Quota Reached] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
+              console.warn(`[Groq ${groqModel} Quota Reached on Key #${groqKeyIndex + 1}] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
               continue;
             } else {
-              console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 30s. Switching to Gemini fallback...`);
-              keyPool.coolDownGroqKey(groqKeyIndex, 30);
+              console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 25s.`);
+              keyPool.coolDownGroqKey(groqKeyIndex, 25);
             }
           } else {
-            console.warn(`[Groq ${groqRes.status} on ${groqModel}]: ${groqErrText.substring(0, 150)}`);
+            console.warn(`[Groq ${groqRes.status} on ${groqModel} Key #${groqKeyIndex + 1}]: ${groqErrText.substring(0, 120)}`);
             continue;
           }
         }
+      } catch (groqErr) {
+        console.warn(`[Groq Network Error on Key #${groqKeyIndex + 1}]: ${groqErr.message}`);
       }
-    } catch (groqErr) {
-      console.warn(`[Groq Error]: ${groqErr.message}. Switching to Gemini fallback...`);
     }
   }
 
