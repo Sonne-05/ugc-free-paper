@@ -1383,6 +1383,24 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         const stripHindiFromStr = (str) => (str || '').replace(/\s*\/[\u0900-\u097F\s\(\)\.\-,\:–—]+$/g, '').trim();
 
         q.text = stripHindiFromStr(q.text);
+        let text = q.text;
+        text = text.replace(/^\d{5,8}[\'\!\)\:\s\.\-]+/i, '').trim();
+        if (!text || text.length < 5) {
+          text = rawLines.find(l => l.length > 10 && !/\[Option ID|\[Question ID|^SI\.?\s*No|^QBID/i.test(l)) || `Question ${q.qIndex || 1}:`;
+        }
+        text = text.replace(/^\d{5,8}[\'\!\)\:\s\.\-]+/i, '').trim();
+        if (/^(?:Choose the correct|नीचे दिए गए विकल्पों|In light of the above|In the light of)/i.test(text) && rawLines.length > 1) {
+          const truePromptLine = rawLines.find(l => 
+            l.length > 15 && 
+            !/^(?:Choose the|नीचे दिए गए|In light|In the light|SI\.?\s*No|QBID|\[Option ID|\[Question ID|--\s*\d+\s+of|Topic:)/i.test(l) &&
+            (l.endsWith('?') || l.endsWith(':') || /^(?:Which|Who|What|Identify|Arrange|Given|The\s+|In\s+|According|With\s+)/i.test(l))
+          );
+          if (truePromptLine) {
+            text = truePromptLine.replace(/^\d{5,8}[\'\!\)\:\s\.\-]+/i, '').trim();
+          }
+        }
+        q.text = text;
+
         if (devanagariRegex.test(q.text) && rawLines.length > 0) {
           for (const line of rawLines) {
             if (/^[A-Za-z0-9\s\,\.\?\!\'\"\-–—\(\)\:\;\/]+$/.test(line) && line.length > 15 && !/\[Option ID|\[Question ID|^SI\.?\s*No|^QBID/i.test(line)) {
@@ -1446,8 +1464,41 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         if (q.passage.length !== prevLen) preFlightRepairs++;
       }
 
-      // 9. Universal Option Sanitizer (Strip duplicate prefixes like (1)/(2)/1./2.)
+      // 9. Universal Option Sanitizer & Fallback Placeholder Harvester
+      const isPlaceholderOpt = (opt) => !opt || /^Option\s*[1-4]$/i.test(String(opt).trim()) || String(opt).trim().length === 0;
       if (Array.isArray(q.options)) {
+        if (q.options.some(isPlaceholderOpt) && rawLines.length > 0) {
+          // 1. Try to find combination options (A, B, C only / A and B only)
+          const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4][\.\)]|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर\(\)\-]+)/gi;
+          const comboMatches = [...rawText.matchAll(comboRegex)];
+          if (comboMatches.length >= 4) {
+            q.options = comboMatches.slice(0, 4).map(m => {
+              let opt = m[1].replace(/\[Option ID[\s\S]*$/, '').replace(/^[<>\s]+/, '').trim();
+              opt = opt.replace(/([A-E])only/i, '$1 only').replace(/\s+/g, ' ');
+              return opt;
+            });
+            preFlightRepairs++;
+          } else {
+            // 2. Try to find numeric options: 1. ... 2. ... 3. ... 4. ...
+            const numOpts = [];
+            for (const line of rawLines) {
+              if (/^SI\.?\s*No|QBID|\[Option ID|\[Question ID|--\s*\d+\s+of|Topic:/i.test(line)) continue;
+              const m = line.match(/^(?:\(?([1-4])\)?[\.\:\s\-]+|\b([1-4])\.\s+)([^\n]+)/i);
+              if (m) {
+                const optIdx = parseInt(m[1] || m[2], 10) - 1;
+                const content = (m[3] || '').replace(/\[Option ID[\s\S]*$/, '').trim();
+                if (content.length > 0 && !numOpts[optIdx]) {
+                  numOpts[optIdx] = content;
+                }
+              }
+            }
+            if (numOpts.filter(Boolean).length === 4) {
+              q.options = numOpts;
+              preFlightRepairs++;
+            }
+          }
+        }
+
         q.options = q.options.map((opt, i) => {
           let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
           return cleanOpt || `Option ${i + 1}`;
