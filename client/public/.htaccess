@@ -2,26 +2,23 @@
   RewriteEngine On
   RewriteBase /
 
-  # Allow direct access to real files and directories
+  # 1. Force HTTPS and non-WWW (Unified single 301 redirect to avoid redirect chains)
+  RewriteCond %{HTTPS} off [OR]
+  RewriteCond %{HTTP_HOST} ^www\.ugcfreepaper\.com$ [NC]
+  RewriteRule ^(.*)$ https://ugcfreepaper.com/$1 [L,R=301]
+
+  # 2. Strip trailing slashes from URLs (except root and real directories)
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} ^(.+)/$
+  RewriteRule ^ %1 [L,R=301]
+
+  # 3. Allow direct access to real files and directories (images, assets, scripts)
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 1. Match exact .html file if it exists (e.g. /about -> /about.html)
-  RewriteCond %{DOCUMENT_ROOT}/$1.html -f
-  RewriteRule ^(.*)$ /$1.html [L]
-
-  # 2. Match directory index.html if it exists (e.g. /about -> /about/index.html)
-  RewriteCond %{DOCUMENT_ROOT}/$1/index.html -f
-  RewriteRule ^(.*)$ /$1/index.html [L]
-
-  # 3. SPA Fallback: Serve clean fallback.html for unmatched dynamic client-side routes
-  # (Prevents flashing the home landing page during client hydration)
-  RewriteCond %{DOCUMENT_ROOT}/fallback.html -f
-  RewriteRule . /fallback.html [L]
-
-  # 4. Final fallback
-  RewriteRule . /index.html [L]
+  # 4. SPA Fallback: Route all client-side navigation to index.html
+  RewriteRule ^ index.html [L]
 </IfModule>
 
 # Custom 404 Error Document for Apache/cPanel

@@ -15,9 +15,21 @@
   </url>
   <url>
     <loc>https://ugcfreepaper.com/paper2</loc>
-    <lastmod>2026-08-14</lastmod>
+    <lastmod>2026-08-17</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ugcfreepaper.com/paper2?subject=Sociology</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://ugcfreepaper.com/paper2?subject=Sindhi</loc>
+    <lastmod>2026-08-17</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://ugcfreepaper.com/paper1-notes</loc>

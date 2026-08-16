@@ -163,6 +163,16 @@ async function run() {
     html = html.replace(/<meta property="twitter:description" content=".*?" \/>/g, `<meta property="twitter:description" content="${r.desc}" />`)
     html = html.replace(/<meta property="twitter:url" content=".*?" \/>/g, `<meta property="twitter:url" content="https://ugcfreepaper.com${r.path === '/' ? '' : r.path}" />`)
 
+    // Inject accurate per-route canonical URL
+    const pageCanonical = `https://ugcfreepaper.com${r.path === '/' ? '/' : r.path}`
+    const canonicalRegex = /<link rel="canonical" href=".*?" \/>/
+    const newCanonical = `<link rel="canonical" href="${pageCanonical}" />`
+    if (canonicalRegex.test(html)) {
+      html = html.replace(canonicalRegex, newCanonical)
+    } else {
+      html = html.replace('</head>', `  ${newCanonical}\n  </head>`)
+    }
+
     // Save index.html and .html to file system for direct server resolution
     const routeFolder = r.path === '/' ? '' : r.path
     const destDir = toAbsolute(`dist${routeFolder}`)

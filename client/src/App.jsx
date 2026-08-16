@@ -37,7 +37,18 @@ function App() {
     if (path.length > 1 && path.endsWith('/')) {
       path = path.slice(0, -1);
     }
-    const canonicalUrl = `https://ugcfreepaper.com${path}`;
+
+    // Preserve allowed indexed query parameters (e.g. ?subject=Sociology on /paper2)
+    let search = '';
+    if (path === '/paper2' && location.search.includes('subject=')) {
+      const searchParams = new URLSearchParams(location.search);
+      const subjectParam = searchParams.get('subject');
+      if (subjectParam) {
+        search = `?subject=${encodeURIComponent(subjectParam)}`;
+      }
+    }
+
+    const canonicalUrl = `https://ugcfreepaper.com${path}${search}`;
     
     let link = document.querySelector("link[rel='canonical']");
     if (!link) {
@@ -128,7 +139,7 @@ function App() {
         metaRobots.setAttribute('content', 'index, follow');
       }
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
