@@ -1152,6 +1152,37 @@ async function main() {
         }
       }
 
+      // 4.6 Guard for Unlabelled Multiple-Statement Extraction & Conversion
+      const hasComboOptions = q.options && q.options.some(opt => /\b(?:[A-E]\s*,\s*[A-E]|[A-E]\s+and\s+[A-E]|only|केवल)\b/i.test(opt));
+      if (hasComboOptions && (!Array.isArray(q.statements) || q.statements.length < 2) && rawLines.length > 0) {
+        q.type = 'multiple-statement';
+        q.subPrompt = LANGUAGE === 'Hindi'
+          ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :'
+          : 'Choose the correct answer from the options given below:';
+
+        const chooseIdx = rawLines.findIndex(l => /^(?:Choose the correct|नीचे दिए गए विकल्पों|Options\s*:|\(1\)|\(A\)-)/i.test(l));
+        const promptIdx = rawLines.findIndex(l => /^(?:Which|Who|What|Identify|Arrange|In\s+|Out\s+of|According|Within|Chronologically|Given)/i.test(l));
+        
+        const startLine = promptIdx !== -1 ? promptIdx + 1 : 1;
+        const endLine = chooseIdx !== -1 ? chooseIdx : rawLines.length;
+        
+        if (endLine > startLine) {
+          const potentialStmts = rawLines.slice(startLine, endLine).filter(l => 
+            l.length > 3 && 
+            !/^--\s*\d+\s+of/i.test(l) && 
+            !/\[Option ID|\[Question ID|^SI\.?\s*No|^QBID|^Topic:/i.test(l)
+          );
+          
+          if (potentialStmts.length >= 2 && potentialStmts.length <= 6) {
+            q.statements = potentialStmts.map((stmt, sIdx) => {
+              const letter = String.fromCharCode(65 + sIdx);
+              return `${letter}. ${stmt.replace(/^\(?[A-E]\)?[\.:]\s*/i, '').trim()}`;
+            });
+            preFlightRepairs++;
+          }
+        }
+      }
+
       // 5. Unbroken Text / Dangling Sentence Healer (List I, Statements, Prompt)
       const isDangling = (str) => /\b(?:that\s+a|that|the|of|in|and|with|to|for|or|a|an|as|by|from|is|was|are|were|which|who|whose|must|be)$/i.test(str.trim()) || ((str.match(/"/g) || []).length % 2 !== 0 && !str.endsWith('"'));
 
