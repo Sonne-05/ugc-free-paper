@@ -877,7 +877,10 @@ async function main() {
       let options = Array.isArray(rawParsed.options) && rawParsed.options.length >= 4 
         ? rawParsed.options.slice(0, 4) 
         : ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
-      options = options.map((opt, i) => String(opt || `Option ${i + 1}`).trim());
+      options = options.map((opt, i) => {
+        let str = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+        return str;
+      });
 
       // Match-column Headers
       let list1Header = rawParsed.list1Header || (LANGUAGE === 'Hindi' ? 'सूची - I' : 'List - I');
@@ -1103,6 +1106,52 @@ async function main() {
             }
             preFlightRepairs++;
           }
+        }
+
+        // Clean & heal match-column combination options (strip (1)/(2), fix Roman numerals)
+        if (Array.isArray(q.options)) {
+          const allRomans = ['I', 'II', 'III', 'IV'];
+          q.options = q.options.map(rawOpt => {
+            if (!rawOpt) return '';
+            let opt = String(rawOpt).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').replace(/^\(([A-D])\)/g, '$1').trim();
+            const parts = opt.split(/,\s*/);
+            const letterMap = {};
+
+            const cleanedParts = parts.map(part => {
+              const m = part.match(/^([A-D])\s*[-–—:]\s*([A-Za-z0-9\|\!]+)/i);
+              if (!m) return part.trim();
+              const letter = m[1].toUpperCase();
+              let r = m[2].trim().toUpperCase();
+
+              if (r === 'IV' || r === '1V' || r === 'LV') r = 'IV';
+              else if (r === 'III' || r === 'IIL' || r === 'HI' || r === 'HL' || r === 'IU' || r === 'U' || r === 'UL' || r === '1II' || r === 'LLL') r = 'III';
+              else if (r === 'II' || r === 'IL' || r === 'H' || r === 'FL' || r === 'LL' || r === '1I') r = 'II';
+              else if (r === 'I' || r === 'L' || r === 'FE' || r === '1' || r === '|') r = 'I';
+
+              letterMap[letter] = r;
+              return `${letter}-${r}`;
+            });
+
+            const letters = ['A', 'B', 'C', 'D'];
+            const presentLetters = letters.filter(l => letterMap[l]);
+            if (presentLetters.length === 4) {
+              const presentRomans = presentLetters.map(l => letterMap[l]);
+              const romanCounts = {};
+              presentRomans.forEach(r => { romanCounts[r] = (romanCounts[r] || 0) + 1; });
+              const missingRomans = allRomans.filter(r => !presentRomans.includes(r));
+
+              if (missingRomans.length === 1) {
+                for (const l of letters) {
+                  if (romanCounts[letterMap[l]] > 1) {
+                    letterMap[l] = missingRomans[0];
+                    break;
+                  }
+                }
+              }
+              return letters.map(l => `${l}-${letterMap[l]}`).join(', ');
+            }
+            return cleanedParts.join(', ');
+          });
         }
       }
 
