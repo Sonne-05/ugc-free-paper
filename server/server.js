@@ -2709,6 +2709,23 @@ app.get('/sitemap.xml', async (req, res) => {
       xml += '  </url>\n';
     });
 
+    // Add dynamic Paper 2 core subjects (e.g. Sociology, Sindhi, etc.)
+    try {
+      const CorePaper = require('./models/CorePaper');
+      const papers = await CorePaper.find({ isAvailable: { $ne: false } }).select('name updatedAt').exec();
+      papers.forEach(paper => {
+        const lastmod = paper.updatedAt ? new Date(paper.updatedAt).toISOString().split('T')[0] : today;
+        xml += '  <url>\n';
+        xml += `    <loc>https://ugcfreepaper.com/paper2?subject=${encodeURIComponent(paper.name)}</loc>\n`;
+        xml += `    <lastmod>${lastmod}</lastmod>\n`;
+        xml += '    <changefreq>weekly</changefreq>\n';
+        xml += '    <priority>0.85</priority>\n';
+        xml += '  </url>\n';
+      });
+    } catch (paperErr) {
+      console.warn('Could not fetch CorePapers for sitemap:', paperErr);
+    }
+
     xml += '</urlset>';
 
     res.header('Content-Type', 'application/xml');
