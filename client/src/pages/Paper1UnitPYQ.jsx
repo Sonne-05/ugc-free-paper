@@ -190,7 +190,7 @@ const Paper1UnitPYQ = () => {
           </div>
         )}
 
-        <div className={`pyq-page__layout ${!adsEnabled ? 'pyq-page__layout--no-ads' : ''}`}>
+        <div className="pyq-page__layout">
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">

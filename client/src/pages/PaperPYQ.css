@@ -409,9 +409,7 @@
   width: 100%;
 }
 
-.pyq-page__layout--no-ads {
-  grid-template-columns: 1fr !important;
-}
+
 
 .pyq-page__suggested-blogs-mobile {
   margin-top: 10px;

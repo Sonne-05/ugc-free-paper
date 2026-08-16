@@ -137,7 +137,7 @@ const Paper1PYQ = () => {
           </div>
         )}
 
-        <div className={`pyq-page__layout ${!adsEnabled ? 'pyq-page__layout--no-ads' : ''}`}>
+        <div className="pyq-page__layout">
           <div className="pyq-page__main-content">
             {/* SEO Intro */}
             <section className="pyq-page__intro">
@@ -163,7 +163,7 @@ const Paper1PYQ = () => {
                 <tbody>
                   {Object.keys(groupedPapers)
                     .sort((a, b) => b - a) // Show latest years first
-                    .map((year) => {
+                    .map((year, yearIndex) => {
                       const yearPapers = [...groupedPapers[year]].sort((a, b) => getSortValue(a) - getSortValue(b))
                       return (
                         <Fragment key={year}>
@@ -210,7 +210,7 @@ const Paper1PYQ = () => {
                               </td>
                             </tr>
                           ))}
-                          {adsEnabled && (
+                          {adsEnabled && (yearIndex + 1) % 2 === 0 && (
                             <tr className="pyq-table__in-feed-ad-row">
                               <td colSpan={2} className="pyq-table__in-feed-ad-td">
                                 <AdSensePlaceholder type="display" format="horizontal" config={settings} />
