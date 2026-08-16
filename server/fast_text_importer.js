@@ -5,11 +5,18 @@ const dotenv = require('dotenv');
 const readline = require('readline');
 const { PDFParse } = require('pdf-parse');
 
-// Load environment variables
-const envPath = path.resolve('.env');
-if (fs.existsSync(envPath)) {
-  const envConfig = dotenv.parse(fs.readFileSync(envPath));
-  for (const k in envConfig) process.env[k] = envConfig[k];
+// Load environment variables reliably from server/.env or .env
+const possibleEnvPaths = [
+  path.join(__dirname, '.env'),
+  path.resolve('.env'),
+  path.resolve('server/.env')
+];
+for (const p of possibleEnvPaths) {
+  if (fs.existsSync(p)) {
+    const envConfig = dotenv.parse(fs.readFileSync(p));
+    for (const k in envConfig) process.env[k] = envConfig[k];
+    break;
+  }
 }
 
 // Interactive terminal input helper
