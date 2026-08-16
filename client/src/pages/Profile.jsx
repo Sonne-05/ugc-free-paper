@@ -170,11 +170,67 @@ const Profile = () => {
   const [corePaperDesc, setCorePaperDesc] = useState('')
   const [corePaperIsAvailable, setCorePaperIsAvailable] = useState(true)
   const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
-  const [selectedFilterYear, setSelectedFilterYear] = useState('All')
-  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
-  const [selectedFilterSubject, setSelectedFilterSubject] = useState('All')
-  const [selectedFilterStatus, setSelectedFilterStatus] = useState('All')
+  const [selectedFilterYear, setSelectedFilterYear] = useState(() => {
+    try {
+      return localStorage.getItem('pyq_admin_filter_year') || 'All'
+    } catch {
+      return 'All'
+    }
+  })
+  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState(() => {
+    try {
+      return localStorage.getItem('pyq_admin_filter_paper_type') || 'All'
+    } catch {
+      return 'All'
+    }
+  })
+  const [selectedFilterSubject, setSelectedFilterSubject] = useState(() => {
+    try {
+      return localStorage.getItem('pyq_admin_filter_subject') || 'All'
+    } catch {
+      return 'All'
+    }
+  })
+  const [selectedFilterStatus, setSelectedFilterStatus] = useState(() => {
+    try {
+      return localStorage.getItem('pyq_admin_filter_status') || 'All'
+    } catch {
+      return 'All'
+    }
+  })
   const [newSetIsVerified, setNewSetIsVerified] = useState(false)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pyq_admin_filter_year', selectedFilterYear)
+    } catch (e) {
+      console.warn(e)
+    }
+  }, [selectedFilterYear])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pyq_admin_filter_paper_type', selectedFilterPaperType)
+    } catch (e) {
+      console.warn(e)
+    }
+  }, [selectedFilterPaperType])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pyq_admin_filter_subject', selectedFilterSubject)
+    } catch (e) {
+      console.warn(e)
+    }
+  }, [selectedFilterSubject])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pyq_admin_filter_status', selectedFilterStatus)
+    } catch (e) {
+      console.warn(e)
+    }
+  }, [selectedFilterStatus])
 
   const matchesFilterStatus = (s) => {
     if (selectedFilterStatus === 'All') return true
@@ -2544,8 +2600,11 @@ const Profile = () => {
                           className="pane-select pyq-filter-select" 
                           value={selectedFilterPaperType} 
                           onChange={(e) => {
-                            setSelectedFilterPaperType(e.target.value);
-                            setSelectedFilterSubject('All'); // Reset subject filter when paper type changes
+                            const val = e.target.value;
+                            setSelectedFilterPaperType(val);
+                            if (val === 'Paper I') {
+                              setSelectedFilterSubject('All');
+                            }
                           }}
                         >
                           <option value="All">All Papers</option>
@@ -2595,6 +2654,32 @@ const Profile = () => {
                           <option value="published">Published Only</option>
                         </select>
                       </div>
+                      {(selectedFilterPaperType !== 'All' || selectedFilterSubject !== 'All' || selectedFilterYear !== 'All' || selectedFilterStatus !== 'All') && (
+                        <button
+                          type="button"
+                          className="pane-btn pane-btn--ghost"
+                          style={{
+                            fontSize: '0.78rem',
+                            padding: '6px 12px',
+                            height: '36px',
+                            alignSelf: 'flex-end',
+                            whiteSpace: 'nowrap',
+                            border: '1px dashed var(--border)',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            color: 'var(--text-secondary)'
+                          }}
+                          onClick={() => {
+                            setSelectedFilterPaperType('All');
+                            setSelectedFilterSubject('All');
+                            setSelectedFilterYear('All');
+                            setSelectedFilterStatus('All');
+                          }}
+                          title="Reset all filters to default"
+                        >
+                          ✕ Reset Filters
+                        </button>
+                      )}
                     </div>
                   </div>
 

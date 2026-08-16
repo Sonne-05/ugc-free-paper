@@ -3209,7 +3209,7 @@ const ManageSet = () => {
   }, [setId, navigate])
 
   const cancelEditSet = () => {
-    navigate('/profile')
+    navigate(window.location.pathname.startsWith('/admin') ? '/admin#pyq' : '/profile#pyq')
   }
 
   const loadQuestionsForSet = async (setId) => {
@@ -4751,7 +4751,7 @@ const ManageSet = () => {
             </div>
           )}
         </div>
-        <button className="btn-back" onClick={() => navigate('/profile#pyq')}>&larr; Back to Profile</button>
+        <button className="btn-back" onClick={() => navigate(window.location.pathname.startsWith('/admin') ? '/admin#pyq' : '/profile#pyq')}>&larr; Back to Profile</button>
       </div>
       <div className="manage-set-layout">
         <div className="manage-set-left">
