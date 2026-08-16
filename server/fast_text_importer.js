@@ -942,7 +942,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       const batch = batches[b];
       const startQ = batch[0].qIndex;
       const endQ = batch[batch.length - 1].qIndex;
-      const totalQs = englishQuestions.length || 100;
+      const totalQs = cleanQuestions.length || 100;
       const currentPercent = Math.round(15 + ((b / batches.length) * 78));
       const statusMsg = `Structuring Questions ${startQ} - ${endQ} of ${totalQs} with AI...`;
 
