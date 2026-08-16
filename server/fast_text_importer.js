@@ -652,10 +652,10 @@ async function main() {
         
         // Filter based on Paper Type (Paper II vs Paper I / GP)
         let targetMatches = allFormatEMatches;
-        if (isPaperII && allFormatEMatches.some(m => /_GP\d+/i.test(m.desc))) {
-          targetMatches = allFormatEMatches.filter(m => !/_GP\d+/i.test(m.desc));
-        } else if (!isPaperII && allFormatEMatches.some(m => /_GP\d+/i.test(m.desc))) {
-          targetMatches = allFormatEMatches.filter(m => /_GP\d+/i.test(m.desc));
+        if (isPaperII && allFormatEMatches.some(m => /_GP\d+|_GP_/i.test(m.desc))) {
+          targetMatches = allFormatEMatches.filter(m => !/_GP\d+|_GP_/i.test(m.desc));
+        } else if (!isPaperII && allFormatEMatches.some(m => /_GP\d+|_GP_/i.test(m.desc))) {
+          targetMatches = allFormatEMatches.filter(m => /_GP\d+|_GP_/i.test(m.desc));
         }
 
         for (let i = 0; i < targetMatches.length; i++) {
@@ -971,20 +971,17 @@ async function main() {
           throw new Error(`Incomplete batch returned: got ${batchResults ? batchResults.length : 0}/${batch.length}`);
         }
       } catch (batchErr) {
-        console.warn(`Batch had missing items (${batchErr.message}). Retrying missing items individually...`);
-        const returnedIndices = new Set((batchResults || []).map(r => r.qIndex));
+        console.warn(`Batch had missing items (${batchErr.message}). Retrying entire batch item by item...`);
+        batchResults = [];
         for (const singleQ of batch) {
-          if (!returnedIndices.has(singleQ.qIndex)) {
-            try {
-              const singlePrompt = buildPrompt([singleQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
-              const singleRes = await callAiStructuring(singlePrompt, keyPool);
-              if (singleRes && singleRes.length > 0) {
-                if (!batchResults) batchResults = [];
-                batchResults.push(singleRes[0]);
-              }
-            } catch (singleErr) {
-              console.error(`Failed to process Q${singleQ.qIndex}: ${singleErr.message}`);
+          try {
+            const singlePrompt = buildPrompt([singleQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
+            const singleRes = await callAiStructuring(singlePrompt, keyPool);
+            if (singleRes && singleRes.length > 0) {
+              batchResults.push(singleRes[0]);
             }
+          } catch (singleErr) {
+            console.error(`Failed to process Q${singleQ.qIndex}: ${singleErr.message}`);
           }
         }
       }
@@ -1023,18 +1020,23 @@ async function main() {
 
     const missingQuestions = cleanQuestions.filter(cq => !finalMap.has(cq.qIndex));
     if (missingQuestions.length > 0) {
-      console.log(`\n🔍 Found ${missingQuestions.length} missing question(s). Running auto-recovery pass...`);
+      console.log(`\n🔍 Found ${missingQuestions.length} missing question(s). Running rigorous auto-recovery pass...`);
       for (const misQ of missingQuestions) {
-        try {
-          console.log(`Auto-recovering Q${misQ.qIndex}...`);
-          const singlePrompt = buildPrompt([misQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
-          const singleRes = await callAiStructuring(singlePrompt, keyPool);
-          if (singleRes && singleRes.length > 0) {
-            const structuredQ = sanitizeQuestion(singleRes[0], misQ, misQ.qIndex);
-            finalMap.set(misQ.qIndex, structuredQ);
+        let recovered = false;
+        for (let retry = 0; retry < 3 && !recovered; retry++) {
+          try {
+            console.log(`Auto-recovering Q${misQ.qIndex} (Attempt ${retry + 1}/3)...`);
+            const singlePrompt = buildPrompt([misQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
+            const singleRes = await callAiStructuring(singlePrompt, keyPool);
+            if (singleRes && singleRes.length > 0) {
+              const structuredQ = sanitizeQuestion(singleRes[0], misQ, misQ.qIndex);
+              finalMap.set(misQ.qIndex, structuredQ);
+              recovered = true;
+            }
+          } catch (recErr) {
+            console.error(`Could not auto-recover Q${misQ.qIndex}: ${recErr.message}`);
+            await new Promise(r => setTimeout(r, 1000));
           }
-        } catch (recErr) {
-          console.error(`Could not auto-recover Q${misQ.qIndex}: ${recErr.message}`);
         }
       }
     }
