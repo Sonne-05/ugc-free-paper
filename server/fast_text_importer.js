@@ -1313,6 +1313,31 @@ async function main() {
         }
       }
 
+      // 8. Comprehension / DI Passage Sanitizer
+      if ((q.type === 'comprehension' || q.type === 'di') && q.passage) {
+        const prevLen = q.passage.length;
+        q.passage = q.passage
+          .replace(/Question\s*Numbers?\s*:\s*\(\d+\s*to\s*\d+\)/gi, '')
+          .replace(/Question\s*Id\s*:\s*\d+/gi, '')
+          .replace(/Question\s*Type\s*:\s*COMPREHENSION/gi, '')
+          .replace(/Sub\s*Question\s*(?:Shuffling\s*Allowed\s*:\s*(?:Yes|No)|No\s*:\s*\d+)/gi, '')
+          .replace(/Group\s*Comprehension\s*Questions\s*:\s*(?:Yes|No)/gi, '')
+          .replace(/Question\s*Pattern\s*Type\s*:\s*[A-Za-z]+/gi, '')
+          .replace(/Question\s*Label\s*:\s*Comprehension/gi, '')
+          .replace(/^[\s\n]*Read the following passage and answer the questions\s*:?[\s\n]*/i, '')
+          .replace(/Sub\s*questions[\s\S]*$/i, '')
+          .trim();
+        if (q.passage.length !== prevLen) preFlightRepairs++;
+      }
+
+      // 9. Universal Option Sanitizer (Strip duplicate prefixes like (1)/(2)/1./2.)
+      if (Array.isArray(q.options)) {
+        q.options = q.options.map((opt, i) => {
+          let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+          return cleanOpt || `Option ${i + 1}`;
+        });
+      }
+
       typeBreakdown[q.type] = (typeBreakdown[q.type] || 0) + 1;
     }
 
