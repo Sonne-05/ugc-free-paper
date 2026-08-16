@@ -4173,7 +4173,7 @@ const ManageSet = () => {
         try {
           const data = await uploadRes.json()
           errText = data.message || errText
-        } catch (_) {
+} catch (_) {
           try {
             errText = await uploadRes.text() || errText
           } catch (__) {}
@@ -4186,88 +4186,41 @@ const ManageSet = () => {
         throw new Error('No job ID returned from server.')
       }
 
-      // Query GET progress stream
-      const streamRes = await fetch(`${API_BASE_URL}/api/questions/import-progress/${jobId}`)
-      if (!streamRes.ok) {
-        throw new Error('Failed to connect to progress stream.')
-      }
-
-      const reader = streamRes.body.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let chunk = ''
+      // Poll progress directly every 600ms (100% reliable across all browsers, CDNs, & proxies)
       let finalData = null
+      let isDone = false
 
-      const progressQueue = []
-
-      const startQueueProcessor = () => {
-        if (queueInterval) return
-        queueInterval = setInterval(() => {
-          if (progressQueue.length > 0) {
-            const nextEvent = progressQueue.shift()
-            setPdfUploadPercent(nextEvent.percent || 0)
-            setPdfUploadStatus(nextEvent.message || 'Processing...')
-          } else {
-            clearInterval(queueInterval)
-            queueInterval = null
-          }
-        }, 150) // Processes each question state smoothly every 150ms
-      }
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        chunk += decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-        chunk = lines.pop() // Keep the trailing incomplete line
-
-        for (const line of lines) {
-          let cleanLine = line.trim()
-          if (!cleanLine || cleanLine.startsWith(':')) continue
-          
-          if (cleanLine.startsWith('data: ')) {
-            cleanLine = cleanLine.substring(6).trim()
-          }
-
-          let data = null
-          try {
-            data = JSON.parse(cleanLine)
-          } catch (jsonErr) {
-            // Ignore minor parse errors of half-written lines
-            console.warn('JSON line parse warning:', jsonErr.message)
-            continue
-          }
-
-          if (data.type === 'progress') {
-            progressQueue.push(data)
-            startQueueProcessor()
-          } else if (data.type === 'success') {
-            if (queueInterval) {
-              clearInterval(queueInterval)
-              queueInterval = null
+      while (!isDone) {
+        await new Promise(r => setTimeout(r, 600))
+        try {
+          const statusRes = await fetch(`${API_BASE_URL}/api/questions/import-status/${jobId}`)
+          if (statusRes.ok) {
+            const statusData = await statusRes.json()
+            if (statusData.percent !== undefined) {
+              setPdfUploadPercent(statusData.percent)
             }
-            progressQueue.length = 0 // Clear queue to prevent infinite loop deadlock
-            setPdfUploadPercent(100)
-            setPdfUploadStatus(data.message || 'Import successful!')
-            finalData = data
-          } else if (data.type === 'error') {
-            if (queueInterval) {
-              clearInterval(queueInterval)
-              queueInterval = null
+            if (statusData.message) {
+              setPdfUploadStatus(statusData.message)
             }
-            progressQueue.length = 0 // Clear queue to prevent infinite loop deadlock
-            throw new Error(data.message || 'Error occurred during parsing.')
+            if (statusData.status === 'success') {
+              finalData = statusData
+              isDone = true
+              setPdfUploadPercent(100)
+              setPdfUploadStatus(statusData.message || 'Import successful!')
+            } else if (statusData.status === 'error') {
+              throw new Error(statusData.error || statusData.message || 'Error occurred during parsing.')
+            }
+          }
+        } catch (pollErr) {
+          if (isDone) break
+          if (pollErr.message && !pollErr.message.includes('fetch')) {
+            throw pollErr
           }
         }
       }
 
-      // Wait for any remaining progress queue items to finish animating
-      while (progressQueue.length > 0 || queueInterval !== null) {
-        await new Promise(resolve => setTimeout(resolve, 50))
-      }
-
       if (!finalData) {
-        throw new Error('Completed stream without receiving success confirmation.')
+        throw new Error('Import job finished without receiving success confirmation.')
       }
 
       // Update loaded count in state

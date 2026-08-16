@@ -1177,6 +1177,22 @@ app.get('/api/questions/import-progress/:jobId', (req, res) => {
   });
 });
 
+// JSON Polling route for guaranteed real-time progress (bypasses all proxy buffering)
+app.get('/api/questions/import-status/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const job = importJobs.get(jobId);
+  if (!job) {
+    return res.status(404).json({ message: 'Job not found or already completed.' });
+  }
+  res.json({
+    status: job.status,
+    percent: job.percent,
+    message: job.message,
+    count: job.count,
+    error: job.error
+  });
+});
+
 // Add a single question
 app.post('/api/questions', async (req, res) => {
   try {
