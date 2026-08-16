@@ -707,6 +707,68 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
     }
 
+    // Format F: Automatic Sequential ID Run Detector (HTML Printouts, Browser Exports, Custom QID sequences)
+    if (matchesList.length === 0 && cleanQuestions.length === 0) {
+      console.log('Scanning for Format F: Automatic Sequential Question ID Runs...');
+      const matchIds = text.match(/\d{4,8}/g) || [];
+      const freq = {};
+      for (const m of matchIds) {
+        const val = parseInt(m, 10);
+        let count = 0;
+        for (let offset = 0; offset < 100; offset++) {
+          if (text.includes((val + offset).toString())) {
+            count++;
+          } else {
+            break;
+          }
+        }
+        if (count >= 30) {
+          freq[val] = count;
+        }
+      }
+
+      let bestBase = null;
+      let maxRun = 0;
+      for (const base in freq) {
+        if (freq[base] > maxRun) {
+          maxRun = freq[base];
+          bestBase = parseInt(base, 10);
+        }
+      }
+
+      if (bestBase && maxRun >= 30) {
+        console.log(`Detected Format F: Found sequential run of ${maxRun} questions starting at ID ${bestBase}.`);
+        const targetCount = maxRun >= 80 ? 100 : (isPaperII ? 100 : 50);
+        const questionsList = [];
+
+        for (let i = 0; i < targetCount; i++) {
+          const qId = (bestBase + i).toString();
+          const pos = text.indexOf(qId);
+          if (pos !== -1) {
+            questionsList.push({
+              id: qId,
+              index: pos,
+              seq: i + 1
+            });
+          }
+        }
+
+        questionsList.sort((a, b) => a.index - b.index);
+
+        for (let i = 0; i < questionsList.length; i++) {
+          const cur = questionsList[i];
+          const next = i + 1 < questionsList.length ? questionsList[i + 1] : null;
+          const block = text.substring(cur.index, next ? next.index : text.length).trim();
+          cleanQuestions.push({
+            qIndex: i + 1,
+            pdfQNum: i + 1,
+            qId: cur.id,
+            text: block
+          });
+        }
+      }
+    }
+
     // Comprehension Passages
     const compPassages = {};
     const compRegex = /Question Id\s*:\s*(\d+)\s+Question Type\s*:\s*(COMPREHENSION)/g;
