@@ -137,8 +137,8 @@ const PyqSetSchema = new mongoose.Schema({
   questionsLoaded: Number
 }, { collection: 'pyqsets' });
 
-const Question = mongoose.model('Question', QuestionSchema);
-const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
+const Question = mongoose.models.Question || mongoose.model('Question', QuestionSchema);
+const PyqSet = mongoose.models.PyqSet || mongoose.model('PyqSet', PyqSetSchema);
 
 // Key Pool & Rate Limiter
 function setupKeyPool() {
