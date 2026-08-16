@@ -300,19 +300,21 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     const { key, keyIndex } = geminiInfo;
     console.log(`[AI Fallback] Routing batch to Gemini Key #${keyIndex + 1}...`);
     const geminiModels = [
-      'gemini-2.5-flash',
+      'gemini-flash-latest',
       'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-8b'
+      'gemini-1.5-flash'
     ];
 
     for (const modelName of geminiModels) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
       try {
         const res = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': key
+          },
           signal: AbortSignal.timeout(15000),
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
