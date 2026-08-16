@@ -64,16 +64,79 @@ const BlogPostDetail = () => {
 
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} - UGC Free Paper`
-      let metaDesc = document.querySelector('meta[name="description"]')
+      const postUrl = `https://ugcfreepaper.com/blog/${post._id || id}`;
+      const postTitle = `${post.title} - UGC Free Paper`;
+      const postDesc = post.excerpt || 'Read this UGC NET preparation article and study guide on UGC Free Paper.';
+
+      // Title & Meta Description
+      document.title = postTitle;
+      
+      let metaDesc = document.querySelector('meta[name="description"]');
       if (!metaDesc) {
-        metaDesc = document.createElement('meta')
-        metaDesc.setAttribute('name', 'description')
-        document.head.appendChild(metaDesc)
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
       }
-      metaDesc.setAttribute('content', post.excerpt || 'Read this article on UGC Free Paper.')
+      metaDesc.setAttribute('content', postDesc);
+
+      // Canonical URL
+      let canonicalLink = document.querySelector("link[rel='canonical']");
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+      }
+      canonicalLink.setAttribute('href', postUrl);
+
+      // Open Graph Tags
+      let ogUrl = document.querySelector("meta[property='og:url']");
+      if (ogUrl) ogUrl.setAttribute('content', postUrl);
+      let ogTitle = document.querySelector("meta[property='og:title']");
+      if (ogTitle) ogTitle.setAttribute('content', postTitle);
+      let ogDesc = document.querySelector("meta[property='og:description']");
+      if (ogDesc) ogDesc.setAttribute('content', postDesc);
+
+      // Twitter Tags
+      let twUrl = document.querySelector("meta[property='twitter:url']");
+      if (twUrl) twUrl.setAttribute('content', postUrl);
+      let twTitle = document.querySelector("meta[property='twitter:title']");
+      if (twTitle) twTitle.setAttribute('content', postTitle);
+      let twDesc = document.querySelector("meta[property='twitter:description']");
+      if (twDesc) twDesc.setAttribute('content', postDesc);
+
+      // Inject Schema.org BlogPosting Structured Data
+      let scriptTag = document.getElementById('blog-schema-ld');
+      if (!scriptTag) {
+        scriptTag = document.createElement('script');
+        scriptTag.id = 'blog-schema-ld';
+        scriptTag.type = 'application/ld+json';
+        document.head.appendChild(scriptTag);
+      }
+      scriptTag.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        'headline': post.title,
+        'description': postDesc,
+        'author': {
+          '@type': 'Person',
+          'name': post.author || 'UGC Free Paper Team'
+        },
+        'publisher': {
+          '@type': 'Organization',
+          'name': 'UGC Free Paper',
+          'url': 'https://ugcfreepaper.com/',
+          'logo': {
+            '@type': 'ImageObject',
+            'url': 'https://ugcfreepaper.com/logo.svg'
+          }
+        },
+        'mainEntityOfPage': {
+          '@type': 'WebPage',
+          '@id': postUrl
+        }
+      });
     }
-  }, [post])
+  }, [post, id]);
 
   // Helper to dynamically inject an in-article ad after the second paragraph of dynamic HTML content
   const injectInArticleAd = (htmlContent) => {
