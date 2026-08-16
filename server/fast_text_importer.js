@@ -301,6 +301,40 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     }
   }
 
+  // 1.5. Fallback to OpenCode Zen (DeepSeek V4 Flash Free)
+  const opencodeKey = process.env.OPENCODE_API_KEY;
+  if (opencodeKey && !opencodeKey.includes('your_')) {
+    try {
+      console.log(`[AI Fallback] Routing batch to OpenCode Zen (deepseek-v4-flash-free)...`);
+      const ocRes = await fetch('https://opencode.ai/zen/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${opencodeKey}`
+        },
+        signal: AbortSignal.timeout(25000),
+        body: JSON.stringify({
+          model: process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.1
+        })
+      });
+
+      if (ocRes.ok) {
+        const data = await ocRes.json();
+        const rawJson = data.choices?.[0]?.message?.content || '{}';
+        const parsed = JSON.parse(cleanJsonString(rawJson));
+        return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+      } else {
+        const ocErr = await ocRes.text();
+        console.warn(`[OpenCode Zen ${ocRes.status}]: ${ocErr.substring(0, 100)}`);
+      }
+    } catch (ocErr) {
+      console.warn(`[OpenCode Zen Network/Timeout]: ${ocErr.message}`);
+    }
+  }
+
   // 2. Fallback to Gemini (Secondary) across all available keys with gentle pacing
   for (let gemAttempt = 0; gemAttempt < (keyPool.geminiKeys.length || 1); gemAttempt++) {
     const geminiInfo = await keyPool.getNextGeminiKey();

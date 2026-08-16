@@ -2179,7 +2179,61 @@ app.post('/api/questions/explain', async (req, res) => {
         } catch (_) {}
 
         console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
-        return res.status(502).json({ message: errMsg });
+      }
+    }
+
+    // 3. Fallback to OpenCode Zen (Tertiary Option - DeepSeek V4 Flash Free)
+    const opencodeKey = process.env.OPENCODE_API_KEY;
+    if (opencodeKey && !opencodeKey.includes('your_')) {
+      console.log(`[AI Explain] Falling back to OpenCode Zen (deepseek-v4-flash-free)...`);
+      try {
+        const ocController = new AbortController();
+        const ocTimeout = setTimeout(() => ocController.abort(), 10000);
+        const ocResp = await fetch('https://opencode.ai/zen/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${opencodeKey}`
+          },
+          body: JSON.stringify({
+            model: process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free',
+            stream: true,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 3000
+          }),
+          signal: ocController.signal
+        });
+        clearTimeout(ocTimeout);
+
+        if (ocResp && ocResp.ok) {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+
+          const reader = ocResp.body;
+          if (reader) {
+            if (typeof reader[Symbol.asyncIterator] === 'function') {
+              for await (const chunk of reader) {
+                res.write(chunk);
+              }
+            } else {
+              const webReader = reader.getReader();
+              while (true) {
+                const { done, value } = await webReader.read();
+                if (done) break;
+                res.write(value);
+              }
+            }
+          }
+          res.end();
+          return;
+        }
+      } catch (ocErr) {
+        console.warn(`[AI Explain] OpenCode Zen fallback failed: ${ocErr.message}`);
       }
     }
 
