@@ -275,7 +275,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           return parsed.questions || (Array.isArray(parsed) ? parsed : []);
         } else {
           const groqErrText = await groqRes.text();
-          if (groqRes.status === 429) {
+          if (groqRes.status === 413) {
+            console.warn(`[Groq 413] Prompt too large for Groq model. Routing to Gemini fallback with large context...`);
+            break;
+          } else if (groqRes.status === 429) {
             if (groqModel !== 'llama-3.1-8b-instant') {
               console.warn(`[Groq ${groqModel} Quota Reached on Key #${groqKeyIndex + 1}] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
               continue;
@@ -299,97 +302,49 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   if (geminiInfo) {
     const { key, keyIndex } = geminiInfo;
     console.log(`[AI Fallback] Routing batch to Gemini Key #${keyIndex + 1}...`);
-    const geminiModels = [
-      'gemini-flash-latest',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash'
-    ];
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
 
-    for (const modelName of geminiModels) {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+    try {
+      const res = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key
+        },
+        signal: AbortSignal.timeout(25000),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1
+          }
+        })
+      });
 
-      try {
-        const res = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': key
-          },
-          signal: AbortSignal.timeout(15000),
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.1,
-              responseSchema: {
-                type: 'OBJECT',
-                properties: {
-                  questions: {
-                    type: 'ARRAY',
-                    items: {
-                      type: 'OBJECT',
-                      properties: {
-                        qIndex: { type: 'INTEGER' },
-                        ntaQuestionId: { type: 'STRING' },
-                        unit: { type: 'STRING' },
-                        type: {
-                          type: 'STRING',
-                          enum: ['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di']
-                        },
-                        text: { type: 'STRING' },
-                        options: { type: 'ARRAY', items: { type: 'STRING' } },
-                        statements: { type: 'ARRAY', items: { type: 'STRING' } },
-                        correct: { type: 'INTEGER' },
-                        assertion: { type: 'STRING' },
-                        reason: { type: 'STRING' },
-                        list1: { type: 'ARRAY', items: { type: 'STRING' } },
-                        list2: { type: 'ARRAY', items: { type: 'STRING' } },
-                        list1Header: { type: 'STRING' },
-                        list2Header: { type: 'STRING' },
-                        passage: { type: 'STRING' },
-                        explanation: { type: 'STRING' }
-                      },
-                      required: ['qIndex', 'type', 'text', 'options', 'correct', 'explanation']
-                    }
-                  }
-                },
-                required: ['questions']
-              }
-            }
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-          const parsed = JSON.parse(cleanJsonString(rawJson));
-          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
-        }
-
-        const errText = await res.text();
-        if (res.status === 400 && errText.includes('API_KEY_INVALID')) {
-          console.warn(`[Gemini 400] Key #${keyIndex + 1} is invalid. Disabling key.`);
-          keyPool.coolDownGeminiKey(keyIndex, 86400);
-          break;
-        }
-
-        if (res.status === 503 || res.status === 404 || (res.status === 400 && errText.includes('models/'))) {
-          continue;
-        }
-
-        if (res.status === 429 && retryCount < 30) {
-          const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
-          const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
-          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Cooling for ${waitSec}s.`);
-          keyPool.coolDownGeminiKey(keyIndex, waitSec);
-          return callAiStructuring(prompt, keyPool, retryCount + 1);
-        }
-      } catch (gErr) {
-        keyPool.coolDownGeminiKey(keyIndex, 30);
+      if (res.ok) {
+        const data = await res.json();
+        const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        const parsed = JSON.parse(cleanJsonString(rawJson));
+        return parsed.questions || (Array.isArray(parsed) ? parsed : []);
       }
+
+      const errText = await res.text();
+      if (res.status === 400 && errText.includes('API_KEY_INVALID')) {
+        console.warn(`[Gemini 400] Key #${keyIndex + 1} is invalid. Disabling key.`);
+        keyPool.coolDownGeminiKey(keyIndex, 86400);
+      } else if (res.status === 429 || res.status === 503) {
+        const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
+        const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
+        console.warn(`[Gemini ${res.status}] Key #${keyIndex + 1} busy/cooling for ${waitSec}s.`);
+        keyPool.coolDownGeminiKey(keyIndex, waitSec);
+      } else {
+        console.warn(`[Gemini API Error] Status ${res.status}: ${errText.substring(0, 120)}`);
+        keyPool.coolDownGeminiKey(keyIndex, 15);
+      }
+    } catch (gErr) {
+      console.warn(`[Gemini Timeout/Network on Key #${keyIndex + 1}]: ${gErr.message}`);
+      keyPool.coolDownGeminiKey(keyIndex, 15);
     }
-    // If all models failed for this Gemini key, disable it
-    keyPool.coolDownGeminiKey(keyIndex, 86400);
   }
 
   // 3. Circular Loop: If all providers are cooling, calculate exact wait time for Groq
