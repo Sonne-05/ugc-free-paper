@@ -1072,6 +1072,9 @@ async function main() {
       }
 
       // 2. Guard against scrambled prompt titles, placeholders & corrupted OCR gibberish
+      if (q.text) {
+        q.text = q.text.replace(/^\(?\d+\)?[\.\)]\s*/, '').trim();
+      }
       const isCorruptedPrompt = /ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu|aor\s+cifsre|wel\s+ser|wél\s+Far/i.test(q.text) || ((q.text.match(/[@#~`]/g) || []).length >= 2);
       if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15 || /^Question\s*\d+$/i.test(q.text) || isCorruptedPrompt) {
         const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Out\s+of|Name|From|Where|How|Select|Given|Match|Derek|The\s+|“|'|\d+\))/i];
