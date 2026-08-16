@@ -372,29 +372,32 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         }
 
         if (res.status === 503 || res.status === 404 || (res.status === 400 && errText.includes('models/'))) {
-          console.warn(`[Gemini ${res.status} on ${modelName}] Trying next active Gemini model in cascade...`);
           continue;
         }
 
         if (res.status === 429 && retryCount < 30) {
           const retryMatch = errText.match(/Please retry in ([\d\.]+)s/i) || errText.match(/"retryDelay"\s*:\s*"(\d+)s"/i);
           const waitSec = retryMatch ? parseFloat(retryMatch[1]) : 15;
-          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Cooling for ${waitSec}s. Switching back to Groq / next Gemini key...`);
+          console.warn(`[Gemini 429] Key #${keyIndex + 1} Rate Limit. Cooling for ${waitSec}s.`);
           keyPool.coolDownGeminiKey(keyIndex, waitSec);
           return callAiStructuring(prompt, keyPool, retryCount + 1);
         }
-        console.warn(`[Gemini API Error] Model ${modelName} Status ${res.status}: ${errText.substring(0, 150)}`);
       } catch (gErr) {
-        console.warn(`[Gemini Network Error on ${modelName}]: ${gErr.message}`);
         keyPool.coolDownGeminiKey(keyIndex, 30);
       }
     }
+    // If all models failed for this Gemini key, disable it
+    keyPool.coolDownGeminiKey(keyIndex, 86400);
   }
 
-  // 3. Circular Loop: If Gemini fails / rate-limits, loop back to Groq after short pause
+  // 3. Circular Loop: If all providers are cooling, calculate exact wait time for Groq
   if (retryCount < 30) {
-    console.warn(`[AI Failover] Both Groq and Gemini currently cooling. Retrying in 2s (Attempt ${retryCount + 1}/30)...`);
-    await new Promise(r => setTimeout(r, 2000));
+    const now = Date.now();
+    let earliestGroq = keyPool.groqCooldowns.length > 0 ? Math.min(...keyPool.groqCooldowns) : now + 5000;
+    let waitMs = Math.max(earliestGroq - now + 500, 3000);
+    if (waitMs > 25000) waitMs = 15000;
+    console.warn(`⏳ [Rate Limiter] Groq free-tier window cooling. Waiting ${(waitMs / 1000).toFixed(0)}s before next batch...`);
+    await new Promise(r => setTimeout(r, waitMs));
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
 
