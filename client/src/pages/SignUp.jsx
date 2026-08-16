@@ -157,6 +157,19 @@ const SignUp = () => {
         {/* Right Side: Entry Form */}
         <div className="auth__main">
           <div className="auth__form-wrapper">
+            {/* Top Brand & Back navigation (Essential for mobile) */}
+            <div className="auth__brand-header">
+              <Link to="/" className="auth__brand-logo" title="UGC Free Paper Home">
+                <div className="navbar__logo-icon">
+                  <img src="/logo.svg" alt="UGC Free Paper Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </div>
+                <span className="navbar__logo-text">GC Free Paper</span>
+              </Link>
+              <Link to="/" className="auth__home-link">
+                &larr; Home
+              </Link>
+            </div>
+
             <h1 className="auth__title">Create an account</h1>
             <p className="auth__subtitle">Get instant access to all mock papers</p>
 

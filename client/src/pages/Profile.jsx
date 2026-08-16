@@ -269,12 +269,16 @@ const Profile = () => {
   }, [pyqSets])
 
   const uniqueSetSubjects = useMemo(() => {
-    const subjects = pyqSets
+    const fromSets = pyqSets
       .filter(s => s.paperType === 'Paper II')
       .map(s => s.subject)
       .filter(Boolean)
-    return [...new Set(subjects)].sort()
-  }, [pyqSets])
+    const fromCore = corePapers
+      .filter(p => p.isActive !== false)
+      .map(p => p.name)
+      .filter(Boolean)
+    return [...new Set([...fromSets, ...fromCore])].sort()
+  }, [pyqSets, corePapers])
 
   useEffect(() => {
     window.location.hash = activeTab
@@ -3358,21 +3362,52 @@ const Profile = () => {
             {/* 8. MANAGE CORE PAPERS */}
             {activeTab === 'core-papers' && (
               <div className="admin-pane">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <h2 className="pane-title">Manage Core Papers (Paper II)</h2>
-                    <p className="pane-desc">Manage Paper II subjects listed on the website for PYQs and study material.</p>
+                    <p className="pane-desc">Manage Paper II subjects, their status, descriptions, and linked PYQ mock test banks.</p>
                   </div>
-                  <button 
-                    className="table-btn table-btn--upload" 
-                    style={{ padding: '10px 16px', fontSize: '0.85rem', fontWeight: 700 }}
-                    onClick={() => {
-                      handleResetCorePaperForm();
-                      setIsCorePaperFormOpen(true);
-                    }}
-                  >
-                    + Add Core Paper
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <Link 
+                      to="/paper2" 
+                      target="_blank"
+                      className="table-btn" 
+                      style={{ padding: '8px 14px', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', color: '#1e293b', border: '1px solid #cbd5e1' }}
+                    >
+                      <span>Public Hub (/paper2)</span>
+                      <span>↗</span>
+                    </Link>
+                    <button 
+                      className="table-btn table-btn--upload" 
+                      style={{ padding: '9px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                      onClick={() => {
+                        handleResetCorePaperForm();
+                        setIsCorePaperFormOpen(true);
+                      }}
+                    >
+                      + Add Core Paper
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Summary Metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Configured Subjects</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{corePapers.length}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Live On Website</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+                      {corePapers.filter(p => p.isAvailable !== false).length}
+                    </div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Paper II Sets Uploaded</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+                      {pyqSets.filter(s => s.paperType === 'Paper II').length} Sets
+                    </div>
+                  </div>
                 </div>
 
                 {isCorePaperFormOpen && (
@@ -3383,7 +3418,7 @@ const Profile = () => {
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Subject Name</label>
                         <input 
                           type="text" 
-                          placeholder="e.g. Sociology" 
+                          placeholder="e.g. Political Science" 
                           value={corePaperName} 
                           onChange={e => setCorePaperName(e.target.value)}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
@@ -3394,7 +3429,7 @@ const Profile = () => {
                         <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Subject Code / URL Parameter</label>
                         <input 
                           type="text" 
-                          placeholder="e.g. Sociology" 
+                          placeholder="e.g. Political Science" 
                           value={corePaperCode} 
                           onChange={e => setCorePaperCode(e.target.value)}
                           style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
@@ -3431,34 +3466,84 @@ const Profile = () => {
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '25%' }}>Subject Name</th>
-                        <th style={{ width: '20%' }}>Code / URL</th>
-                        <th style={{ width: '35%' }}>Description</th>
+                        <th style={{ width: '22%' }}>Subject Name</th>
+                        <th style={{ width: '18%' }}>Code / URL</th>
+                        <th style={{ width: '18%' }}>Question Sets</th>
+                        <th style={{ width: '22%' }}>Description</th>
                         <th style={{ width: '20%', textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {corePapers.length === 0 ? (
                         <tr>
-                          <td colSpan="4" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>No core papers added yet.</td>
+                          <td colSpan="5" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>No core papers added yet.</td>
                         </tr>
                       ) : (
-                        corePapers.map(paper => (
-                          <tr key={paper.id}>
-                            <td style={{ fontWeight: 'bold', color: '#1e293b' }}>{paper.name}</td>
-                            <td><code>{paper.code}</code></td>
-                            <td style={{ fontSize: '0.85rem', color: '#475569' }}>{paper.description}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                <button className="table-btn table-btn--edit" onClick={() => handleEditCorePaper(paper)}>Edit</button>
-                                <button className={paper.isAvailable ? "table-btn table-btn--edit" : "table-btn table-btn--delete"} style={{ background: paper.isAvailable ? 'rgba(22, 163, 74, 0.08)' : 'rgba(148, 163, 184, 0.08)', color: paper.isAvailable ? '#16a34a' : '#64748b', borderColor: paper.isAvailable ? 'rgba(22, 163, 74, 0.15)' : 'rgba(148, 163, 184, 0.15)' }} onClick={() => handleToggleCorePaperAvailability(paper.id)}>
-                                  {paper.isAvailable ? 'Active' : 'Hidden'}
+                        corePapers.map(paper => {
+                          const subjectSets = pyqSets.filter(s => {
+                            if (s.paperType !== 'Paper II') return false
+                            const setSub = (s.subject || '').toLowerCase().replace(/[\s\-_()]+/g, '').trim()
+                            const paperSub = (paper.name || '').toLowerCase().replace(/[\s\-_()]+/g, '').trim()
+                            return setSub === paperSub || setSub.includes(paperSub) || paperSub.includes(setSub)
+                          })
+
+                          return (
+                            <tr key={paper.id}>
+                              <td>
+                                <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>{paper.name}</strong>
+                              </td>
+                              <td><code>{paper.code}</code></td>
+                              <td>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedFilterPaperType('Paper II')
+                                    setSelectedFilterSubject(paper.name)
+                                    setNewSetPaperType('Paper II')
+                                    setNewSetSubject(paper.name)
+                                    setActiveTab('pyq')
+                                  }}
+                                  style={{
+                                    background: subjectSets.length > 0 ? 'rgba(37, 99, 235, 0.08)' : '#f1f5f9',
+                                    color: subjectSets.length > 0 ? '#2563eb' : '#64748b',
+                                    border: '1px solid ' + (subjectSets.length > 0 ? 'rgba(37, 99, 235, 0.2)' : '#e2e8f0'),
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title={`Click to view/manage sets for ${paper.name}`}
+                                >
+                                  <span>{subjectSets.length} {subjectSets.length === 1 ? 'Set' : 'Sets'}</span>
+                                  <span style={{ fontSize: '0.7rem' }}>⚙</span>
                                 </button>
-                                <button className="table-btn table-btn--delete" onClick={() => handleDeleteCorePaper(paper.id)}>Delete</button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                              </td>
+                              <td style={{ fontSize: '0.85rem', color: '#475569' }}>{paper.description}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                  <Link
+                                    to={`/paper2?subject=${encodeURIComponent(paper.name)}`}
+                                    target="_blank"
+                                    className="table-btn"
+                                    style={{ background: '#f8fafc', color: '#334155', borderColor: '#cbd5e1', padding: '4px 8px', fontSize: '0.78rem', textDecoration: 'none' }}
+                                    title="View student practice page"
+                                  >
+                                    View ↗
+                                  </Link>
+                                  <button className="table-btn table-btn--edit" onClick={() => handleEditCorePaper(paper)}>Edit</button>
+                                  <button className={paper.isAvailable ? "table-btn table-btn--edit" : "table-btn table-btn--delete"} style={{ background: paper.isAvailable ? 'rgba(22, 163, 74, 0.08)' : 'rgba(148, 163, 184, 0.08)', color: paper.isAvailable ? '#16a34a' : '#64748b', borderColor: paper.isAvailable ? 'rgba(22, 163, 74, 0.15)' : 'rgba(148, 163, 184, 0.15)' }} onClick={() => handleToggleCorePaperAvailability(paper.id)}>
+                                    {paper.isAvailable ? 'Active' : 'Hidden'}
+                                  </button>
+                                  <button className="table-btn table-btn--delete" onClick={() => handleDeleteCorePaper(paper.id)}>Delete</button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })
                       )}
                     </tbody>
                   </table>
