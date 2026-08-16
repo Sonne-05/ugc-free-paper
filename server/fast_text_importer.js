@@ -116,6 +116,7 @@ const QuestionSchema = new mongoose.Schema({
   explanation: String,
   assertion: String,
   reason: String,
+  subPrompt: String,
   list1: [String],
   list2: [String],
   list1Header: String,
@@ -892,6 +893,20 @@ async function main() {
         if (ans !== undefined && ans >= 1 && ans <= 4) correct = ans;
       }
 
+      // Sub-Prompt Resolution
+      let subPrompt = rawParsed.subPrompt || '';
+      if (qType === 'assertion-reason') {
+        subPrompt = LANGUAGE === 'Hindi'
+          ? 'उपरोक्त कथन के आलोक में, नीचे दिए गए विकल्पों में से सबसे उपयुक्त उत्तर का चयन कीजिए :'
+          : 'In the light of the above statements, choose the most appropriate answer from the options given below :';
+      } else if (qType === 'multiple-statement' || qType === 'match-column') {
+        if (!subPrompt) {
+          subPrompt = LANGUAGE === 'Hindi'
+            ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :'
+            : 'Choose the correct answer from the options given below:';
+        }
+      }
+
       return {
         setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
         qIndex: targetIndex,
@@ -905,6 +920,7 @@ async function main() {
         explanation: (typeof rawParsed.explanation === 'string' ? rawParsed.explanation.trim() : '<p>Detailed explanation.</p>'),
         assertion: rawParsed.assertion || '',
         reason: rawParsed.reason || '',
+        subPrompt: subPrompt,
         list1: qType === 'match-column' ? list1 : [],
         list2: qType === 'match-column' ? list2 : [],
         list1Header: qType === 'match-column' ? list1Header : '',
@@ -1095,6 +1111,9 @@ async function main() {
         q.text = LANGUAGE === 'Hindi'
           ? 'नीचे दो कथन दिए गए हैं : एक को अभिकथन (A) और दूसरे को कारण (R) के रूप में लेबल किया गया है।'
           : 'Given below are two statements : one is labelled as Assertion (A) and the other is labelled as Reason (R).';
+        q.subPrompt = LANGUAGE === 'Hindi'
+          ? 'उपरोक्त कथन के आलोक में, नीचे दिए गए विकल्पों में से सबसे उपयुक्त उत्तर का चयन कीजिए :'
+          : 'In the light of the above statements, choose the most appropriate answer from the options given below :';
         q.statements = [];
 
         if ((!q.assertion || !q.reason) && rawLines.length > 0) {
@@ -1105,6 +1124,12 @@ async function main() {
             q.reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
             preFlightRepairs++;
           }
+        }
+      } else if (q.type === 'multiple-statement' || q.type === 'match-column') {
+        if (!q.subPrompt) {
+          q.subPrompt = LANGUAGE === 'Hindi'
+            ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :'
+            : 'Choose the correct answer from the options given below:';
         }
       }
 
