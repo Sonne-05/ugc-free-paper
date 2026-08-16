@@ -95,6 +95,7 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       let done = false;
       let accumulatedText = '';
       let buffer = '';
+      let lastUpdateTime = 0;
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -116,8 +117,12 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
                 const content = parsed.choices?.[0]?.delta?.content || '';
                 if (content) {
                   accumulatedText += content;
-                  const cleaned = processAccumulatedText(accumulatedText);
-                  onChange(cleaned);
+                  const now = performance.now();
+                  if (now - lastUpdateTime > 50) {
+                    lastUpdateTime = now;
+                    const cleaned = processAccumulatedText(accumulatedText);
+                    onChange(cleaned);
+                  }
                 }
               } catch (e) {
                 // Ignore parse errors for incomplete JSON lines
@@ -137,11 +142,15 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
             const content = parsed.choices?.[0]?.delta?.content || '';
             if (content) {
               accumulatedText += content;
-              const cleaned = processAccumulatedText(accumulatedText);
-              onChange(cleaned);
             }
           } catch (_) {}
         }
+      }
+
+      // Final complete flush
+      if (accumulatedText) {
+        const cleaned = processAccumulatedText(accumulatedText);
+        onChange(cleaned);
       }
     } catch (error) {
       console.error('AI Explanation Error:', error);

@@ -1873,113 +1873,133 @@ app.post('/api/questions/explain', async (req, res) => {
       systemPrompt += ` CRITICAL: The question is written in Sindhi. You MUST generate the entire explanation in Sindhi (using ${scriptName}). All explanations, steps, lists, and headings must be in Sindhi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Sindhi.`;
     }
 
-    // 1. Try Google Gemini Direct with Multi-Model Cascade (Primary Option)
+    // 1. Try Google Gemini Direct with Full Key Pool Rotation (Primary Option)
     let geminiSuccess = false;
     let geminiErrorMsg = '';
 
     if (geminiKeys.length > 0) {
-      const primaryEnvModel = (process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite').replace(/^models\//, '');
+      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-2.0-flash').replace(/^models\//, '');
       const candidateModels = Array.from(new Set([
-        primaryEnvModel,
-        'gemini-2.0-flash-lite',
+        preferredModel,
         'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-flash-latest'
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash'
       ])).filter(Boolean);
 
+      // Try up to min(geminiKeys.length, 10) attempts across available keys
+      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
+      let attemptsCount = 0;
+
       for (const geminiModel of candidateModels) {
-        const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
-        console.log(`[AI Explain] Trying Gemini Direct using model ${geminiModel} (key rotation #${geminiExplainIndex % geminiKeys.length})...`);
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${currentGeminiKey}`;
-        
-        try {
-          const geminiResponse = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: userPrompt }] }],
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              generationConfig: { temperature: 0.2 }
-            })
-          });
+        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
 
-          if (geminiResponse.ok) {
-            geminiSuccess = true;
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
+        const keysToTryForThisModel = Math.min(geminiKeys.length, 6);
+        for (let k = 0; k < keysToTryForThisModel; k++) {
+          attemptsCount++;
+          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
+          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse&key=${currentGeminiKey}`;
 
-            const reader = geminiResponse.body;
-            let buffer = '';
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-            if (reader) {
-              const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-              const processChunk = (chunkBytes) => {
-                const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
-                buffer += chunkText;
-                
-                let lineIndex;
-                while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-                  const line = buffer.slice(0, lineIndex).trim();
-                  buffer = buffer.slice(lineIndex + 1);
+            const geminiResponse = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { temperature: 0.2 }
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (geminiResponse.ok) {
+              geminiSuccess = true;
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              const reader = geminiResponse.body;
+              let buffer = '';
+
+              if (reader) {
+                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                const processChunk = (chunkBytes) => {
+                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+                  buffer += chunkText;
                   
-                  if (line.startsWith('data: ')) {
-                    const dataStr = line.slice(6).trim();
-                    try {
-                      const parsed = JSON.parse(dataStr);
-                      const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                      if (text) {
-                        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                      }
-                    } catch (_) {}
+                  let lineIndex;
+                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+                    const line = buffer.slice(0, lineIndex).trim();
+                    buffer = buffer.slice(lineIndex + 1);
+                    
+                    if (line.startsWith('data: ')) {
+                      const dataStr = line.slice(6).trim();
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (text) {
+                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                if (typeof reader[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of reader) {
+                    processChunk(chunk);
+                  }
+                } else {
+                  while (true) {
+                    const { done, value } = await streamReader.read();
+                    if (done) break;
+                    processChunk(value);
                   }
                 }
-              };
-
-              if (typeof reader[Symbol.asyncIterator] === 'function') {
-                for await (const chunk of reader) {
-                  processChunk(chunk);
-                }
-              } else {
-                while (true) {
-                  const { done, value } = await streamReader.read();
-                  if (done) break;
-                  processChunk(value);
-                }
               }
-            }
 
-            res.write('data: [DONE]\n\n');
-            res.end();
-            return; // Complete request successfully
-          } else {
-            const errText = await geminiResponse.text();
-            geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
-            try {
-              const errJson = JSON.parse(errText);
-              geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
-            } catch (_) {}
-            console.warn(`[AI Explain] Gemini model ${geminiModel} failed (${geminiResponse.status}): ${geminiErrorMsg}. Trying next candidate model...`);
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return; // Complete request successfully
+            } else {
+              const errText = await geminiResponse.text();
+              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
+              try {
+                const errJson = JSON.parse(errText);
+                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
+              } catch (_) {}
+              console.warn(`[AI Explain] Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
+              
+              // If status is 429 (rate limit), continue to next key immediately
+              if (geminiResponse.status === 429) continue;
+            }
+          } catch (err) {
+            geminiErrorMsg = err.message;
+            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
           }
-        } catch (err) {
-          geminiErrorMsg = err.message;
-          console.warn(`[AI Explain] Gemini model ${geminiModel} failed with error: ${geminiErrorMsg}. Trying next candidate model...`);
         }
       }
-      console.warn(`[AI Explain] All Gemini cascade models exhausted. Attempting fallback to Groq...`);
+      console.warn(`[AI Explain] Gemini keys/models exhausted. Attempting fallback to Groq...`);
     }
 
     // 2. Fallback to Groq Direct if configured (Secondary Option)
-    if (groqApiKey) {
-      const defaultGroqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
-      console.log(`[AI Explain] Falling back to Groq Direct using model ${defaultGroqModel}...`);
+    if (groqKeys.length > 0) {
+      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      const activeGroqKey = groqKeys[groqExplainIndex++ % groqKeys.length];
+      console.log(`[AI Explain] Falling back to Groq using model ${defaultGroqModel}...`);
 
       const callGroqExplain = async (modelName) => {
-        return await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqApiKey}`
+            'Authorization': `Bearer ${activeGroqKey}`
           },
           body: JSON.stringify({
             model: modelName,
@@ -1989,28 +2009,29 @@ app.post('/api/questions/explain', async (req, res) => {
               { role: 'user', content: userPrompt }
             ],
             temperature: 0.2
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
+        return resp;
       };
 
-      let groqResponse = await callGroqExplain(defaultGroqModel);
-
-      if (!groqResponse.ok) {
-        const errText = await groqResponse.text();
-        const isTpdLimit = errText.toLowerCase().includes('tokens per day') || errText.toLowerCase().includes('tpd');
-        if (isTpdLimit && defaultGroqModel !== 'llama-3.1-8b-instant') {
-          console.warn(`[AI Explain] Groq TPD Limit hit on ${defaultGroqModel}. Retrying immediately with fallback model llama-3.1-8b-instant...`);
-          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
-        } else {
-          // Re-embed errText so the fallback handler can parse it
-          groqResponse = {
-            ok: false,
-            text: async () => errText
-          };
-        }
+      let groqResponse;
+      try {
+        groqResponse = await callGroqExplain(defaultGroqModel);
+      } catch (err) {
+        console.warn(`[AI Explain] Groq ${defaultGroqModel} failed: ${err.message}. Retrying with llama-3.1-8b-instant...`);
       }
 
-      if (groqResponse.ok) {
+      if (!groqResponse || !groqResponse.ok) {
+        const errText = groqResponse ? await groqResponse.text() : '';
+        console.warn(`[AI Explain] Groq ${defaultGroqModel} failed (${groqResponse?.status}). Retrying with llama-3.1-8b-instant...`);
+        try {
+          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
+        } catch (_) {}
+      }
+
+      if (groqResponse && groqResponse.ok) {
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -2033,7 +2054,7 @@ app.post('/api/questions/explain', async (req, res) => {
         res.end();
         return;
       } else {
-        const errText = await groqResponse.text();
+        const errText = groqResponse ? await groqResponse.text() : '';
         let errMsg = 'Failed call to Groq API';
         try {
           const errJson = JSON.parse(errText);
