@@ -844,6 +844,9 @@ async function main() {
         }
       } else if ((rawParsed.assertion && rawParsed.reason) || (/(?:Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)/i.test(rawText) && /(?:Reason\s*\(?R\)?|कारण\s*\(?R\)?)/i.test(rawText))) {
         qType = 'assertion-reason';
+        text = LANGUAGE === 'Hindi'
+          ? 'नीचे दो कथन दिए गए हैं : एक को अभिकथन (A) और दूसरे को कारण (R) के रूप में लेबल किया गया है।'
+          : 'Given below are two statements : one is labelled as Assertion (A) and the other is labelled as Reason (R).';
       } else if (statements.length > 0) {
         qType = 'multiple-statement';
       } else if (rawParsed.passage || (!isPaperII && targetIndex <= 5)) {
@@ -1088,14 +1091,20 @@ async function main() {
       }
 
       // 4. Guard for Assertion-Reason
-      if (q.type === 'assertion-reason' && (!q.assertion || !q.reason) && rawLines.length > 0) {
-        const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|अभिकथन\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\)|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
-        const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
-        if (aMatch && rMatch) {
-          q.assertion = aMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
-          q.reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
-          q.statements = [];
-          preFlightRepairs++;
+      if (q.type === 'assertion-reason') {
+        q.text = LANGUAGE === 'Hindi'
+          ? 'नीचे दो कथन दिए गए हैं : एक को अभिकथन (A) और दूसरे को कारण (R) के रूप में लेबल किया गया है।'
+          : 'Given below are two statements : one is labelled as Assertion (A) and the other is labelled as Reason (R).';
+        q.statements = [];
+
+        if ((!q.assertion || !q.reason) && rawLines.length > 0) {
+          const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|अभिकथन\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\)|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+          const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|कारण\s*\([A-Z]\))\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+          if (aMatch && rMatch) {
+            q.assertion = aMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+            q.reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+            preFlightRepairs++;
+          }
         }
       }
 
