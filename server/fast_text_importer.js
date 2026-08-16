@@ -316,7 +316,6 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         body: JSON.stringify({
           model: process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free',
           messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
           temperature: 0.1
         })
       });
@@ -633,7 +632,7 @@ async function main() {
 
     // Format D: Robust SI. No. / QBID / OBID / Description parser
     if (matchesList.length === 0) {
-      const robustDRegex = /(?:SI\.?\s*No\.?\s*(\d+)\s*)?[\r\n\s]*(?:QBID|OBID|Q8ID|QB\s*ID)\s*:?\s*(\d+)/gi;
+      const robustDRegex = /(?:SI\.?\s*No\.?\s*(\d+)[\r\n\s]*)?(?:Q6ID|QID|QBID|OBID|Q8ID|QB\s*ID)\s*:?\s*(?:[^\d\r\n]*[\r\n]+)?(\d{4,8})/gi;
       while ((match = robustDRegex.exec(text)) !== null) {
         let qNum = match[1] ? parseInt(match[1], 10) : null;
         let qId = match[2];
