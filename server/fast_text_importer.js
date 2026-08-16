@@ -1071,15 +1071,17 @@ async function main() {
         preFlightRepairs++;
       }
 
-      // 2. Guard against scrambled prompt titles & placeholders
-      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15 || /^Question\s*\d+$/i.test(q.text)) {
-        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Name|From|Where|How|Select|Given|Match|Derek|The\s+|“|'|\d+\))/i];
+      // 2. Guard against scrambled prompt titles, placeholders & corrupted OCR gibberish
+      const isCorruptedPrompt = /ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu|aor\s+cifsre|wel\s+ser|wél\s+Far/i.test(q.text) || ((q.text.match(/[@#~`]/g) || []).length >= 2);
+      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15 || /^Question\s*\d+$/i.test(q.text) || isCorruptedPrompt) {
+        const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Out\s+of|Name|From|Where|How|Select|Given|Match|Derek|The\s+|“|'|\d+\))/i];
         for (const line of rawLines) {
           if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line)) continue;
+          if (/ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu/i.test(line)) continue;
           if (/^\(?\d+\)?\s*[\.:]/i.test(line) && (/\bonly\b/i.test(line) || /[A-E]\s*,\s*[A-E]/i.test(line))) continue;
           if (questionKeywords.some(rx => rx.test(line)) || (line.endsWith('?') || line.endsWith(':') || line.endsWith('—') || line.endsWith('-'))) {
             const cleaned = line.replace(/^\d+[\)\.\s]+/, '').replace(/^KRWDYN\s*=\s*/, '').trim();
-            if (cleaned.length > 15) {
+            if (cleaned.length > 15 && !/ofa\s+feu/i.test(cleaned)) {
               q.text = cleaned;
               preFlightRepairs++;
               break;
@@ -1092,6 +1094,8 @@ async function main() {
       if (q.type === 'match-column' || (Array.isArray(q.list1) && q.list1.length > 0)) {
         q.type = 'match-column';
         q.statements = [];
+        q.text = LANGUAGE === 'Hindi' ? 'सूची - I को सूची - II से सुमेलित कीजिए :' : 'Match List - I with List - II:';
+        q.subPrompt = LANGUAGE === 'Hindi' ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :' : 'Choose the correct answer from the options given below:';
         const needsSplit = (q.list1 || []).some(item => /[\/\|\–—]\s*(?:I|II|III|IV|[1-4])\./i.test(item) || /\b(?:I|II|III|IV|[1-4])\.\s+[A-Za-z]/i.test(item));
         if ((!q.list1 || q.list1.length === 0 || !q.list2 || q.list2.length === 0 || needsSplit) && rawLines.length > 0) {
           const l1Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([A-D]\)|[A-D]\.)\s*([^\n]+)/gi)];
