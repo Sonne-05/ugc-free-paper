@@ -142,15 +142,23 @@ const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
 
 // Key Pool & Rate Limiter
 function setupKeyPool() {
-  const geminiKeys = (process.env.GEMINI_API_KEY || '')
-    .split(',')
-    .map(k => k.trim())
-    .filter(Boolean);
+  const geminiKeys = Array.from(new Set(
+    (process.env.GEMINI_API_KEY || '')
+      .split(',')
+      .map(k => k.trim())
+      .filter(Boolean)
+  ));
   
-  const groqKeys = (process.env.GROQ_API_KEY || '')
+  const groqKeysRaw = (process.env.GROQ_API_KEY || '')
     .split(',')
     .map(k => k.trim())
     .filter(Boolean);
+
+  for (let i = 1; i <= 20; i++) {
+    const k = process.env[`GROQ_OCR_KEY_${i}`];
+    if (k && k.trim()) groqKeysRaw.push(k.trim());
+  }
+  const groqKeys = Array.from(new Set(groqKeysRaw));
 
   const geminiHistory = geminiKeys.map(() => []);
   const geminiCooldowns = geminiKeys.map(() => 0);
