@@ -940,7 +940,14 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
     for (let b = 0; b < batches.length; b++) {
       const batch = batches[b];
-      console.log(`Processing Batch ${b + 1}/${batches.length} (Q${batch[0].qIndex} - Q${batch[batch.length - 1].qIndex})...`);
+      const startQ = batch[0].qIndex;
+      const endQ = batch[batch.length - 1].qIndex;
+      const totalQs = englishQuestions.length || 100;
+      const currentPercent = Math.round(15 + ((b / batches.length) * 78));
+      const statusMsg = `Structuring Questions ${startQ} - ${endQ} of ${totalQs} with AI...`;
+
+      console.log(`Processing Batch ${b + 1}/${batches.length} (Q${startQ} - Q${endQ})...`);
+      if (onProgress) onProgress(currentPercent, statusMsg);
 
       const prompt = buildPrompt(batch, compPassages, answerKeyMap, isPaperII, LANGUAGE);
       let batchResults = [];
@@ -979,6 +986,9 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
           completedQuestions.push(structuredQ);
         }
       });
+
+      const finishedPercent = Math.round(15 + (((b + 1) / batches.length) * 78));
+      if (onProgress) onProgress(finishedPercent, `Completed Questions ${startQ} - ${endQ} (${completedQuestions.length}/${totalQs})`);
 
       // Save Checkpoint
       fs.writeFileSync(checkpointFile, JSON.stringify({

@@ -919,6 +919,7 @@ function notifyJobListeners(jobId, data) {
   job.listeners.forEach(res => {
     try {
       res.write(messageStr);
+      if (typeof res.flush === 'function') res.flush();
     } catch (_) {}
   });
 }
@@ -1144,9 +1145,10 @@ app.get('/api/questions/import-progress/:jobId', (req, res) => {
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
   // Send 2KB of comment padding immediately to force proxies/CDNs to flush the headers
   res.write(':' + ' '.repeat(2048) + '\n\n');
