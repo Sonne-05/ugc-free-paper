@@ -1132,13 +1132,19 @@ async function main() {
             : 'Choose the correct answer from the options given below:';
         }
 
-        // Guard against statements accidentally placed into options array
+        // Guard against statements accidentally placed into options array (with or without A./B. labels)
         if (q.type === 'multiple-statement' && Array.isArray(q.statements) && q.statements.length > 0 && rawLines.length > 0) {
           const isOptionsDuplicateOfStatements = q.options && q.options.length === q.statements.length && q.options.every((opt, i) => opt === q.statements[i]);
-          const optionsLookLikeStatements = q.options && q.options.some(opt => /^[A-E]\.\s+[A-Za-z]/i.test(opt) && !/\bonly\b/i.test(opt) && !/,\s*[A-E]/i.test(opt));
+          const optionsLookLikeStatements = q.options && q.options.some(opt => {
+            const cleanOpt = opt.replace(/^[A-E][\.\)]\s*/i, '').trim();
+            return q.statements.some(stmt => {
+              const cleanStmt = stmt.replace(/^[A-E][\.\)]\s*/i, '').trim();
+              return cleanStmt === cleanOpt || (cleanOpt.length > 5 && cleanStmt.includes(cleanOpt));
+            }) && !/\bonly\b/i.test(opt) && !/[A-E]\s*,\s*[A-E]/i.test(opt) && !/[A-E]\s+and\s+[A-E]/i.test(opt);
+          });
 
           if (isOptionsDuplicateOfStatements || optionsLookLikeStatements || !q.options || q.options.length < 4) {
-            const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4]\.|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर]+)/gi;
+            const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4][\.\)]|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर\(\)\-]+)/gi;
             const matches = [...rawText.matchAll(comboRegex)];
             if (matches.length >= 4) {
               q.options = matches.slice(0, 4).map(m => {
