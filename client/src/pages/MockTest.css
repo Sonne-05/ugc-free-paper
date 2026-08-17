@@ -143,6 +143,15 @@
   flex-shrink: 0;
 }
 
+.mt-sidebar__scroll-content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
 /* Steps Layout (Instructions) */
 .mt-instructions {
   max-width: 900px;
@@ -1052,6 +1061,64 @@
   box-sizing: border-box;
 }
 
+/* Booklet 2-Column Responsive Layout */
+.booklet-layout {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 32px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.booklet-main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 820px;
+}
+
+.booklet-sidebar {
+  display: none;
+  width: 300px;
+  flex-shrink: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@media (min-width: 1180px) {
+  .booklet-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-self: stretch;
+  }
+}
+
+.booklet-sidebar-sticky {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.booklet-suggested-blogs-mobile {
+  width: 100%;
+  max-width: var(--page-width, 820px);
+  margin-top: 24px;
+  margin-bottom: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@media (min-width: 1180px) {
+  .booklet-suggested-blogs-mobile {
+    display: none !important;
+  }
+}
+
 /* Cover Page (Page 1) Header & Warnings */
 .cover-top-warning, .cover-bottom-warning {
   border-top: 3px solid var(--text-color);
@@ -1376,8 +1443,17 @@
   }
 
   /* Hide screen-only interactive elements */
-  .booklet-top-bar, .mt-header, .mt-sidebar, .top-bar {
+  .booklet-top-bar, .mt-header, .mt-sidebar, .top-bar, .booklet-sidebar, .booklet-suggested-blogs-mobile {
     display: none !important;
+  }
+
+  .booklet-layout, .booklet-main-content {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
   }
 
   .booklet-scroll-container {

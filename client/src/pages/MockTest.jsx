@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import { getQuestionUnit as getUnitFromHelper } from '../constants/paper1Units'
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder'
+import SuggestedBlogs from '../components/layout/SuggestedBlogs'
 import './MockTest.css'
 
 // Helper function to format a clean, concise short title for the CBT exam header
@@ -425,6 +427,19 @@ const MockTest = () => {
     '9': 98,
     '10': 95
   })
+
+  const [settings, setSettings] = useState(null)
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) setSettings(data)
+      })
+      .catch(err => console.error('Failed to fetch settings in MockTest:', err))
+  }, [])
+
+  const adsEnabled = settings?.adsEnabled ?? true
 
   const getUnitIdFromName = (name) => {
     if (!name) return null;
@@ -1510,14 +1525,30 @@ Submitted by User: ${userName}
             flex: 1,
             overflowY: 'auto',
             backgroundColor: '#f8fafc',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '30px',
             padding: '30px 20px'
           }}
         >
-          {bookletPages}
+          <div className="booklet-layout">
+            <main className="booklet-main-content">
+              {bookletPages}
+              <div className="booklet-suggested-blogs-mobile">
+                <SuggestedBlogs limit={3} />
+              </div>
+            </main>
+
+            <aside className="booklet-sidebar">
+              <SuggestedBlogs limit={3} />
+              {adsEnabled && (
+                <>
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  <div className="booklet-sidebar-sticky">
+                    <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  </div>
+                </>
+              )}
+            </aside>
+          </div>
         </div>
 
         {/* Floating Report Button */}
@@ -1696,7 +1727,15 @@ Submitted by User: ${userName}
           </div>
           
           <aside className="mt-sidebar">
-            {/* Blank space for ads */}
+            <div className="mt-sidebar__scroll-content">
+              <SuggestedBlogs limit={3} />
+              {adsEnabled && (
+                <>
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                </>
+              )}
+            </div>
           </aside>
         </div>
       )}
@@ -1752,7 +1791,15 @@ Submitted by User: ${userName}
           </div>
 
           <aside className="mt-sidebar">
-            {/* Blank space for ads */}
+            <div className="mt-sidebar__scroll-content">
+              <SuggestedBlogs limit={3} />
+              {adsEnabled && (
+                <>
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                </>
+              )}
+            </div>
           </aside>
         </div>
       )}
@@ -1850,7 +1897,15 @@ Submitted by User: ${userName}
           </div>
 
           <aside className="mt-sidebar">
-            {/* Blank space for ads */}
+            <div className="mt-sidebar__scroll-content">
+              <SuggestedBlogs limit={3} />
+              {adsEnabled && (
+                <>
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                </>
+              )}
+            </div>
           </aside>
         </div>
       )}
