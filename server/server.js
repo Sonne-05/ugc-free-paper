@@ -1743,6 +1743,9 @@ app.patch('/api/core-papers/:id/toggle-availability', async (req, res) => {
     res.json(paper);
   } catch (err) {
     res.status(500).json({ message: 'Failed to toggle core paper availability' });
+  }
+});
+
 // --- Note Categories Routes ---
 app.get('/api/note-categories', async (req, res) => {
   try {
