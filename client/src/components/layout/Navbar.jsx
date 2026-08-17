@@ -21,6 +21,7 @@ const Navbar = () => {
   const [userName, setUserName] = useState('')
   const [studyNotesEnabled, setStudyNotesEnabled] = useState(true)
   const [corePapers, setCorePapers] = useState([])
+  const [noteCategories, setNoteCategories] = useState([])
 
   useEffect(() => {
     setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true')
@@ -47,6 +48,16 @@ const Navbar = () => {
         }
       })
       .catch(err => console.error('Failed to fetch core papers in Navbar:', err))
+
+    // Fetch note categories
+    fetch(`${API_BASE_URL}/api/note-categories`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setNoteCategories(data.filter(c => c.isAvailable !== false))
+        }
+      })
+      .catch(err => console.error('Failed to fetch note categories in Navbar:', err))
   }, [location])
 
   // Close profile dropdown when clicking outside
@@ -169,12 +180,30 @@ const Navbar = () => {
                   </svg>
                 </button>
                 <div className="navbar__dropdown-menu">
-                  <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
-                    <div className="navbar__dropdown-content">
-                      <span className="navbar__dropdown-title">Paper I Notes</span>
-                      <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
-                    </div>
-                  </Link>
+                  {noteCategories.length === 0 ? (
+                    <Link to="/paper1-notes" className={`navbar__dropdown-item ${isActive('/paper1-notes') ? 'navbar__dropdown-item--active' : ''}`}>
+                      <div className="navbar__dropdown-content">
+                        <span className="navbar__dropdown-title">Paper I Notes</span>
+                        <span className="navbar__dropdown-desc">Unit-wise study resources & summaries</span>
+                      </div>
+                    </Link>
+                  ) : (
+                    noteCategories.map(cat => {
+                      const target = cat.targetUrl || (cat.slug === 'paper-1' || cat.slug === 'paper-i' ? '/paper1-notes' : `/paper1-notes`);
+                      return (
+                        <Link 
+                          key={cat.id || cat.slug} 
+                          to={target} 
+                          className={`navbar__dropdown-item ${isActive(target) ? 'navbar__dropdown-item--active' : ''}`}
+                        >
+                          <div className="navbar__dropdown-content">
+                            <span className="navbar__dropdown-title">{cat.name}</span>
+                            <span className="navbar__dropdown-desc">{cat.description || `${cat.name} study resources & notes`}</span>
+                          </div>
+                        </Link>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -357,9 +386,25 @@ const Navbar = () => {
               </button>
               {mobileNotesOpen && (
                 <div className="navbar__mobile-group-menu">
-                  <Link to="/paper1-notes" className={`navbar__mobile-group-item ${isActive('/paper1-notes') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
-                    Paper I Study Notes
-                  </Link>
+                  {noteCategories.length === 0 ? (
+                    <Link to="/paper1-notes" className={`navbar__mobile-group-item ${isActive('/paper1-notes') ? 'navbar__mobile-group-item--active' : ''}`} onClick={() => setMenuOpen(false)}>
+                      Paper I Notes
+                    </Link>
+                  ) : (
+                    noteCategories.map(cat => {
+                      const target = cat.targetUrl || (cat.slug === 'paper-1' || cat.slug === 'paper-i' ? '/paper1-notes' : `/paper1-notes`);
+                      return (
+                        <Link 
+                          key={cat.id || cat.slug} 
+                          to={target} 
+                          className={`navbar__mobile-group-item ${isActive(target) ? 'navbar__mobile-group-item--active' : ''}`} 
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          {cat.name}
+                        </Link>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

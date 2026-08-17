@@ -104,7 +104,7 @@ const Profile = () => {
   const [userEmail, setUserEmail] = useState('aspirant@ugcfreepaper.com')
   const [activeTab, setActiveTab] = useState(() => {
     const hash = window.location.hash.replace('#', '')
-    const validTabs = ['settings', 'notes', 'users', 'pyq', 'traffic', 'messages', 'blogs', 'core-papers']
+    const validTabs = ['settings', 'notes', 'note-categories', 'users', 'pyq', 'traffic', 'messages', 'blogs', 'core-papers']
     return validTabs.includes(hash) ? hash : 'settings'
   })
 
@@ -170,6 +170,16 @@ const Profile = () => {
   const [corePaperDesc, setCorePaperDesc] = useState('')
   const [corePaperIsAvailable, setCorePaperIsAvailable] = useState(true)
   const [isCorePaperFormOpen, setIsCorePaperFormOpen] = useState(false)
+
+  // Note Categories form states
+  const [noteCategories, setNoteCategories] = useState([])
+  const [noteCategoryId, setNoteCategoryId] = useState(null)
+  const [noteCategoryName, setNoteCategoryName] = useState('')
+  const [noteCategorySlug, setNoteCategorySlug] = useState('')
+  const [noteCategoryDesc, setNoteCategoryDesc] = useState('')
+  const [noteCategoryTargetUrl, setNoteCategoryTargetUrl] = useState('')
+  const [noteCategoryIsAvailable, setNoteCategoryIsAvailable] = useState(true)
+  const [isNoteCategoryFormOpen, setIsNoteCategoryFormOpen] = useState(false)
   const [selectedFilterYear, setSelectedFilterYear] = useState(() => {
     try {
       return localStorage.getItem('pyq_admin_filter_year') || 'All'
@@ -287,7 +297,7 @@ const Profile = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '')
-      const validTabs = ['settings', 'notes', 'users', 'pyq', 'messages', 'blogs', 'core-papers']
+      const validTabs = ['settings', 'notes', 'note-categories', 'users', 'pyq', 'messages', 'blogs', 'core-papers']
       if (validTabs.includes(hash)) {
         setActiveTab(hash)
       }
@@ -360,6 +370,14 @@ const Profile = () => {
           if (Array.isArray(data)) setCorePapers(data);
         })
         .catch(err => console.error('Failed to fetch core papers:', err));
+
+      // 8. Fetch note categories
+      fetch(`${API_BASE_URL}/api/note-categories`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setNoteCategories(data);
+        })
+        .catch(err => console.error('Failed to fetch note categories:', err));
     }
   }, [isAdmin])
 
@@ -1056,6 +1074,130 @@ const Profile = () => {
       console.error(err)
       alert('Network error while toggling availability.')
     }
+  }
+
+  // Note Categories Handlers
+  const handleResetNoteCategoryForm = () => {
+    setNoteCategoryId(null)
+    setNoteCategoryName('')
+    setNoteCategorySlug('')
+    setNoteCategoryDesc('')
+    setNoteCategoryTargetUrl('')
+    setNoteCategoryIsAvailable(true)
+    setIsNoteCategoryFormOpen(false)
+  }
+
+  const handleSaveNoteCategory = async (e) => {
+    e.preventDefault()
+    if (!noteCategoryName.trim()) {
+      alert('Category Name is required.')
+      return
+    }
+
+    const catData = {
+      name: noteCategoryName.trim(),
+      slug: noteCategorySlug.trim() || noteCategoryName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      description: noteCategoryDesc.trim(),
+      targetUrl: noteCategoryTargetUrl.trim() || (noteCategorySlug === 'paper-1' ? '/paper1-notes' : '/paper1-notes'),
+      isAvailable: noteCategoryIsAvailable
+    }
+
+    try {
+      if (noteCategoryId) {
+        const res = await fetch(`${API_BASE_URL}/api/note-categories/${noteCategoryId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(catData)
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          setNoteCategories(prev => prev.map(c => c.id === noteCategoryId ? updated : c))
+          alert('Note category updated successfully!')
+          handleResetNoteCategoryForm()
+        } else {
+          alert('Failed to update note category.')
+        }
+      } else {
+        const res = await fetch(`${API_BASE_URL}/api/note-categories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(catData)
+        })
+        if (res.ok) {
+          const created = await res.json()
+          setNoteCategories(prev => [...prev, created])
+          alert('Note category created successfully!')
+          handleResetNoteCategoryForm()
+        } else {
+          const errData = await res.json()
+          alert(`Failed to create note category: ${errData.message || 'Server error'}`)
+        }
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while saving note category.')
+    }
+  }
+
+  const handleEditNoteCategory = (cat) => {
+    setNoteCategoryId(cat.id)
+    setNoteCategoryName(cat.name)
+    setNoteCategorySlug(cat.slug)
+    setNoteCategoryDesc(cat.description || '')
+    setNoteCategoryTargetUrl(cat.targetUrl || '')
+    setNoteCategoryIsAvailable(cat.isAvailable !== false)
+    setIsNoteCategoryFormOpen(true)
+  }
+
+  const handleDeleteNoteCategory = async (id) => {
+    if (window.confirm('Are you sure you want to delete this note category? It will no longer show in the Study Notes menu.')) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/note-categories/${id}`, {
+          method: 'DELETE'
+        })
+        if (res.ok) {
+          setNoteCategories(prev => prev.filter(c => c.id !== id))
+          alert('Note category deleted successfully!')
+        } else {
+          alert('Failed to delete note category.')
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Network error while deleting note category.')
+      }
+    }
+  }
+
+  const handleToggleNoteCategoryAvailability = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/note-categories/${id}/toggle-availability`, {
+        method: 'PATCH'
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setNoteCategories(prev => prev.map(c => c.id === id ? updated : c))
+      } else {
+        alert('Failed to toggle category availability.')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Network error while toggling note category availability.')
+    }
+  }
+
+  const handleQuickAddFromCorePaper = async (paper) => {
+    const defaultName = `${paper.name} Notes`
+    const defaultSlug = `${paper.code || paper.name}`.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    const defaultDesc = `Paper II ${paper.name} high-yield revision notes & resources`
+    const defaultTarget = `/paper2?subject=${encodeURIComponent(paper.name)}`
+
+    setNoteCategoryId(null)
+    setNoteCategoryName(defaultName)
+    setNoteCategorySlug(defaultSlug)
+    setNoteCategoryDesc(defaultDesc)
+    setNoteCategoryTargetUrl(defaultTarget)
+    setNoteCategoryIsAvailable(true)
+    setIsNoteCategoryFormOpen(true)
   }
 
   const handleToggleUserRole = async (id) => {
@@ -2244,6 +2386,13 @@ const Profile = () => {
               <span>Manage Notes</span>
             </button>
             <button 
+              className={`admin-tab-link ${activeTab === 'note-categories' ? 'admin-tab-link--active' : ''}`}
+              onClick={() => setActiveTab('note-categories')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16M4 12h16M4 18h7"></path></svg>
+              <span>Manage Note Categories</span>
+            </button>
+            <button 
               className={`admin-tab-link ${activeTab === 'core-papers' ? 'admin-tab-link--active' : ''}`}
               onClick={() => setActiveTab('core-papers')}
             >
@@ -2556,6 +2705,225 @@ const Profile = () => {
                   </div>
                   <button type="submit" className="pane-submit-btn">Add Note to Website</button>
                 </form>
+              </div>
+            )}
+
+            {/* MANAGE NOTE CATEGORIES (DROPDOWN CONTROLLER) */}
+            {activeTab === 'note-categories' && (
+              <div className="admin-pane">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h2 className="pane-title">Manage Note Categories (Dropdown Menu)</h2>
+                    <p className="pane-desc">Control which categories and subject notes appear under the "Study Notes" top menu dropdown.</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <Link 
+                      to="/paper1-notes" 
+                      target="_blank"
+                      className="table-btn" 
+                      style={{ padding: '8px 14px', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f1f5f9', color: '#1e293b', border: '1px solid #cbd5e1' }}
+                    >
+                      <span>Paper 1 Notes Hub</span>
+                      <span>↗</span>
+                    </Link>
+                    <button 
+                      className="table-btn table-btn--upload" 
+                      style={{ padding: '9px 16px', fontSize: '0.85rem', fontWeight: 700 }}
+                      onClick={() => {
+                        handleResetNoteCategoryForm();
+                        setIsNoteCategoryFormOpen(true);
+                      }}
+                    >
+                      + Add Note Category
+                    </button>
+                  </div>
+                </div>
+
+                {/* Metrics Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Configured Categories</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{noteCategories.length}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Live In Dropdown</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+                      {noteCategories.filter(c => c.isAvailable !== false).length}
+                    </div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Paper 1 Units Active</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb', marginTop: '2px' }}>
+                      {notes.length} Units
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Add from Core Papers Suggestions */}
+                {corePapers.length > 0 && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '14px 16px', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>
+                      ⚡ Quick Add Note Categories from Core Papers:
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {corePapers.map(cp => {
+                        const alreadyAdded = noteCategories.some(c => c.name.toLowerCase().includes(cp.name.toLowerCase()));
+                        return (
+                          <button
+                            key={cp.id}
+                            type="button"
+                            onClick={() => handleQuickAddFromCorePaper(cp)}
+                            disabled={alreadyAdded}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                              border: alreadyAdded ? '1px solid #d1d5db' : '1px solid #86efac',
+                              background: alreadyAdded ? '#f3f4f6' : '#ffffff',
+                              color: alreadyAdded ? '#9ca3af' : '#15803d',
+                              cursor: alreadyAdded ? 'default' : 'pointer'
+                            }}
+                          >
+                            {alreadyAdded ? `✓ ${cp.name} (Added)` : `+ Add ${cp.name} Notes`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Form to Add / Edit Category */}
+                {isNoteCategoryFormOpen && (
+                  <form onSubmit={handleSaveNoteCategory} className="pane-form" style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'block' }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '16px' }}>{noteCategoryId ? 'Edit Note Category' : 'Add New Note Category'}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Category Display Name</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Sociology Notes or Paper I Notes" 
+                          value={noteCategoryName} 
+                          onChange={e => setNoteCategoryName(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                          required
+                        />
+                      </div>
+                      <div className="form-field" style={{ margin: 0 }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Target URL / Link Path</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. /paper1-notes or /paper2?subject=Sociology" 
+                          value={noteCategoryTargetUrl} 
+                          onChange={e => setNoteCategoryTargetUrl(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                        />
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                          Where students will be redirected when clicking this menu item.
+                        </span>
+                      </div>
+                    </div>
+                    <div className="form-field" style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600 }}>Dropdown Subtitle / Description</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Unit-wise study resources & summaries or Paper II Core Subject Study Guide" 
+                        value={noteCategoryDesc} 
+                        onChange={e => setNoteCategoryDesc(e.target.value)}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="noteCategoryIsAvailable" 
+                        checked={noteCategoryIsAvailable} 
+                        onChange={e => setNoteCategoryIsAvailable(e.target.checked)} 
+                      />
+                      <label htmlFor="noteCategoryIsAvailable" style={{ fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer' }}>Make this category visible in the Study Notes dropdown</label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button type="submit" className="table-btn table-btn--upload" style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700 }}>Save Category</button>
+                      <button type="button" className="table-btn table-btn--delete" style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700 }} onClick={handleResetNoteCategoryForm}>Cancel</button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Categories Table */}
+                <div className="admin-table-container">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '22%' }}>Category Name</th>
+                        <th style={{ width: '28%' }}>Dropdown Subtitle</th>
+                        <th style={{ width: '22%' }}>Target Link</th>
+                        <th style={{ width: '12%' }}>Status</th>
+                        <th style={{ width: '16%', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {noteCategories.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', color: '#64748b', padding: '24px' }}>No note categories created yet.</td>
+                        </tr>
+                      ) : (
+                        noteCategories.map(cat => (
+                          <tr key={cat.id || cat.slug}>
+                            <td style={{ fontWeight: 600 }}>
+                              {cat.name}
+                            </td>
+                            <td style={{ color: '#475569', fontSize: '0.88rem' }}>
+                              {cat.description || '—'}
+                            </td>
+                            <td>
+                              <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', fontSize: '0.8rem', color: '#0f172a' }}>
+                                {cat.targetUrl || (cat.slug === 'paper-1' ? '/paper1-notes' : '/paper1-notes')}
+                              </code>
+                            </td>
+                            <td>
+                              <button 
+                                className={`table-btn ${cat.isAvailable !== false ? 'table-btn--status-available' : 'table-btn--status-comingsoon'}`} 
+                                style={{ minWidth: '100px' }}
+                                onClick={() => handleToggleNoteCategoryAvailability(cat.id)}
+                              >
+                                {cat.isAvailable !== false ? 'Available' : 'Coming Soon'}
+                              </button>
+                            </td>
+                            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <button 
+                                className="table-btn" 
+                                style={{ 
+                                  marginRight: '6px', 
+                                  backgroundColor: '#eff6ff', 
+                                  color: '#1d4ed8', 
+                                  border: '1px solid #bfdbfe',
+                                  fontWeight: 600
+                                }}
+                                onClick={() => window.open(cat.targetUrl || '/paper1-notes', '_blank')}
+                                title="Open destination link"
+                              >
+                                👁️ View
+                              </button>
+                              <button 
+                                className="table-btn table-btn--upload" 
+                                style={{ marginRight: '6px' }}
+                                onClick={() => handleEditNoteCategory(cat)}
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                className="table-btn table-btn--delete" 
+                                onClick={() => handleDeleteNoteCategory(cat.id)}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 

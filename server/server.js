@@ -14,6 +14,7 @@ const User = require('./models/User');
 const ContactMessage = require('./models/ContactMessage');
 const BlogPost = require('./models/BlogPost');
 const CorePaper = require('./models/CorePaper');
+const NoteCategory = require('./models/NoteCategory');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { PDFParse } = require('pdf-parse');
@@ -1742,6 +1743,105 @@ app.patch('/api/core-papers/:id/toggle-availability', async (req, res) => {
     res.json(paper);
   } catch (err) {
     res.status(500).json({ message: 'Failed to toggle core paper availability' });
+// --- Note Categories Routes ---
+app.get('/api/note-categories', async (req, res) => {
+  try {
+    let categories = await NoteCategory.find().sort({ order: 1, createdAt: 1 });
+    if (categories.length === 0) {
+      const defaultCategories = [
+        {
+          name: 'Paper I Notes',
+          slug: 'paper-1',
+          description: 'Unit-wise study resources & summaries',
+          targetUrl: '/paper1-notes',
+          isAvailable: true,
+          order: 1
+        }
+      ];
+      await NoteCategory.insertMany(defaultCategories);
+      categories = await NoteCategory.find().sort({ order: 1, createdAt: 1 });
+    }
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch note categories', error: err.message });
+  }
+});
+
+app.post('/api/note-categories', async (req, res) => {
+  try {
+    const { name, slug, description, targetUrl, isAvailable, order } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Category name is required' });
+    }
+
+    const generatedSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const existing = await NoteCategory.findOne({
+      $or: [{ name: { $regex: new RegExp(`^${name}$`, 'i') } }, { slug: generatedSlug }]
+    });
+    if (existing) {
+      return res.status(400).json({ message: 'Note category with this name or slug already exists' });
+    }
+
+    const finalTargetUrl = targetUrl || (generatedSlug === 'paper-1' || generatedSlug === 'paper-i' ? '/paper1-notes' : `/paper1-notes`);
+
+    const newCategory = new NoteCategory({
+      name,
+      slug: generatedSlug,
+      description: description || '',
+      targetUrl: finalTargetUrl,
+      isAvailable: isAvailable !== false,
+      order: order !== undefined ? Number(order) : 0
+    });
+
+    await newCategory.save();
+    res.status(201).json(newCategory);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to create note category', error: err.message });
+  }
+});
+
+app.put('/api/note-categories/:id', async (req, res) => {
+  try {
+    const { name, slug, description, targetUrl, isAvailable, order } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (slug !== undefined) updateData.slug = slug;
+    if (description !== undefined) updateData.description = description;
+    if (targetUrl !== undefined) updateData.targetUrl = targetUrl;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (order !== undefined) updateData.order = Number(order);
+
+    const updated = await NoteCategory.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ message: 'Note category not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update note category', error: err.message });
+  }
+});
+
+app.delete('/api/note-categories/:id', async (req, res) => {
+  try {
+    const deleted = await NoteCategory.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Note category not found' });
+    res.json({ message: 'Note category deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete note category' });
+  }
+});
+
+app.patch('/api/note-categories/:id/toggle-availability', async (req, res) => {
+  try {
+    const category = await NoteCategory.findById(req.params.id);
+    if (!category) return res.status(404).json({ message: 'Note category not found' });
+    category.isAvailable = !category.isAvailable;
+    await category.save();
+    res.json(category);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to toggle note category availability' });
   }
 });
 
