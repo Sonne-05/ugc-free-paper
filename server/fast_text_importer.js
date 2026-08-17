@@ -289,8 +289,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
 
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
     const groqModels = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant'
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'groq/compound',
+      'groq/compound-mini'
     ];
 
     for (const groqModel of groqModels) {
@@ -305,10 +307,13 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           body: JSON.stringify({
             model: groqModel,
             messages: [
-              { role: 'system', content: 'You are an expert UGC NET question parser. Always respond with a strictly valid JSON object with the root key "questions".' },
+              {
+                role: 'system',
+                content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON under the root key "questions".'
+              },
               { role: 'user', content: prompt }
             ],
-            temperature: 0.1,
+            temperature: 0.05,
             response_format: { type: 'json_object' },
             max_tokens: 4096
           })
@@ -326,10 +331,13 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
             body: JSON.stringify({
               model: groqModel,
               messages: [
-                { role: 'system', content: 'You are an expert UGC NET question parser. Always respond with a valid JSON object matching {"questions": [...]}.' },
+                {
+                  role: 'system',
+                  content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON matching {"questions": [...]}.'
+                },
                 { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
               ],
-              temperature: 0.1,
+              temperature: 0.05,
               max_tokens: 4096
             })
           });
@@ -382,10 +390,15 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
         },
         signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON under the root key "questions".'
+            }]
+          },
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             responseMimeType: 'application/json',
-            temperature: 0.1
+            temperature: 0.05
           }
         })
       });
@@ -482,24 +495,28 @@ Analyze the following ${batch.length} questions from the exam paper.
 ${langRule}
 
 Common Formatting Rules:
-1. Extract true question text and exactly 4 clean options (Option 1, 2, 3, 4). Filter out system footers, marks, question paper metadata, and OCR noise.
-2. Determine correct option index (1, 2, 3, or 4).
-3. Classify question type accurately:
-   - 'mcq': standard 4-option single choice.
-   - 'assertion-reason': contains "Assertion (A)" and "Reason (R)" or "अभिकथन (A)" and "कारण (R)". Fill "assertion" and "reason" fields.
-   - 'match-column': matching lists (List I / List II or सूची I / सूची II).
-     CRITICAL FOR 'match-column':
-     * In UGC NET text, List I items are labeled (A), (B), (C), (D) and List II items are labeled (I), (II), (III), (IV) (often side-by-side on the same line or with OCR variations like {i}, (ft), (1), (Il}, (I{l})).
-     * You MUST separate them: extract the 4 List I items into "list1" array and the 4 List II items into "list2" array.
-     * Put the 4 combination choices (e.g. "(A)-(III), (B)-(I), (C)-(IV), (D)-(II)") into the "options" array.
-     * Set "list1Header" to "List - I" and "list2Header" to "List - II".
-     * NEVER leave "list1" or "list2" empty for a match-column question!
-   - 'multiple-statement': The question has statements (A, B, C, D, E or I, II, III, IV / कथन). Extract all statements into the "statements" array. The 4 combination choices (e.g. "(1) A, B and C only" / "(1) केवल A, B और C") MUST be put in the "options" array. NEVER put statements A, B, C, D into the "options" array!
-   - 'di': Data Interpretation (Q1-5 in Paper I). Fill "passage" field with table/data.
-   - 'comprehension': Reading Comprehension / गद्यांश. Fill "passage" field.
-4. Generate a rich, high-quality step-by-step HTML explanation (100-150 words) with <p>, <strong>, <ul>, <li> tags in the selected target language.
-5. For fill-in-the-blank or incomplete sentence prompts (e.g. ending in "would refer to as", "is known as", "is called", "defined as", "associated with"), format the end cleanly with "_________." or a colon ":" so it forms a complete grammatical sentence.
-6. ZERO DUPLICATE RULE: Each question in this batch is strictly unique. If a question block starts with repeated text from another question, extract ONLY the actual new question content. Do NOT duplicate options or prompts across different questions.
+1. STRICT VERBATIM EXTRACTION MANDATE:
+   - "text" field: Must be a 100% EXACT word-for-word copy of the question prompt as printed in the exam paper.
+   - ZERO PARAPHRASING: Never summarize, rephrase, modernize, or rewrite any question sentence.
+   - ZERO INVENTED TEXT: Never append artificial fill-in-the-blank underscores (________), dots, or colons (:) unless they are literally printed in the paper.
+   - PRESERVE ALL ORIGINAL WORDING: Keep the original phrasing, technical terms, book titles, and punctuation intact.
+2. VERBATIM OPTIONS (EXACTLY 4 CHOICES):
+   - "options" array MUST contain exactly 4 elements corresponding to Option 1, 2, 3, 4.
+   - Strip only the leading choice label (e.g. "1.", "(1)", "A.") and trailing OCR metadata (e.g. "[Option ID = ...]"), but keep the entire option content 100% verbatim.
+   - Never summarize or alter option choices.
+3. VERBATIM STATEMENTS, LISTS & ASSERTIONS:
+   - For 'multiple-statement': Extract each statement (A, B, C, D, E or I, II, III, IV) verbatim into "statements" array without altering or omitting words.
+   - For 'match-column': Extract all 4 List I items verbatim into "list1" and all 4 List II items verbatim into "list2". Put the 4 combination choices into "options".
+   - For 'assertion-reason': Extract Assertion (A) verbatim into "assertion" and Reason (R) verbatim into "reason".
+   - For 'comprehension' and 'di': Extract passage/table verbatim into "passage".
+4. METADATA & OCR NOISE FILTERING:
+   - Strip only exam administrative headers/footers (e.g. "Question Number : 107", "Question Id : 53307220310", "Correct Marks : 2", "Option Shuffling : No", "-- 62 of 137 --").
+   - The question text must start cleanly with the first word of the actual question.
+5. ACCURATE ANSWER KEY & STEP-BY-STEP EXPLANATION:
+   - Set "correct" (1, 2, 3, or 4).
+   - Provide an in-depth, high-quality step-by-step academic explanation (100-150 words) with HTML formatting (<p>, <strong>, <ul>, <li>) in the "explanation" field.
+6. ZERO DUPLICATE RULE:
+   - Each question in this batch is strictly distinct. Extract ONLY the unique question content for that specific question index.
 
 Questions to process:\n\n`;
 
@@ -516,21 +533,22 @@ Questions to process:\n\n`;
   }
 
   const compKeys = Object.keys(compPassages || {});
-  const passage1Id = compKeys[0];
-  const passage2Id = compKeys[1];
-
   let passageContext = '';
   if (!isPaperII) {
-    if (batch.some(q => q.qIndex >= 1 && q.qIndex <= 5) && passage1Id && compPassages[passage1Id]) {
-      passageContext = `[DI Passage Context:\n${compPassages[passage1Id].substring(0, 1500)}]\n\n`;
-    } else if (batch.some(q => q.qIndex >= 46 && q.qIndex <= 50) && passage2Id && compPassages[passage2Id]) {
-      passageContext = `[RC Passage Context:\n${compPassages[passage2Id].substring(0, 1500)}]\n\n`;
+    const p1Di = compPassages['1_5'] || compPassages['paper1_di'] || (compKeys[0] ? compPassages[compKeys[0]] : null);
+    const p1Rc = compPassages['46_50'] || compPassages['paper1_rc'] || (compKeys[1] ? compPassages[compKeys[1]] : null);
+    if (batch.some(q => q.qIndex >= 1 && q.qIndex <= 5) && p1Di) {
+      passageContext = `[DI Passage Context:\n${p1Di.substring(0, 1500)}]\n\n`;
+    } else if (batch.some(q => q.qIndex >= 46 && q.qIndex <= 50) && p1Rc) {
+      passageContext = `[RC Passage Context:\n${p1Rc.substring(0, 1500)}]\n\n`;
     }
   } else {
-    if (batch.some(q => q.qIndex >= 91 && q.qIndex <= 95) && passage1Id && compPassages[passage1Id]) {
-      passageContext = `[RC Passage Context:\n${compPassages[passage1Id].substring(0, 1500)}]\n\n`;
-    } else if (batch.some(q => q.qIndex >= 96 && q.qIndex <= 100) && passage2Id && compPassages[passage2Id]) {
-      passageContext = `[RC Passage Context:\n${compPassages[passage2Id].substring(0, 1500)}]\n\n`;
+    const p2Rc1 = compPassages['141_145'] || compPassages['91_95'] || compPassages['paper2_rc1'] || (compKeys[0] ? compPassages[compKeys[0]] : null);
+    const p2Rc2 = compPassages['146_150'] || compPassages['96_100'] || compPassages['paper2_rc2'] || (compKeys[1] ? compPassages[compKeys[1]] : (compKeys[0] ? compPassages[compKeys[0]] : null));
+    if (batch.some(q => (q.qIndex >= 91 && q.qIndex <= 95) || (q.pdfQNum >= 141 && q.pdfQNum <= 145)) && p2Rc1) {
+      passageContext = `[RC Passage Context (Questions 91-95 / 141-145):\n${p2Rc1.substring(0, 1500)}]\n\n`;
+    } else if (batch.some(q => (q.qIndex >= 96 && q.qIndex <= 100) || (q.pdfQNum >= 146 && q.pdfQNum <= 150)) && p2Rc2) {
+      passageContext = `[RC Passage Context (Questions 96-100 / 146-150):\n${p2Rc2.substring(0, 1500)}]\n\n`;
     }
   }
 
@@ -603,15 +621,33 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
     // 2. Multi-Format Question Header Detection
     console.log('[2/4] Slicing questions into structured blocks...');
-    if (onProgress) onProgress(15, 'Slicing questions into structured blocks...');
-    const qHeaderRegex = /Question Number\s*:\s*(\d+)\s+Question Id\s*:\s*(\d+)/g;
     let match;
     const matchesList = [];
     let cleanQuestions = [];
 
-    // Format A: Question Number : X Question Id : Y
+    // Format A: Multi-line tolerant Question Number : X ... Question Id : Y
+    const qHeaderRegex = /Question Number\s*:\s*(\d+)[\s\S]{0,150}?Question Id\s*:?\s*(?:[^\d\r\n]*[\r\n]+)*?(\d{8,14})/gi;
     while ((match = qHeaderRegex.exec(text)) !== null) {
       matchesList.push({ index: match.index, qNum: parseInt(match[1], 10), qId: match[2] });
+    }
+
+    // Format A Auxiliary Scan: Check for any Question Number occurrences missed by regex due to OCR line jumps
+    if (matchesList.length > 0) {
+      const qNumPattern = /Question Number\s*:\s*(\d+)/gi;
+      let numMatch;
+      const capturedIndices = new Set(matchesList.map(m => m.index));
+      while ((numMatch = qNumPattern.exec(text)) !== null) {
+        if (!capturedIndices.has(numMatch.index)) {
+          const qNum = parseInt(numMatch[1], 10);
+          const snippet = text.substring(numMatch.index, Math.min(text.length, numMatch.index + 400));
+          const idM = snippet.match(/Question Id\s*:?\s*(?:[^\d\r\n]*[\r\n]+)*?(\d{8,14})/i) || snippet.match(/(\d{9,14})/);
+          if (idM) {
+            matchesList.push({ index: numMatch.index, qNum, qId: idM[1] });
+            capturedIndices.add(numMatch.index);
+          }
+        }
+      }
+      matchesList.sort((a, b) => a.index - b.index);
     }
 
     // Format B: Q.X ... Question ID : Y
@@ -785,29 +821,60 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
     }
 
-    // Comprehension Passages Extraction
+    // Comprehension Passages Extraction (Range & Section Aware)
     const compPassages = {};
-    const compRegex = /Question Id\s*:\s*(\d+)\s+Question Type\s*:\s*(COMPREHENSION)/g;
+    const compRegex = /Question Id\s*:\s*(\d+)[\s\S]{0,120}?Question Type\s*:\s*(?:COMPREHENSION)[\s\S]{0,200}?Question Numbers?\s*:\s*\(\s*(\d+)\s+to\s+(\d+)\s*\)/gi;
     while ((match = compRegex.exec(text)) !== null) {
       const qId = match[1];
-      if (!compPassages[qId]) {
-        const nextIdx = text.indexOf('Sub questions', match.index);
-        compPassages[qId] = text.substring(match.index, nextIdx > -1 ? nextIdx : match.index + 2000);
+      const startRange = parseInt(match[2], 10);
+      const endRange = parseInt(match[3], 10);
+      const nextIdx = text.indexOf('Sub questions', match.index);
+      let passageText = text.substring(match.index, nextIdx > -1 ? nextIdx : match.index + 2500);
+
+      // Clean passage text
+      passageText = passageText
+        .replace(/Question\s*Id\s*:\s*\d+/gi, '')
+        .replace(/Question\s*Type\s*:\s*COMPREHENSION/gi, '')
+        .replace(/Sub\s*Question\s*Shuffling\s*Allowed\s*:\s*(?:Yes|No)/gi, '')
+        .replace(/Group\s*Comprehension\s*Questions\s*:\s*(?:Yes|No)/gi, '')
+        .replace(/Question\s*Pattern\s*Type\s*:\s*[A-Za-z]+/gi, '')
+        .replace(/Question\s*Numbers?\s*:\s*\(\s*\d+\s*to\s*\d+\s*\)/gi, '')
+        .replace(/Question\s*Label\s*:\s*Comprehension/gi, '')
+        .replace(/^[\s\n]*Read the following passage and answer the questions(?:\s*given below)?\s*:?[\s\n]*/i, '')
+        .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+        .trim();
+
+      const isDevanagari = /[\u0900-\u097F]/.test(passageText);
+      const isTargetLang = (LANGUAGE === 'Hindi' && isDevanagari) || (LANGUAGE !== 'Hindi' && !isDevanagari);
+      const rangeKey = `${startRange}_${endRange}`;
+
+      if (isTargetLang || !compPassages[rangeKey]) {
+        compPassages[rangeKey] = passageText;
+        compPassages[qId] = passageText;
+
+        // Also map standard named keys
+        if (startRange >= 1 && endRange <= 5) compPassages['paper1_di'] = passageText;
+        else if (startRange >= 46 && endRange <= 50) compPassages['paper1_rc'] = passageText;
+        else if ((startRange >= 141 && endRange <= 145) || (startRange >= 91 && endRange <= 95)) compPassages['paper2_rc1'] = passageText;
+        else if ((startRange >= 146 && endRange <= 150) || (startRange >= 96 && endRange <= 100)) compPassages['paper2_rc2'] = passageText;
       }
     }
 
     // Auto-detect shared passages for Q91-Q95 and Q96-Q100 (HTML/OCR web exports)
     if (Object.keys(compPassages).length === 0 && cleanQuestions.length >= 95) {
-      const passageBlocks = [];
       // Check Q91-Q95 block
       const q91Text = cleanQuestions.find(q => q.qIndex === 91)?.text || '';
       if (q91Text.length > 500) {
-        compPassages['passage_1'] = q91Text.substring(0, 2000);
+        compPassages['paper2_rc1'] = q91Text.substring(0, 2000);
+        compPassages['141_145'] = q91Text.substring(0, 2000);
+        compPassages['91_95'] = q91Text.substring(0, 2000);
       }
       // Check Q96-Q100 block
       const q96Text = cleanQuestions.find(q => q.qIndex === 96)?.text || '';
       if (q96Text.length > 500) {
-        compPassages['passage_2'] = q96Text.substring(0, 2000);
+        compPassages['paper2_rc2'] = q96Text.substring(0, 2000);
+        compPassages['146_150'] = q96Text.substring(0, 2000);
+        compPassages['96_100'] = q96Text.substring(0, 2000);
       }
     }
 
@@ -838,25 +905,34 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       const questionsMap = new Map();
       for (let i = 0; i < matchesList.length; i++) {
         const current = matchesList[i];
-        if (current.qNum < startQNum || current.qNum > endQNum) continue;
+        if (typeof current.qNum === 'number' && !isNaN(current.qNum) && (current.qNum < startQNum || current.qNum > endQNum)) continue;
 
         const nextIndex = (i + 1 < matchesList.length) ? matchesList[i + 1].index : text.length;
-        const questionBlockText = text.substring(current.index, nextIndex);
+        let questionBlockText = text.substring(current.index, nextIndex);
 
-        if (!questionsMap.has(current.qId)) {
-          questionsMap.set(current.qId, {
-            qIndex: current.qNum - qNumOffset,
-            pdfQNum: current.qNum,
+        // For English mode on bilingual papers, strip out second (Hindi) block if present
+        if (LANGUAGE === 'English' && current.qNum) {
+          const secondOccurrence = questionBlockText.indexOf('Question Number : ' + current.qNum, 30);
+          if (secondOccurrence > 0) {
+            questionBlockText = questionBlockText.substring(0, secondOccurrence);
+          }
+        }
+
+        const expectedQIndex = (typeof current.qNum === 'number' && !isNaN(current.qNum) && current.qNum > 0)
+          ? (current.qNum - qNumOffset)
+          : (questionsMap.size + 1);
+
+        if (!questionsMap.has(expectedQIndex) && (!current.qId || !questionsMap.has(current.qId))) {
+          questionsMap.set(expectedQIndex, {
+            qIndex: expectedQIndex,
+            pdfQNum: current.qNum || expectedQIndex,
             qId: current.qId,
             text: questionBlockText
           });
         }
       }
 
-      cleanQuestions = Array.from(questionsMap.values()).sort((a, b) => (a.pdfQNum || a.qIndex) - (b.pdfQNum || b.qIndex));
-      cleanQuestions.forEach((q, idx) => {
-        q.qIndex = idx + 1;
-      });
+      cleanQuestions = Array.from(questionsMap.values()).sort((a, b) => a.qIndex - b.qIndex);
     }
 
     console.log(`Filtered ${cleanQuestions.length} unique questions for processing.`);
@@ -957,16 +1033,20 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         qType = 'mcq';
       }
 
-      // Comprehension/DI Passage Attachment
+      // Comprehension/DI Passage Attachment (Range & Section Aware + Generic Fallbacks)
       let passage = rawParsed.passage || '';
       if (!passage && compPassages) {
         const compKeys = Object.keys(compPassages);
         if (!isPaperII) {
-          if (targetIndex >= 1 && targetIndex <= 5 && compKeys[0]) passage = compPassages[compKeys[0]];
-          if (targetIndex >= 46 && targetIndex <= 50 && compKeys[1]) passage = compPassages[compKeys[1]];
+          const p1Di = compPassages['1_5'] || compPassages['paper1_di'] || (compKeys[0] ? compPassages[compKeys[0]] : '');
+          const p1Rc = compPassages['46_50'] || compPassages['paper1_rc'] || (compKeys[1] ? compPassages[compKeys[1]] : '');
+          if (targetIndex >= 1 && targetIndex <= 5 && p1Di) passage = p1Di;
+          if (targetIndex >= 46 && targetIndex <= 50 && p1Rc) passage = p1Rc;
         } else {
-          if (targetIndex >= 91 && targetIndex <= 95 && compKeys[0]) passage = compPassages[compKeys[0]];
-          if (targetIndex >= 96 && targetIndex <= 100 && (compKeys[1] || compKeys[0])) passage = compPassages[compKeys[1] || compKeys[0]];
+          const p2Rc1 = compPassages['141_145'] || compPassages['91_95'] || compPassages['paper2_rc1'] || (compKeys[0] ? compPassages[compKeys[0]] : '');
+          const p2Rc2 = compPassages['146_150'] || compPassages['96_100'] || compPassages['paper2_rc2'] || (compKeys[1] ? compPassages[compKeys[1]] : (compKeys[0] ? compPassages[compKeys[0]] : ''));
+          if (targetIndex >= 91 && targetIndex <= 95 && p2Rc1) passage = p2Rc1;
+          if (targetIndex >= 96 && targetIndex <= 100 && p2Rc2) passage = p2Rc2;
         }
       }
 
@@ -1180,20 +1260,30 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         preFlightRepairs++;
       }
 
-      // 2. Guard against scrambled prompt titles, placeholders & corrupted OCR gibberish
+      // 2. Guard against scrambled prompt titles, placeholders, OCR headers & corrupted OCR gibberish
       if (q.text) {
-        q.text = q.text.replace(/^\(?\d+\)?[\.\)]\s*/, '').trim();
+        q.text = q.text
+          .replace(/Question\s*Number\s*:\s*\d+/gi, '')
+          .replace(/Question\s*Id\s*:\s*\d+/gi, '')
+          .replace(/Question\s*Type\s*:\s*\w+/gi, '')
+          .replace(/Option\s*Shuffling\s*:\s*\w+/gi, '')
+          .replace(/Correct\s*Marks\s*:\s*\d+/gi, '')
+          .replace(/Wrong\s*Marks\s*:\s*\d+/gi, '')
+          .replace(/^\(?\d+\)?[\.\)]\s*/, '')
+          .replace(/^[\s\:\.\-]+/, '')
+          .trim();
       }
-      const isCorruptedPrompt = /ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu|aor\s+cifsre|wel\s+ser|wél\s+Far/i.test(q.text) || ((q.text.match(/[@#~`]/g) || []).length >= 2);
-      if (/^\d+\.\s+[A-E]/i.test(q.text) || q.text.length < 15 || /^Question\s*\d+$/i.test(q.text) || isCorruptedPrompt) {
+      const isOptionsCorruptedPrompt = /^Options?\s*:?$/i.test(q.text || '');
+      const isCorruptedPrompt = isOptionsCorruptedPrompt || /ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu|aor\s+cifsre|wel\s+ser|wél\s+Far/i.test(q.text || '') || (((q.text || '').match(/[@#~`]/g) || []).length >= 2);
+      if (/^\d+\.\s+[A-E]/i.test(q.text || '') || (q.text || '').length < 15 || /^Question\s*\d+$/i.test(q.text || '') || isCorruptedPrompt) {
         const questionKeywords = [/^(?:Which|Who|What|Identify|Arrange|Choose|Find|According|In\s+|Out\s+of|Name|From|Where|How|Select|Given|Match|Derek|The\s+|“|'|\d+\))/i];
         for (const line of rawLines) {
-          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^Choose the correct/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line)) continue;
+          if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line) || /^Options?\s*:?$/i.test(line) || /^(?:Correct|Wrong)\s*Marks/i.test(line) || /^Question\s*Type/i.test(line)) continue;
           if (/ofa\s+feu|fa@cul|fawcul|cifsre|forsoriciRad|aisigz|YoRmn|Welool|foriqui|Fazwu/i.test(line)) continue;
           if (/^\(?\d+\)?\s*[\.:]/i.test(line) && (/\bonly\b/i.test(line) || /[A-E]\s*,\s*[A-E]/i.test(line))) continue;
           if (questionKeywords.some(rx => rx.test(line)) || (line.endsWith('?') || line.endsWith(':') || line.endsWith('—') || line.endsWith('-'))) {
             const cleaned = line.replace(/^\d+[\)\.\s]+/, '').replace(/^KRWDYN\s*=\s*/, '').trim();
-            if (cleaned.length > 15 && !/ofa\s+feu/i.test(cleaned)) {
+            if (cleaned.length > 15 && !/ofa\s+feu/i.test(cleaned) && !/^Options?\s*:?$/i.test(cleaned)) {
               q.text = cleaned;
               preFlightRepairs++;
               break;
@@ -1433,21 +1523,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         }
       }
 
-      // 7. Fill-in-the-blank & Incomplete Prompt Grammatical Formatter
-      if (q.text && !/[?.:!—_]$/.test(q.text.trim())) {
-        if (/\b(?:refer to as|refers to as|referred to as|known as|termed as|defined as|called|associated with|characterized by|consists of|classified as|meaning of|such as|denotes)$/i.test(q.text.trim())) {
-          q.text = q.text.trim() + ' _________.';
-          preFlightRepairs++;
-        } else if (/\b(?:is|are|was|were|to|of|in|for|from|with|by|as)$/i.test(q.text.trim())) {
-          q.text = q.text.trim() + ' _________.';
-          preFlightRepairs++;
-        } else {
-          q.text = q.text.trim() + ':';
-          preFlightRepairs++;
-        }
-      }
-
-      // 8. Comprehension / DI Passage Sanitizer
+      // 7. Comprehension / DI Passage Sanitizer
       if ((q.type === 'comprehension' || q.type === 'di') && q.passage) {
         const prevLen = q.passage.length;
         q.passage = q.passage
@@ -1539,7 +1615,12 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
     await Question.deleteMany({ setId: new mongoose.Types.ObjectId(TARGET_SET_ID) });
     await Question.insertMany(finalQuestions);
-    await PyqSet.findByIdAndUpdate(TARGET_SET_ID, { questionsLoaded: finalQuestions.length });
+    await PyqSet.findByIdAndUpdate(TARGET_SET_ID, {
+      questionsCount: isPaperII ? 100 : 50,
+      questionsLoaded: finalQuestions.length,
+      isVerified: true,
+      verificationStatus: 'completed'
+    });
 
     if (fs.existsSync(checkpointFile)) {
       fs.unlinkSync(checkpointFile);

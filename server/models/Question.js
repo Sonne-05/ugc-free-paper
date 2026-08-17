@@ -45,8 +45,9 @@ const questionSchema = new mongoose.Schema({
     default: []
   },
   list1Header: String,
-  list2Header: String
-}, { timestamps: true });
+  list2Header: String,
+  ntaQuestionId: String
+}, { timestamps: true, strict: false });
 
 // Transform _id to id when sending to frontend
 questionSchema.set('toJSON', {
