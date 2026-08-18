@@ -324,15 +324,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
                 role: 'system',
                 content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON under the root key "questions".'
               },
-              { role: 'user', content: prompt }
-            ],
-            temperature: 0.05,
-            response_format: { type: 'json_object' },
-                content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON matching {"questions": [...]}.'
-              },
               { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
             ],
             temperature: 0.05,
+            response_format: { type: 'json_object' },
             max_tokens: 4096
           })
         });
