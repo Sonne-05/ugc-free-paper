@@ -718,9 +718,9 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     if (!response.ok) {
       const errText = await response.text();
       if (response.status === 429) {
-        if (errText.includes('tokens per day') && groqModel !== 'llama-3.1-8b-instant') {
-          console.warn(`[AI Structuring] Groq TPD Limit hit. Retrying immediately with fallback model llama-3.1-8b-instant...`);
-          return callAIChatForStructure(prompt, keyRotation, provider, retryCount, 'llama-3.1-8b-instant');
+        if (errText.includes('tokens per day') && groqModel !== 'openai/gpt-oss-20b') {
+          console.warn(`[AI Structuring] Groq TPD Limit hit. Retrying immediately with fallback model openai/gpt-oss-20b...`);
+          return callAIChatForStructure(prompt, keyRotation, provider, retryCount, 'openai/gpt-oss-20b');
         }
         const maxRetries = Math.max(keysCount * 2, 5);
         if (retryCount < maxRetries) {
@@ -1539,13 +1539,19 @@ app.post('/api/questions/explain', async (req, res) => {
 
     // 2. Fallback to Groq Direct if configured (Secondary Option)
     if (groqKeys.length > 0) {
-      const defaultGroqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+      const groqCandidateModels = Array.from(new Set([
+        process.env.GROQ_MODEL,
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
+        'qwen/qwen3.6-27b',
+        'llama-3.3-70b-versatile'
+      ])).filter(Boolean);
+
       const activeGroqKey = groqKeys[groqExplainIndex++ % groqKeys.length];
-      console.log(`[AI Explain] Falling back to Groq using model ${defaultGroqModel}...`);
 
       const callGroqExplain = async (modelName) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1569,18 +1575,18 @@ app.post('/api/questions/explain', async (req, res) => {
       };
 
       let groqResponse;
-      try {
-        groqResponse = await callGroqExplain(defaultGroqModel);
-      } catch (err) {
-        console.warn(`[AI Explain] Groq ${defaultGroqModel} failed: ${err.message}. Retrying with llama-3.1-8b-instant...`);
-      }
-
-      if (!groqResponse || !groqResponse.ok) {
-        const errText = groqResponse ? await groqResponse.text() : '';
-        console.warn(`[AI Explain] Groq ${defaultGroqModel} failed (${groqResponse?.status}). Retrying with llama-3.1-8b-instant...`);
+      for (const groqModel of groqCandidateModels) {
+        console.log(`[AI Explain] Trying Groq model ${groqModel}...`);
         try {
-          groqResponse = await callGroqExplain('llama-3.1-8b-instant');
-        } catch (_) {}
+          groqResponse = await callGroqExplain(groqModel);
+          if (groqResponse && groqResponse.ok) {
+            break;
+          } else {
+            console.warn(`[AI Explain] Groq ${groqModel} failed (${groqResponse?.status}). Trying next Groq model...`);
+          }
+        } catch (err) {
+          console.warn(`[AI Explain] Groq ${groqModel} error: ${err.message}. Trying next Groq model...`);
+        }
       }
 
       if (groqResponse && groqResponse.ok) {
