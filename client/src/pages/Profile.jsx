@@ -203,35 +203,6 @@ const Profile = () => {
     const timer = setInterval(fetchPresences, 15000)
     return () => clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('pyq_admin_filter_year', selectedFilterYear)
-    } catch (e) {
-      console.warn(e)
-    }
-  }, [selectedFilterYear])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('pyq_admin_filter_paper_type', selectedFilterPaperType)
-    } catch (e) {
-      console.warn(e)
-    }
-  }, [selectedFilterPaperType])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('pyq_admin_filter_subject', selectedFilterSubject)
-    } catch (e) {
-      console.warn(e)
-    }
-  }, [selectedFilterSubject])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('pyq_admin_filter_status', selectedFilterStatus)
-    } catch (e) {
       console.warn(e)
     }
   }, [selectedFilterStatus])
@@ -284,7 +255,8 @@ const Profile = () => {
 
   useEffect(() => {
     const role = localStorage.getItem('userRole')
-    const url = role === 'admin'
+    const adminFlag = isAdmin || role === 'admin'
+    const url = adminFlag
       ? `${API_BASE_URL}/api/pyqsets?admin=true`
       : `${API_BASE_URL}/api/pyqsets`
     fetch(url)
@@ -293,7 +265,7 @@ const Profile = () => {
         if (Array.isArray(data)) setPyqSets(data)
       })
       .catch(err => console.error('Failed to fetch pyq sets:', err))
-  }, [])
+  }, [isAdmin])
 
   useEffect(() => {
     // 1. Fetch settings (for all users)
