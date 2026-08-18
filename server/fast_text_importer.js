@@ -142,12 +142,14 @@ const PyqSet = mongoose.models.PyqSet || mongoose.model('PyqSet', PyqSetSchema);
 
 // Key Pool & Rate Limiter
 function setupKeyPool() {
-  const geminiKeys = Array.from(new Set(
+  const rawGeminiKeys = Array.from(new Set(
     (process.env.GEMINI_API_KEY || '')
       .split(',')
       .map(k => k.trim())
       .filter(Boolean)
   ));
+  // Use the top 20 active and working Gemini keys for batch text importing
+  const geminiKeys = rawGeminiKeys.slice(0, 20);
   
   const groqKeysRaw = (process.env.GROQ_API_KEY || '')
     .split(',')
