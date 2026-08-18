@@ -18,6 +18,7 @@ const NoteCategory = require('./models/NoteCategory');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const { PDFParse } = require('pdf-parse');
+const { executeFastImport } = require('./fast_text_importer');
 const fs = require('fs');
 const { getCache, setCache, delCache, delCachePattern } = require('./config/redis');
 
