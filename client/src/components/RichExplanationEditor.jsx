@@ -48,9 +48,11 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       }
     }
 
-    // Completely strip any [[CORRECT...]] tag or line from text
+    // Strip fully formed [[CORRECT...]] tags
     let cleaned = text.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
-    cleaned = cleaned.replace(/^\[\[CORRECT.*?(?=\n|<|$)/gi, '');
+    // Strip incomplete leading tag if still streaming
+    cleaned = cleaned.replace(/^\[\[[A-Z0-9_: ]*$/i, '');
+    cleaned = cleaned.replace(/^\[\[CORRECT.*?(?:\n|<|$)/gi, '');
     cleaned = cleaned.trim();
 
     if (cleaned.startsWith('```html')) {

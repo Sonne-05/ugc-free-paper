@@ -1616,19 +1616,48 @@ CRITICAL RULES:
 
         const reader = groqResponse.body;
         if (reader) {
+          const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+          let groqBuffer = '';
+
+          const processGroqChunk = (chunkBytes) => {
+            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : new TextDecoder('utf-8').decode(chunkBytes);
+            groqBuffer += chunkText;
+
+            let lineIndex;
+            while ((lineIndex = groqBuffer.indexOf('\n')) !== -1) {
+              const line = groqBuffer.slice(0, lineIndex).trim();
+              groqBuffer = groqBuffer.slice(lineIndex + 1);
+
+              if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (dataStr === '[DONE]') {
+                  res.write('data: [DONE]\n\n');
+                  continue;
+                }
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const text = parsed.choices?.[0]?.delta?.content || '';
+                  if (text) {
+                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                  }
+                } catch (_) {}
+              }
+            }
+          };
+
           if (typeof reader[Symbol.asyncIterator] === 'function') {
             for await (const chunk of reader) {
-              res.write(chunk);
+              processGroqChunk(chunk);
             }
           } else {
-            const webReader = reader.getReader();
             while (true) {
-              const { done, value } = await webReader.read();
+              const { done, value } = await streamReader.read();
               if (done) break;
-              res.write(value);
+              processGroqChunk(value);
             }
           }
         }
+        res.write('data: [DONE]\n\n');
         res.end();
         return;
       } else {
