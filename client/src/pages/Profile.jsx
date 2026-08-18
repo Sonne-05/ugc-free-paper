@@ -203,9 +203,6 @@ const Profile = () => {
     const timer = setInterval(fetchPresences, 15000)
     return () => clearInterval(timer)
   }, [])
-      console.warn(e)
-    }
-  }, [selectedFilterStatus])
 
   const matchesFilterStatus = (s) => {
     if (selectedFilterStatus === 'All') return true
