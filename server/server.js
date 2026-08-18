@@ -609,7 +609,7 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
     const keyObj = keyRotation.getNextKey('gemini');
     const apiKey = typeof keyObj === 'object' && keyObj ? keyObj.key : keyObj;
     const keyIndex = typeof keyObj === 'object' && keyObj ? keyObj.keyIndex : -1;
-    let rawModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    let rawModel = process.env.GEMINI_MODEL || 'gemini-flash-latest';
     const geminiModel = rawModel.replace(/^models\//, '');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
     const keysCount = keyRotation.geminiKeys ? keyRotation.geminiKeys.length : 1;
@@ -737,6 +737,31 @@ async function callAIChatForStructure(prompt, keyRotation, provider, retryCount 
         }
       }
       throw new Error(`Groq API failed with status ${response.status}: ${errText}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '[]';
+  } else if (provider === 'openrouter') {
+    const openRouterKeys = (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+    const apiKey = openRouterKeys.length > 0 ? openRouterKeys[Math.floor(Math.random() * openRouterKeys.length)] : '';
+    const orModel = overrideModel || process.env.OPENROUTER_MODEL || 'openai/gpt-oss-20b:free';
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://ugcfreepaper.com',
+        'X-Title': 'UGC NET Prep Platform'
+      },
+      body: JSON.stringify({
+        model: orModel,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: 2000
+      })
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter API failed with status ${response.status}: ${errText}`);
     }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '[]';
