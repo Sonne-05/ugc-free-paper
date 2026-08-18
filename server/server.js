@@ -1439,20 +1439,19 @@ CRITICAL RULES:
       const candidateModels = Array.from(new Set([
         preferredModel,
         'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b'
+        'gemini-3.6-flash',
+        'gemini-3.7-flash',
+        'gemini-2.5-flash'
       ])).filter(Boolean);
 
-      // Try up to min(geminiKeys.length, 10) attempts across available keys
+      // Try up to 10 attempts across available keys
       const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 15);
       let attemptsCount = 0;
 
       for (const geminiModel of candidateModels) {
         if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
 
-        const keysToTryForThisModel = Math.min(geminiKeys.length, 6);
+        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
         for (let k = 0; k < keysToTryForThisModel; k++) {
           attemptsCount++;
           const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
@@ -1461,7 +1460,7 @@ CRITICAL RULES:
 
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
 
             const geminiResponse = await fetch(geminiUrl, {
               method: 'POST',
@@ -1572,7 +1571,7 @@ CRITICAL RULES:
 
       const callGroqExplain = async (modelName) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
