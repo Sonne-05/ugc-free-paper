@@ -48,8 +48,14 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       }
     }
 
+    // Strip internal reasoning / analysis tags (both complete and streaming incomplete)
+    let cleaned = text.replace(/\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*?\]\]\s*/gi, '');
+    cleaned = cleaned.replace(/^\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*$/gi, '');
+    cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+    cleaned = cleaned.replace(/^<think>[\s\S]*$/gi, '');
+
     // Strip fully formed [[CORRECT...]] tags
-    let cleaned = text.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
+    cleaned = cleaned.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
     // Strip incomplete leading tag if still streaming
     cleaned = cleaned.replace(/^\[\[[A-Z0-9_: ]*$/i, '');
     cleaned = cleaned.replace(/^\[\[CORRECT.*?(?:\n|<|$)/gi, '');

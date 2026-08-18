@@ -1404,12 +1404,16 @@ app.post('/api/questions/explain', async (req, res) => {
       userPrompt += `\n`;
     }
 
-    let systemPrompt = `You are an expert educator and solver specializing in UGC NET exam preparation.
+    let systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
 
-YOUR TASK:
-1. Solve the question completely independently based on the question text, statements, lists, and options.
-2. CRITICAL FIRST LINE: Your response MUST begin on the very first line with [[CORRECT_OPTION: X]] where X is 1, 2, 3, or 4 (or 0 if no option is valid).
-3. Directly following the tag, format your explanation strictly using clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
+YOUR TASK & SOLVING PROCEDURE:
+Step 1: Rapidly verify the exact facts, author/thinker, theory, chronological sequence, or formula in your internal analysis tag:
+[[ANALYSIS: <brief 1-sentence verification identifying the exact fact/author/concept and confirming which Option 1, 2, 3, or 4 matches it>]]
+
+Step 2: Output the verified correct option number on its own line:
+[[CORRECT_OPTION: X]] (where X is 1, 2, 3, or 4; or 0 if dropped/invalid)
+
+Step 3: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
 
 <p><strong>Key Concept & Context:</strong> [1-2 sentences clearly explaining the central concept, theory, or definition relevant to the question]</p>
 
@@ -1424,7 +1428,8 @@ YOUR TASK:
 </ul>
 
 CRITICAL RULES:
-- Do NOT output markdown backticks (e.g. \`\`\`html). Output only raw semantic HTML.
+- Do NOT guess blindly on the first token. You MUST cross-verify the specific work, author, or theorem in Step 1 before declaring the option.
+- Do NOT output markdown code blocks (e.g. \`\`\`html). Output only raw semantic HTML.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
 - You MUST explicitly explain every incorrect option individually in the bullet list.`;
 
@@ -1459,14 +1464,143 @@ CRITICAL RULES:
       systemPrompt += ` CRITICAL: The question is written in Sindhi. You MUST generate the entire explanation in Sindhi (using ${scriptName}). All explanations, steps, lists, and headings must be in Sindhi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Sindhi.`;
     }
 
-    // 1. Try Groq Direct (Primary Option - Ultra Fast 0.2s LPU Response)
+    // =========================================================================
+    // 1. TIER 1: Google Gemini Key Pool (Primary Option - Top Academic & Multilingual Accuracy)
+    // =========================================================================
+    let geminiSuccess = false;
+    let geminiErrorMsg = '';
+
+    if (geminiKeys.length > 0) {
+      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
+      const candidateModels = Array.from(new Set([
+        preferredModel,
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-flash-latest'
+      ])).filter(Boolean);
+
+      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
+      let attemptsCount = 0;
+
+      for (const geminiModel of candidateModels) {
+        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
+
+        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
+        for (let k = 0; k < keysToTryForThisModel; k++) {
+          attemptsCount++;
+          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
+          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+            const geminiResponse = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': currentGeminiKey
+              },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { 
+                  temperature: 0.15,
+                  maxOutputTokens: 3000
+                },
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
+                ]
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (geminiResponse.ok) {
+              geminiSuccess = true;
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              const reader = geminiResponse.body;
+              let buffer = '';
+
+              if (reader) {
+                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                const processChunk = (chunkBytes) => {
+                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+                  buffer += chunkText;
+                  
+                  let lineIndex;
+                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+                    const line = buffer.slice(0, lineIndex).trim();
+                    buffer = buffer.slice(lineIndex + 1);
+                    
+                    if (line.startsWith('data: ')) {
+                      const dataStr = line.slice(6).trim();
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (text) {
+                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                if (typeof reader[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of reader) {
+                    processChunk(chunk);
+                  }
+                } else {
+                  while (true) {
+                    const { done, value } = await streamReader.read();
+                    if (done) break;
+                    processChunk(value);
+                  }
+                }
+              }
+
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            } else {
+              const errText = await geminiResponse.text();
+              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
+              try {
+                const errJson = JSON.parse(errText);
+                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
+              } catch (_) {}
+              console.warn(`[AI Explain] Gemini Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
+              if (geminiResponse.status === 429) continue;
+            }
+          } catch (err) {
+            geminiErrorMsg = err.message;
+            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
+          }
+        }
+      }
+      console.warn(`[AI Explain] Gemini pool exhausted or failed. Routing to Tier 2: Groq fallback...`);
+    }
+
+    // =========================================================================
+    // 2. TIER 2: Groq Direct (Secondary Fallback - Ultra Fast 0.2s LPU Response)
+    // =========================================================================
     if (groqKeys.length > 0) {
       const groqCandidateModels = Array.from(new Set([
         process.env.GROQ_MODEL,
+        'llama-3.3-70b-versatile',
         'openai/gpt-oss-120b',
-        'openai/gpt-oss-20b',
         'qwen/qwen3.6-27b',
-        'llama-3.3-70b-versatile'
+        'openai/gpt-oss-20b'
       ])).filter(Boolean);
 
       const activeGroqKey = groqKeys[groqExplainIndex++ % groqKeys.length];
@@ -1487,7 +1621,7 @@ CRITICAL RULES:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.2,
+            temperature: 0.15,
             max_tokens: 3000
           }),
           signal: controller.signal
@@ -1570,11 +1704,13 @@ CRITICAL RULES:
           errMsg = errJson.error?.message || errMsg;
         } catch (_) {}
 
-        console.warn(`[AI Explain] Groq failed (${errMsg}). Routing to Tier 2: OpenRouter fallback...`);
+        console.warn(`[AI Explain] Groq failed (${errMsg}). Routing to Tier 3: OpenRouter fallback...`);
       }
     }
 
-    // 2. Fallback to OpenRouter Direct (Secondary Option - Fast Free Models)
+    // =========================================================================
+    // 3. TIER 3: OpenRouter Direct (Tertiary Option - Fast Free Fallback Models)
+    // =========================================================================
     if (openRouterKeys.length > 0) {
       const openRouterCandidateModels = Array.from(new Set([
         process.env.OPENROUTER_MODEL,
@@ -1604,7 +1740,7 @@ CRITICAL RULES:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.2,
+            temperature: 0.15,
             max_tokens: 3000
           }),
           signal: controller.signal
@@ -1687,130 +1823,7 @@ CRITICAL RULES:
           errMsg = errJson.error?.message || errMsg;
         } catch (_) {}
 
-        console.warn(`[AI Explain] OpenRouter failed (${errMsg}). Routing to Tier 3: Gemini pool safety net...`);
-      }
-    }
-
-    // 3. Fallback to Google Gemini Direct Key Pool (Tertiary Safety Net Option)
-    let geminiSuccess = false;
-    let geminiErrorMsg = '';
-
-    if (geminiKeys.length > 0) {
-      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-flash-latest').replace(/^models\//, '');
-      const candidateModels = Array.from(new Set([
-        preferredModel,
-        'gemini-flash-latest',
-        'gemini-3.6-flash',
-        'gemini-3.7-flash',
-        'gemini-2.5-flash'
-      ])).filter(Boolean);
-
-      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
-      let attemptsCount = 0;
-
-      for (const geminiModel of candidateModels) {
-        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
-
-        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
-        for (let k = 0; k < keysToTryForThisModel; k++) {
-          attemptsCount++;
-          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
-          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-            const geminiResponse = await fetch(geminiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': currentGeminiKey
-              },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { 
-                  temperature: 0.2,
-                  maxOutputTokens: 3000
-                },
-                safetySettings: [
-                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
-                ]
-              }),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (geminiResponse.ok) {
-              geminiSuccess = true;
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
-
-              const reader = geminiResponse.body;
-              let buffer = '';
-
-              if (reader) {
-                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-                const processChunk = (chunkBytes) => {
-                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
-                  buffer += chunkText;
-                  
-                  let lineIndex;
-                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-                    const line = buffer.slice(0, lineIndex).trim();
-                    buffer = buffer.slice(lineIndex + 1);
-                    
-                    if (line.startsWith('data: ')) {
-                      const dataStr = line.slice(6).trim();
-                      try {
-                        const parsed = JSON.parse(dataStr);
-                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                        if (text) {
-                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                        }
-                      } catch (_) {}
-                    }
-                  }
-                };
-
-                if (typeof reader[Symbol.asyncIterator] === 'function') {
-                  for await (const chunk of reader) {
-                    processChunk(chunk);
-                  }
-                } else {
-                  while (true) {
-                    const { done, value } = await streamReader.read();
-                    if (done) break;
-                    processChunk(value);
-                  }
-                }
-              }
-
-              res.write('data: [DONE]\n\n');
-              res.end();
-              return;
-            } else {
-              const errText = await geminiResponse.text();
-              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
-              try {
-                const errJson = JSON.parse(errText);
-                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
-              } catch (_) {}
-              console.warn(`[AI Explain] Gemini Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
-              if (geminiResponse.status === 429) continue;
-            }
-          } catch (err) {
-            geminiErrorMsg = err.message;
-            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
-          }
-        }
+        console.warn(`[AI Explain] OpenRouter failed (${errMsg}).`);
       }
     }
 
