@@ -180,34 +180,10 @@ const Profile = () => {
   const [noteCategoryTargetUrl, setNoteCategoryTargetUrl] = useState('')
   const [noteCategoryIsAvailable, setNoteCategoryIsAvailable] = useState(true)
   const [isNoteCategoryFormOpen, setIsNoteCategoryFormOpen] = useState(false)
-  const [selectedFilterYear, setSelectedFilterYear] = useState(() => {
-    try {
-      return localStorage.getItem('pyq_admin_filter_year') || 'All'
-    } catch {
-      return 'All'
-    }
-  })
-  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState(() => {
-    try {
-      return localStorage.getItem('pyq_admin_filter_paper_type') || 'All'
-    } catch {
-      return 'All'
-    }
-  })
-  const [selectedFilterSubject, setSelectedFilterSubject] = useState(() => {
-    try {
-      return localStorage.getItem('pyq_admin_filter_subject') || 'All'
-    } catch {
-      return 'All'
-    }
-  })
-  const [selectedFilterStatus, setSelectedFilterStatus] = useState(() => {
-    try {
-      return localStorage.getItem('pyq_admin_filter_status') || 'All'
-    } catch {
-      return 'All'
-    }
-  })
+  const [selectedFilterYear, setSelectedFilterYear] = useState('All')
+  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
+  const [selectedFilterSubject, setSelectedFilterSubject] = useState('All')
+  const [selectedFilterStatus, setSelectedFilterStatus] = useState('All')
   const [newSetIsVerified, setNewSetIsVerified] = useState(false)
   const [activePresences, setActivePresences] = useState({})
 
