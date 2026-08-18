@@ -80,7 +80,7 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '5', 
-      name: 'Unit 5: Mathematical Reasoning & Aptitude', 
+      name: 'Unit 5: Mathematical Reasoning and Aptitude', 
       seoTitle: 'UGC NET Unit 5: Mathematical Reasoning & Aptitude Solved PYQs',
       badge: 'Number Series • Coding-Decoding • Speed & Distance • Profit-Loss',
       desc: 'Master numerical aptitude with solved PYQs on letter series, coding-decoding, blood relations, ratios, percentages, time-speed-distance, and simple/compound interest.',
@@ -120,7 +120,7 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '8', 
-      name: 'Unit 8: Information & Communication Technology (ICT)', 
+      name: 'Unit 8: Information and Communication Technology (ICT)', 
       seoTitle: 'UGC NET Unit 8: ICT (Information & Communication Technology) PYQs',
       badge: 'Digital Initiatives • Internet & Email • Digital Governance • Terminology',
       desc: 'Solve high-frequency questions on ICT abbreviations, computer memory, networking basics, Swayam, Swayam Prabha, digital higher education initiatives, and cyber security.',
@@ -134,7 +134,7 @@ const Paper1UnitPYQ = () => {
     },
     { 
       id: '9', 
-      name: 'Unit 9: People, Development & Environment', 
+      name: 'Unit 9: People, Development and Environment', 
       seoTitle: 'UGC NET Unit 9: People, Development & Environment Solved PYQs',
       badge: 'MDGs & SDGs • Environmental Treaties • Pollution • Renewable Energy',
       desc: 'Practice official PYQs on Millennium & Sustainable Development Goals, Kyoto Protocol, Paris Agreement, International Solar Alliance, renewable energy sources, and air/water pollutants.',

@@ -481,6 +481,7 @@ const MockTest = () => {
   // Test parameters
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
   const [questionsState, setQuestionsState] = useState([])
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true)
   const [selectedOption, setSelectedOption] = useState(null)
   
   // Timer state
@@ -789,8 +790,12 @@ Submitted by User: ${userName}
 
   // Initialize questions
   useEffect(() => {
-    if (!paperDetails.paperId && !paperDetails.isUnitWise) return;
+    if (!paperDetails.paperId && !paperDetails.isUnitWise) {
+      setIsLoadingQuestions(false);
+      return;
+    }
     
+    setIsLoadingQuestions(true);
     setShowAnswerKey(false);
     
     let url = paperDetails.isUnitWise
@@ -835,10 +840,16 @@ Submitted by User: ${userName}
           const initialTime = qCount === 50 ? 3600 : qCount === 100 ? 7200 : Math.round(qCount * 72)
           setTimerSeconds(initialTime)
           setInitialTimerSeconds(initialTime)
+        } else {
+          setQuestionsState([])
         }
       })
       .catch(err => {
         console.error("Failed to load mocktest questions", err)
+        setQuestionsState([])
+      })
+      .finally(() => {
+        setIsLoadingQuestions(false)
       })
   }, [paperDetails, activeSessionIndex])
 
@@ -1150,7 +1161,7 @@ Submitted by User: ${userName}
   };
 
   const renderBookletView = () => {
-    if (questionsState.length === 0) {
+    if (isLoadingQuestions) {
       return (
         <div style={{
           display: 'flex',
@@ -1178,6 +1189,42 @@ Submitted by User: ${userName}
               100% { transform: rotate(360deg); }
             }
           `}</style>
+        </div>
+      );
+    }
+
+    if (questionsState.length === 0) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '70vh',
+          backgroundColor: '#1e2530',
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
+          textAlign: 'center',
+          padding: '24px'
+        }}>
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '10px' }}>No Questions Found</h2>
+          <p style={{ color: '#94a3b8', marginBottom: '20px', maxWidth: '400px', lineHeight: '1.5' }}>
+            We could not find questions for this session or unit yet. Please try selecting another session or return to the unit list.
+          </p>
+          <button
+            onClick={() => navigate('/paper1-unit-pyq')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#4f46e5',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Back to Unit Practice
+          </button>
         </div>
       );
     }

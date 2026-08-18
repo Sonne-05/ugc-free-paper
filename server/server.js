@@ -439,20 +439,23 @@ app.get('/api/questions/unit-counts', async (req, res) => {
       { id: '2', name: 'Unit 2: Research Aptitude' },
       { id: '3', name: 'Unit 3: Comprehension' },
       { id: '4', name: 'Unit 4: Communication' },
-      { id: '5', name: 'Unit 5: Mathematical Reasoning' },
+      { id: '5', name: 'Unit 5: Mathematical Reasoning and Aptitude' },
       { id: '6', name: 'Unit 6: Logical Reasoning' },
       { id: '7', name: 'Unit 7: Data Interpretation' },
-      { id: '8', name: 'Unit 8: Information and Communication Technology' },
+      { id: '8', name: 'Unit 8: Information and Communication Technology (ICT)' },
       { id: '9', name: 'Unit 9: People, Development and Environment' },
-      { id: '10', name: 'Unit 10: Higher Education' }
+      { id: '10', name: 'Unit 10: Higher Education System' }
     ];
 
     const counts = {};
     for (const u of units) {
       const escapedUnitName = u.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const flexiblePattern = escapedUnitName.replace(/\\&|\band\b/gi, '(&|and|\\&)');
       const query = {
         $or: [
-          { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } }
+          { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } },
+          { unit: { $regex: new RegExp('^' + flexiblePattern, 'i') } },
+          { unit: { $regex: new RegExp(`^Unit\\s*${u.id}\\b`, 'i') } }
         ]
       };
 
@@ -489,13 +492,23 @@ app.get('/api/questions/unit', async (req, res) => {
       return res.json(cachedUnitQuestions);
     }
     
-    // Perform a case-insensitive regex query starting with the unit prefix
+    // Perform a resilient case-insensitive regex query
     const escapedUnitName = unitName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const flexiblePattern = escapedUnitName.replace(/\\&|\band\b/gi, '(&|and|\\&)');
+    const unitNumberMatch = unitName.match(/Unit\s+(\d+)/i);
+    const unitNum = unitNumberMatch ? unitNumberMatch[1] : null;
+
     const query = {
       $or: [
-        { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } }
+        { unit: { $regex: new RegExp('^' + escapedUnitName, 'i') } },
+        { unit: { $regex: new RegExp('^' + flexiblePattern, 'i') } }
       ]
     };
+
+    if (unitNum) {
+      query.$or.push({ unit: { $regex: new RegExp(`^Unit\\s*${unitNum}\\b`, 'i') } });
+      query.$or.push({ unit: { $regex: new RegExp(`\\bUnit\\s*${unitNum}\\b`, 'i') } });
+    }
 
     // Fallback: match by question type if unit fields are missing in database
     if (unitName.toLowerCase().includes('unit 7') || unitName.toLowerCase().includes('data interpretation')) {
