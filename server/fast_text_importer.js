@@ -160,20 +160,31 @@ function setupKeyPool() {
   }
   const groqKeys = Array.from(new Set(groqKeysRaw));
 
+  const openRouterKeys = Array.from(new Set(
+    (process.env.OPENROUTER_API_KEY || '')
+      .split(',')
+      .map(k => k.trim())
+      .filter(Boolean)
+  ));
+
   const geminiHistory = geminiKeys.map(() => []);
   const geminiCooldowns = geminiKeys.map(() => 0);
   const geminiLastUsed = geminiKeys.map(() => 0);
   const groqCooldowns = groqKeys.map(() => 0);
+  const openRouterCooldowns = openRouterKeys.map(() => 0);
 
   return {
     geminiKeys,
     groqKeys,
+    openRouterKeys,
     geminiHistory,
     geminiCooldowns,
     geminiLastUsed,
     groqCooldowns,
+    openRouterCooldowns,
     geminiIndex: 0,
     groqIndex: 0,
+    openRouterIndex: 0,
     PER_KEY_RPM: 12, // Strict safe margin below Google's 15 RPM ceiling
     MIN_KEY_INTERVAL_MS: 4500, // Enforce min 4.5s between requests to the SAME key
     
@@ -315,33 +326,14 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
             ],
             temperature: 0.05,
             response_format: { type: 'json_object' },
+                content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON matching {"questions": [...]}.'
+              },
+              { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
+            ],
+            temperature: 0.05,
             max_tokens: 4096
           })
         });
-
-        // Fallback without json_object constraint if Groq schema validator had a hiccup
-        if (!groqRes.ok && groqRes.status === 400) {
-          groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${groqKey}`
-            },
-            signal: AbortSignal.timeout(35000),
-            body: JSON.stringify({
-              model: groqModel,
-              messages: [
-                {
-                  role: 'system',
-                  content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON matching {"questions": [...]}.'
-                },
-                { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
-              ],
-              temperature: 0.05,
-              max_tokens: 4096
-            })
-          });
-        }
 
         if (groqRes.ok) {
           const groqData = await groqRes.json();
@@ -354,13 +346,9 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
             console.warn(`[Groq 413] Prompt too large for Groq model. Routing to Gemini fallback with large context...`);
             break;
           } else if (groqRes.status === 429) {
-            if (groqModel !== 'llama-3.1-8b-instant') {
-              console.warn(`[Groq ${groqModel} Quota Reached on Key #${groqKeyIndex + 1}] Switching to Groq Llama 3.1 8B Instant (500k TPD)...`);
-              continue;
-            } else {
-              console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 25s.`);
-              keyPool.coolDownGroqKey(groqKeyIndex, 25);
-            }
+            console.warn(`[Groq 429] Groq Key #${groqKeyIndex + 1} rate limited. Cooling for 25s.`);
+            keyPool.coolDownGroqKey(groqKeyIndex, 25);
+            continue;
           } else {
             console.warn(`[Groq ${groqRes.status} on ${groqModel} Key #${groqKeyIndex + 1}]: ${groqErrText.substring(0, 120)}`);
             continue;
@@ -434,11 +422,55 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
       keyPool.coolDownGeminiKey(keyIndex, 20);
     }
 
-    // Respectful 1.5s pace between Gemini key attempts to prevent Google IP throttling
     await new Promise(r => setTimeout(r, 1500));
   }
 
-  // 3. Circular Loop: If all providers (Groq & Gemini) are cooling, wait for earliest key to recover
+  // 3. Fallback to OpenRouter (Tertiary Safety Net)
+  const orKeyInfo = keyPool.getNextOpenRouterKey();
+  if (orKeyInfo) {
+    const { key: orKey, keyIndex: orKeyIndex } = orKeyInfo;
+    const orModels = ['openai/gpt-oss-20b:free', 'google/gemma-4-31b-it:free', 'openrouter/free'];
+    for (const orModel of orModels) {
+      try {
+        console.log(`[OpenRouter Fallback] Routing batch to OpenRouter Key #${orKeyIndex + 1} (${orModel})...`);
+        const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${orKey}`,
+            'HTTP-Referer': 'https://ugcfreepaper.com',
+            'X-Title': 'UGC NET Parser'
+          },
+          signal: AbortSignal.timeout(30000),
+          body: JSON.stringify({
+            model: orModel,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a high-precision zero-hallucination UGC NET exam parser. Extract questions verbatim into valid JSON matching {"questions": [...]}.'
+              },
+              { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
+            ],
+            temperature: 0.05,
+            max_tokens: 4096
+          })
+        });
+
+        if (orRes.ok) {
+          const orData = await orRes.json();
+          const content = orData.choices?.[0]?.message?.content || '{}';
+          const parsed = JSON.parse(cleanJsonString(content));
+          return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+        } else {
+          keyPool.coolDownOpenRouterKey(orKeyIndex, 25);
+        }
+      } catch (orErr) {
+        console.warn(`[OpenRouter Network Error on Key #${orKeyIndex + 1}]: ${orErr.message}`);
+      }
+    }
+  }
+
+  // 4. Circular Loop: If all providers (Groq, Gemini, OpenRouter) are cooling, wait for earliest key to recover
   if (retryCount < 30) {
     const now = Date.now();
     let earliestGroq = keyPool.groqCooldowns.length > 0 ? Math.min(...keyPool.groqCooldowns) : now + 5000;
@@ -457,7 +489,7 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
     return callAiStructuring(prompt, keyPool, retryCount + 1);
   }
 
-  throw new Error('All AI providers (Groq, Gemini) exhausted after 30 retry cycles.');
+  throw new Error('All AI providers (Groq, Gemini, OpenRouter) exhausted after 30 retry cycles.');
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
