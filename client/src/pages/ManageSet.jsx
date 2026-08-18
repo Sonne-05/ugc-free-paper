@@ -2237,18 +2237,24 @@ const QuestionSlot = ({
     }
     setQCorrect(parsedCorrect)
     
-    if (qType === 'assertion-reason') {
+    if (effectiveType === 'assertion-reason') {
       if (assertionFound) setQAssertion(assertionFound)
       if (reasonFound) setQReason(reasonFound)
       if (subPromptFound) setQSubPrompt(subPromptFound)
     }
-    if (qType === 'match-column') {
+    if (effectiveType === 'match-column') {
       if (parsedList1.some(l => l !== '')) setQList1(parsedList1)
       if (parsedList2.some(l => l !== '')) setQList2(parsedList2)
+      if (subPromptFound) setQSubPrompt(subPromptFound)
     }
-    if (qType === 'multiple-statement') {
+    if (effectiveType === 'multiple-statement') {
       if (parsedStatements.some(s => s !== '')) {
         setQStatements(parsedStatements)
+      }
+      if (subPromptFound) {
+        setQSubPrompt(subPromptFound)
+      } else {
+        setQSubPrompt('Choose the correct answer from the options given below:')
       }
     }
   }

@@ -24,7 +24,7 @@ export function formatMockTestShortTitle(paperDetails) {
 
   const shiftText = shiftMatch ? shiftMatch[0].replace(/[()]/g, '').trim() : '';
   const year = paperDetails.year || rawTitle.match(/\b(202[0-9])\b/)?.[1] || '';
-  const isPaper2 = rawTitle.includes('Paper II') || rawTitle.includes('Paper 2') || paperDetails.paperType === 'Paper II';
+  const isPaper2 = rawTitle.includes('Paper II') || rawTitle.includes('Paper 2') || paperDetails.paperType === 'Paper II' || paperDetails.paperType === 'Paper 2' || /\bPaper\s*[-_]?(?:II|2)\b/i.test(rawTitle) || /\bPaper\s*[-_]?(?:II|2)\b/i.test(rawSub) || (paperDetails.subject && !/General/i.test(paperDetails.subject));
   const paperLabel = isPaper2 ? 'Paper 2' : 'Paper 1';
   const subject = paperDetails.subject && isPaper2 ? `(${paperDetails.subject})` : '';
 
@@ -400,6 +400,17 @@ const MockTest = () => {
     questionsCount: 100
   }
 
+  const isPaper2 = Boolean(
+    !paperDetails?.isUnitWise && (
+      paperDetails?.paperType === 'Paper II' ||
+      paperDetails?.paperType === 'Paper 2' ||
+      /\bPaper\s*[-_]?(?:II|2)\b/i.test(paperDetails?.title || '') ||
+      /\bPaper\s*[-_]?(?:II|2)\b/i.test(paperDetails?.subtitle || '') ||
+      (paperDetails?.subject && !/General/i.test(paperDetails.subject))
+    )
+  );
+  const isPaper1 = !isPaper2;
+
   const [step, setStep] = useState(STEP_INSTRUCTIONS_1)
   const [defaultLanguage, setDefaultLanguage] = useState('')
   const [declarationChecked, setDeclarationChecked] = useState(false)
@@ -773,7 +784,7 @@ Submitted by User: ${userName}
 
         <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
 
-          {!paperDetails?.title?.includes('Paper II') && (
+          {isPaper1 && (
             <p style={{ marginBottom: '8px' }}>
               <strong>Key Concept:</strong> This question belongs to <strong>{getQuestionUnit(currentQ, activeQuestionIndex)}</strong>.
             </p>

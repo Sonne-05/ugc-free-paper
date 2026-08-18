@@ -59,4 +59,4 @@ pyqSetSchema.set('toJSON', {
   }
 });
 
-module.exports = mongoose.model('PyqSet', pyqSetSchema);
+module.exports = mongoose.models.PyqSet || mongoose.model('PyqSet', pyqSetSchema);

@@ -489,6 +489,189 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   throw new Error('All AI providers (Groq, Gemini, OpenRouter) exhausted after 30 retry cycles.');
 }
 
+// Helper to clean language strings
+function cleanLanguageText(text, targetLang = 'English') {
+  if (!text) return '';
+  let cleaned = String(text);
+  if (targetLang === 'English') {
+    const slashIdx = cleaned.indexOf('/');
+    if (slashIdx !== -1 && /[\u0900-\u097F]/.test(cleaned.substring(slashIdx))) {
+      cleaned = cleaned.substring(0, slashIdx);
+    }
+    cleaned = cleaned.replace(/[\u0900-\u097F]+/g, '').trim();
+  }
+  return cleaned.trim();
+}
+
+// Function to deterministically extract statements and combination options from raw text
+function harvestMultipleStatementData(rawText, targetLang = 'English') {
+  if (!rawText) return null;
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  // 1. Harvest Statements (A, B, C, D, E)
+  const statementsMap = new Map();
+  for (let line of lines) {
+    if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line) || /^(?:Correct|Wrong)\s*Marks/i.test(line) || /^\d+\)$/.test(line)) continue;
+    
+    // In English mode, skip lines that contain Hindi / Devanagari script entirely
+    if (targetLang === 'English' && /[\u0900-\u097F]/.test(line)) continue;
+    // In Hindi mode, skip lines that are pure English
+    if (targetLang === 'Hindi' && !/[\u0900-\u097F]/.test(line) && !/^[A-E1-4\.\(\)\s\-]+$/.test(line)) continue;
+
+    const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
+    if (stmtMatch) {
+      const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
+      let content = stmtMatch[2].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description|नीचे दिए)[\s\S]*$/i, '').trim();
+      if (targetLang === 'English') {
+        const slashIdx = content.indexOf('/');
+        if (slashIdx !== -1 && /[\u0900-\u097F]/.test(content.substring(slashIdx))) {
+          content = content.substring(0, slashIdx).trim();
+        }
+        content = content.replace(/[\u0900-\u097F]+/g, '').trim();
+      }
+      if (content.replace(/[^A-Za-z0-9\u0900-\u097F]/g, '').length >= 2) {
+        if (!statementsMap.has(letter) || (targetLang === 'English' && !/[\u0900-\u097F]/.test(content))) {
+          statementsMap.set(letter, content);
+        }
+      }
+    }
+  }
+
+  // 2. Harvest Options (1, 2, 3, 4)
+  const optionsMap = new Map();
+  for (let line of lines) {
+    if (targetLang === 'English' && /^[0-9\.\(\)\s\-]*[\u0900-\u097F]/.test(line) && !/\b(?:only|and|[A-E])\b/i.test(line)) continue;
+
+    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\))\s*(.+)$/);
+    if (optMatch) {
+      const optNum = parseInt(optMatch[1] || optMatch[2], 10);
+      let optText = optMatch[3].replace(/\[Option ID[\s\S]*$/, '').trim();
+      if (targetLang === 'English') {
+        const slashIdx = optText.indexOf('/');
+        if (slashIdx !== -1 && /[\u0900-\u097F]/.test(optText.substring(slashIdx))) {
+          optText = optText.substring(0, slashIdx).trim();
+        }
+        optText = optText.replace(/[\u0900-\u097F]+/g, '').trim();
+      }
+      if (optNum >= 1 && optNum <= 4 && optText.replace(/[^A-Za-z0-9\u0900-\u097F]/g, '').length >= 1) {
+        if (!optionsMap.has(optNum) || (targetLang === 'English' && !/[\u0900-\u097F]/.test(optText))) {
+          optionsMap.set(optNum, optText);
+        }
+      }
+    }
+  }
+
+  const statements = Array.from(statementsMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(e => e[1]);
+  const options = [1, 2, 3, 4].map(n => optionsMap.get(n) || '');
+
+  return {
+    statements,
+    options: options.every(o => o !== '') ? options : null
+  };
+}
+
+function harvestOptionsGeneral(rawText, targetLang = 'English') {
+  if (!rawText) return null;
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const optionsMap = new Map();
+  for (let line of lines) {
+    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\))\s*(.+)$/);
+    if (optMatch) {
+      const optNum = parseInt(optMatch[1] || optMatch[2], 10);
+      let optText = optMatch[3].replace(/\[Option ID[\s\S]*$/, '').trim();
+      if (targetLang === 'English') {
+        const slashIdx = optText.indexOf('/');
+        if (slashIdx !== -1 && /[\u0900-\u097F]/.test(optText.substring(slashIdx))) {
+          optText = optText.substring(0, slashIdx).trim();
+        }
+        optText = optText.replace(/[\u0900-\u097F]+/g, '').trim();
+      }
+      if (optNum >= 1 && optNum <= 4 && optText.length > 0) {
+        if (!optionsMap.has(optNum) || (targetLang === 'English' && !/[\u0900-\u097F]/.test(optText))) {
+          optionsMap.set(optNum, optText);
+        }
+      }
+    }
+  }
+  const options = [1, 2, 3, 4].map(n => optionsMap.get(n) || '');
+  return options.every(o => o !== '') ? options : null;
+}
+
+function harvestMatchColumnData(rawText, targetLang = 'English') {
+  if (!rawText) return null;
+  const l1Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([A-D]\)|[A-D]\.)\s*([^\n]+)/gi)];
+  const l2Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([I|V|X]+\)|[I|V|X]+\.|\([1-4]\))\s*([^\n]+)/gi)];
+
+  if (l1Matches.length >= 4 && l2Matches.length >= 4) {
+    const list1 = [];
+    const list2 = [];
+    for (let j = 0; j < 4; j++) {
+      const lLetter = String.fromCharCode(65 + j);
+      let t1 = l1Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim();
+      let t2 = l2Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim();
+      if (targetLang === 'English') {
+        t1 = cleanLanguageText(t1, 'English');
+        t2 = cleanLanguageText(t2, 'English');
+      }
+      list1.push(`${lLetter}. ${t1}`);
+      list2.push(`${['I', 'II', 'III', 'IV'][j]}. ${t2}`);
+    }
+    return { list1, list2 };
+  }
+  return null;
+}
+
+function harvestAssertionReasonData(rawText, targetLang = 'English') {
+  if (!rawText) return null;
+  const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|Reason|कारण|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+  const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|Reason\s*\(?R\)?|कारण\s*\(?R\)?)\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+  if (aMatch && rMatch) {
+    let assertion = aMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+    let reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
+    if (targetLang === 'English') {
+      assertion = cleanLanguageText(assertion, 'English');
+      reason = cleanLanguageText(reason, 'English');
+    }
+    return { assertion, reason };
+  }
+  return null;
+}
+
+function cleanQuestionPromptText(rawQText, targetLang = 'English') {
+  if (!rawQText) return '';
+  const lines = rawQText.split('\n').map(l => l.trim()).filter(Boolean);
+  const promptLines = [];
+  
+  for (let line of lines) {
+    if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line) || /^(?:Correct|Wrong)\s*Marks/i.test(line) || /^Question\s*Type/i.test(line) || /^\d+\)$/.test(line) || /^(?:--\s*)?\d*\s*of\s*\d+\s*--/i.test(line) || /^of\s+\d+\s*--/i.test(line)) continue;
+    
+    // Check if line is the start of statements or subprompt
+    if (/^(\([A-E]\)|[A-E]\.)\s+/i.test(line) || /^Statement\s*(?:I|II|III|IV|[1-4])\s*[\:\-\.]/i.test(line) || /^Choose the/i.test(line) || /^नीचे/i.test(line) || /^Options?\s*:?$/i.test(line) || /^List\s*[-–]?\s*I\b/i.test(line) || /^Assertion/i.test(line) || /^Reason/i.test(line)) {
+      break;
+    }
+    
+    if (targetLang === 'English' && /^[\u0900-\u097F]/.test(line)) continue;
+
+    promptLines.push(line);
+  }
+
+  let prompt = promptLines.join('\n').trim();
+  prompt = prompt
+    .replace(/Question\s*Number\s*:\s*\d+/gi, '')
+    .replace(/Question\s*Id\s*:\s*\d+/gi, '')
+    .replace(/Question\s*Type\s*:\s*\w+/gi, '')
+    .replace(/Option\s*Shuffling\s*:\s*\w+/gi, '')
+    .replace(/Correct\s*Marks\s*:\s*\d+/gi, '')
+    .replace(/Wrong\s*Marks\s*:\s*\d+/gi, '')
+    .replace(/^(?:--\s*)?\d*\s*of\s*\d+\s*--/gi, '')
+    .replace(/^of\s+\d+\s*--/gi, '')
+    .replace(/^\(?\d+\)?[\.\)]\s*/, '')
+    .replace(/^[\s\:\.\-]+/, '')
+    .trim();
+
+  return prompt;
+}
+
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
   let langRule = '';
   if (importLanguage === 'Hindi') {
@@ -523,29 +706,45 @@ Analyze the following ${batch.length} questions from the exam paper.
 
 ${langRule}
 
-Common Formatting Rules:
-1. STRICT VERBATIM EXTRACTION MANDATE:
-   - "text" field: Must be a 100% EXACT word-for-word copy of the question prompt as printed in the exam paper.
-   - ZERO PARAPHRASING: Never summarize, rephrase, modernize, or rewrite any question sentence.
-   - ZERO INVENTED TEXT: Never append artificial fill-in-the-blank underscores (________), dots, or colons (:) unless they are literally printed in the paper.
-   - PRESERVE ALL ORIGINAL WORDING: Keep the original phrasing, technical terms, book titles, and punctuation intact.
-2. VERBATIM OPTIONS (EXACTLY 4 CHOICES):
-   - "options" array MUST contain exactly 4 elements corresponding to Option 1, 2, 3, 4.
-   - Strip only the leading choice label (e.g. "1.", "(1)", "A.") and trailing OCR metadata (e.g. "[Option ID = ...]"), but keep the entire option content 100% verbatim.
-   - Never summarize or alter option choices.
-3. VERBATIM STATEMENTS, LISTS & ASSERTIONS:
-   - For 'multiple-statement': Extract each statement (A, B, C, D, E or I, II, III, IV) verbatim into "statements" array without altering or omitting words.
-   - For 'match-column': Extract all 4 List I items verbatim into "list1" and all 4 List II items verbatim into "list2". Put the 4 combination choices into "options".
-   - For 'assertion-reason': Extract Assertion (A) verbatim into "assertion" and Reason (R) verbatim into "reason".
-   - For 'comprehension' and 'di': Extract passage/table verbatim into "passage".
-4. METADATA & OCR NOISE FILTERING:
-   - Strip only exam administrative headers/footers (e.g. "Question Number : 107", "Question Id : 53307220310", "Correct Marks : 2", "Option Shuffling : No", "-- 62 of 137 --").
-   - The question text must start cleanly with the first word of the actual question.
-5. ACCURATE ANSWER KEY & STEP-BY-STEP EXPLANATION:
-   - Set "correct" (1, 2, 3, or 4).
-   - Provide an in-depth, high-quality step-by-step academic explanation (100-150 words) with HTML formatting (<p>, <strong>, <ul>, <li>) in the "explanation" field.
-6. ZERO DUPLICATE RULE:
-   - Each question in this batch is strictly distinct. Extract ONLY the unique question content for that specific question index.
+Target Language Rules & Instructions:
+1. STRICT VERBATIM EXTRACTION:
+   - "text" field: Must contain ONLY the question prompt (e.g. "According to Manuel Castells, Informational Revolution is:").
+   - Strip all administrative headers, numbers, and OCR noise (e.g. "-- 10 of 58 --", "44)", "Question ID = ...").
+2. QUESTION TYPES:
+   - 'multiple-statement': Questions containing statements (A, B, C, D, E or I, II, III, IV or Statement I, Statement II) followed by option combinations (e.g., "(1) A and B only", "(2) C only").
+     * CRITICAL: Extract the statements (A, B, C, D, E) verbatim into the "statements" array (e.g. ["A new social order", "A network society", "Legitimation crisis"]).
+     * CRITICAL: Extract the 4 combination choices (1, 2, 3, 4) verbatim into the "options" array (e.g. ["A and B only", "C only", "B and C only", "A and C only"]).
+     * DO NOT put statements into the "options" array or "text" field.
+     * "subPrompt": "Choose the correct answer from the options given below:".
+   - 'match-column': Questions containing List I and List II. Put List I items into "list1", List II items into "list2", and 4 matching combinations into "options".
+   - 'assertion-reason': Questions containing Assertion (A) and Reason (R). Put Assertion into "assertion", Reason into "reason", and 4 choices into "options".
+   - 'mcq': Standard multiple choice questions with 4 choices in "options".
+   - 'comprehension' / 'di': Passage-based questions.
+3. OPTIONS: "options" array MUST ALWAYS CONTAIN EXACTLY 4 CHOICES.
+4. EXPLANATION: In-depth academic explanation in clean HTML (<p>, <strong>, <ul>, <li>).
+
+Respond with valid JSON matching this schema:
+{
+  "questions": [
+    {
+      "qIndex": number,
+      "type": "mcq" | "multiple-statement" | "match-column" | "assertion-reason" | "comprehension" | "di",
+      "text": "Clean question prompt",
+      "statements": ["Statement A", "Statement B", ...],
+      "subPrompt": "Choose the correct answer from the options given below:",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correct": 1 | 2 | 3 | 4,
+      "list1": ["Item A", "Item B", "Item C", "Item D"],
+      "list2": ["Match I", "Match II", "Match III", "Match IV"],
+      "list1Header": "List I subtitle",
+      "list2Header": "List II subtitle",
+      "assertion": "Assertion statement",
+      "reason": "Reason statement",
+      "passage": "Passage text",
+      "explanation": "<p>Explanation...</p>"
+    }
+  ]
+}
 
 Questions to process:\n\n`;
 
@@ -974,8 +1173,13 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
     function sanitizeQuestion(rawParsed, rawItem, targetIndex) {
       let qType = (rawParsed.type || 'mcq').toLowerCase();
       let text = (rawParsed.text || rawParsed.question || `Question ${targetIndex}`).trim();
-      const rawText = rawItem ? rawItem.text : '';
+      const rawText = rawItem ? (rawItem.text || '') : '';
+      const rawQText = rawItem ? (rawItem.rawQText || rawItem.text || '') : '';
       const rawLines = rawText ? rawText.split('\n').map(l => l.trim()).filter(Boolean) : [];
+
+      // Check if rawText contains multiple statements (A, B, C...) + combo options (1, 2, 3, 4)
+      const harvestedMulti = harvestMultipleStatementData(rawText, LANGUAGE);
+      const isMultiPattern = harvestedMulti && harvestedMulti.statements.length >= 2 && harvestedMulti.options;
 
       // 1. Fix Scrambled OCR Prompt Title (e.g. "3. B and E only.")
       const isScrambledTitle = /^\d+\.\s+[A-E]/i.test(text) || text.length < 15;
@@ -997,22 +1201,37 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
       // 2. Deterministic Statement Harvester
       let statements = Array.isArray(rawParsed.statements) ? [...rawParsed.statements] : [];
-      if (statements.length === 0 && rawLines.length > 0) {
+      if (isMultiPattern) {
+        statements = harvestedMulti.statements;
+        qType = 'multiple-statement';
+        if (rawQText) {
+          const cleanPrompt = cleanQuestionPromptText(rawQText, LANGUAGE);
+          if (cleanPrompt && cleanPrompt.length > 5) text = cleanPrompt;
+        }
+      } else if (statements.length === 0 && rawLines.length > 0) {
         const stmtsMap = new Map();
         for (const line of rawLines) {
           if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^Choose the/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line)) continue;
+          if (LANGUAGE === 'English' && /^[\u0900-\u097F]/.test(line)) continue;
           const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
           if (stmtMatch) {
             const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
-            const content = stmtMatch[2].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description)[\s\S]*$/i, '').trim();
+            let content = stmtMatch[2].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description)[\s\S]*$/i, '').trim();
+            if (LANGUAGE === 'English') {
+              const slashIdx = content.indexOf('/');
+              if (slashIdx !== -1 && /[\u0900-\u097F]/.test(content.substring(slashIdx))) {
+                content = content.substring(0, slashIdx).trim();
+              }
+              content = content.replace(/[\u0900-\u097F]+/g, '').trim();
+            }
             if (content.length > 1) {
-              if (!stmtsMap.has(letter) || stmtsMap.get(letter).length < content.length) {
-                stmtsMap.set(letter, `${letter}. ${content}`);
+              if (!stmtsMap.has(letter) || (LANGUAGE === 'English' && !/[\u0900-\u097F]/.test(content))) {
+                stmtsMap.set(letter, content);
               }
             }
           }
         }
-        const parsedStmts = Array.from(stmtsMap.values()).sort();
+        const parsedStmts = Array.from(stmtsMap.values());
         if (parsedStmts.length >= 2) {
           statements = parsedStmts;
         }
@@ -1050,13 +1269,15 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         text = LANGUAGE === 'Hindi'
           ? 'नीचे दो कथन दिए गए हैं : एक को अभिकथन (A) और दूसरे को कारण (R) के रूप में लेबल किया गया है।'
           : 'Given below are two statements : one is labelled as Assertion (A) and the other is labelled as Reason (R).';
-      } else if (statements.length > 0) {
-        qType = 'multiple-statement';
-      } else if (rawParsed.passage || (!isPaperII && targetIndex <= 5)) {
-        qType = !isPaperII && targetIndex <= 5 ? 'di' : 'comprehension';
       } else if (isPaperII && targetIndex >= 91 && targetIndex <= 100) {
         qType = 'comprehension';
       } else if (!isPaperII && targetIndex >= 46 && targetIndex <= 50) {
+        qType = 'comprehension';
+      } else if (!isPaperII && targetIndex <= 5) {
+        qType = 'di';
+      } else if (statements.length > 0 || isMultiPattern) {
+        qType = 'multiple-statement';
+      } else if (rawParsed.passage) {
         qType = 'comprehension';
       } else if (!['mcq', 'assertion-reason', 'match-column', 'comprehension', 'multiple-statement', 'di'].includes(qType) || (qType === 'multiple-statement' && statements.length === 0)) {
         qType = 'mcq';
@@ -1080,11 +1301,27 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
 
       // Options Array Formatting
-      let options = Array.isArray(rawParsed.options) && rawParsed.options.length >= 4 
-        ? rawParsed.options.slice(0, 4) 
-        : ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
+      let options = [];
+      if (isMultiPattern && harvestedMulti.options) {
+        options = harvestedMulti.options;
+      } else if (Array.isArray(rawParsed.options) && rawParsed.options.length >= 4 && !rawParsed.options.some(o => /^Option\s*[1-4]$/i.test(String(o).trim()))) {
+        options = rawParsed.options.slice(0, 4);
+      } else {
+        const rawHarvestedOpts = harvestOptionsGeneral(rawText, LANGUAGE);
+        if (rawHarvestedOpts) {
+          options = rawHarvestedOpts;
+        } else {
+          options = Array.isArray(rawParsed.options) && rawParsed.options.length >= 4
+            ? rawParsed.options.slice(0, 4)
+            : ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
+        }
+      }
+
       options = options.map((opt, i) => {
         let str = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+        if (LANGUAGE === 'English') {
+          str = cleanLanguageText(str, 'English');
+        }
         return str;
       });
 
@@ -1164,17 +1401,13 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
     console.log(`\n[3/4] Processing ${batches.length} remaining batches using Groq Llama 3.3 (Primary) with Multi-Gemini Fallback (${keyPool.geminiKeys.length} Gemini keys)...`);
 
-    for (let b = 0; b < batches.length; b++) {
-      const batch = batches[b];
+    const CONCURRENCY_LIMIT = 2;
+    let completedBatchCount = 0;
+
+    async function processBatch(batch, batchIndex) {
       const startQ = batch[0].qIndex;
       const endQ = batch[batch.length - 1].qIndex;
       const totalQs = cleanQuestions.length || 100;
-      const currentPercent = Math.round(15 + ((b / batches.length) * 78));
-      const statusMsg = `Structuring Questions ${startQ} - ${endQ} of ${totalQs} with AI...`;
-
-      console.log(`Processing Batch ${b + 1}/${batches.length} (Q${startQ} - Q${endQ})...`);
-      if (onProgress) onProgress(currentPercent, statusMsg);
-
       const prompt = buildPrompt(batch, compPassages, answerKeyMap, isPaperII, LANGUAGE);
       let batchResults = [];
 
@@ -1184,7 +1417,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
           throw new Error(`Incomplete batch returned: got ${batchResults ? batchResults.length : 0}/${batch.length}`);
         }
       } catch (batchErr) {
-        console.warn(`Batch had missing items (${batchErr.message}). Retrying entire batch item by item...`);
+        console.warn(`Batch ${batchIndex + 1} had missing items (${batchErr.message}). Retrying item by item...`);
         batchResults = [];
         for (const singleQ of batch) {
           try {
@@ -1213,18 +1446,35 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         }
       });
 
-      const finishedPercent = Math.round(15 + (((b + 1) / batches.length) * 78));
+      completedBatchCount++;
+      const finishedPercent = Math.round(15 + ((completedBatchCount / batches.length) * 78));
       if (onProgress) onProgress(finishedPercent, `Completed Questions ${startQ} - ${endQ} (${completedQuestions.length}/${totalQs})`);
 
-      // Save Checkpoint
-      fs.writeFileSync(checkpointFile, JSON.stringify({
-        setId: TARGET_SET_ID,
-        questions: completedQuestions,
-        updatedAt: new Date().toISOString()
-      }, null, 2));
-
-      await new Promise(r => setTimeout(r, 800)); // Smooth pacing
+      // Save Checkpoint safely
+      try {
+        fs.writeFileSync(checkpointFile, JSON.stringify({
+          setId: TARGET_SET_ID,
+          questions: completedQuestions,
+          updatedAt: new Date().toISOString()
+        }, null, 2));
+      } catch (_) {}
     }
+
+    // Process batches with worker queue
+    let queueIdx = 0;
+    async function worker() {
+      while (queueIdx < batches.length) {
+        const curIdx = queueIdx++;
+        await processBatch(batches[curIdx], curIdx);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+
+    const workerPromises = [];
+    for (let w = 0; w < Math.min(CONCURRENCY_LIMIT, batches.length); w++) {
+      workerPromises.push(worker());
+    }
+    await Promise.all(workerPromises);
 
     // Safety Pass: Check for any missing question numbers from 1 to total cleanQuestions
     const finalMap = new Map();
@@ -1283,8 +1533,31 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       const rawText = rawItem ? rawItem.text : '';
       const rawLines = rawText ? rawText.split('\n').map(l => l.trim()).filter(Boolean) : [];
 
-      // 1. Guard against empty multiple-statements
-      if (q.type === 'multiple-statement' && (!Array.isArray(q.statements) || q.statements.length === 0)) {
+      // 1. Guard for multiple-statements: Harvest from raw text if statements or combo options are detected
+      const harvestedMulti = harvestMultipleStatementData(rawText, LANGUAGE);
+      if (harvestedMulti && harvestedMulti.statements.length >= 2 && harvestedMulti.options) {
+        q.type = 'multiple-statement';
+        const hasBadStatements = !Array.isArray(q.statements) || q.statements.length < 2 || q.statements.some(s => !s || /^Statement\s*[A-E]$/i.test(s) || s.replace(/[^A-Za-z0-9\u0900-\u097F]/g, '').length < 2);
+        if (hasBadStatements) {
+          q.statements = harvestedMulti.statements;
+          preFlightRepairs++;
+        }
+        if (!Array.isArray(q.options) || q.options.length < 4 || q.options.some(o => !o || /^Option\s*[1-4]$/i.test(o))) {
+          q.options = harvestedMulti.options;
+          preFlightRepairs++;
+        }
+        if (!q.subPrompt) {
+          q.subPrompt = LANGUAGE === 'Hindi'
+            ? 'नीचे दिए गए विकल्पों में से सही उत्तर का चयन कीजिए :'
+            : 'Choose the correct answer from the options given below:';
+        }
+        if (rawItem && (rawItem.rawQText || rawItem.text)) {
+          const cleanPrompt = cleanQuestionPromptText(rawItem.rawQText || rawItem.text, LANGUAGE);
+          if (cleanPrompt && cleanPrompt.length > 5) {
+            q.text = cleanPrompt;
+          }
+        }
+      } else if (q.type === 'multiple-statement' && (!Array.isArray(q.statements) || q.statements.length === 0)) {
         q.type = 'mcq';
         preFlightRepairs++;
       }
@@ -1298,6 +1571,9 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
           .replace(/Option\s*Shuffling\s*:\s*\w+/gi, '')
           .replace(/Correct\s*Marks\s*:\s*\d+/gi, '')
           .replace(/Wrong\s*Marks\s*:\s*\d+/gi, '')
+          .replace(/^(?:--\s*)?\d*\s*of\s*\d+\s*--/gi, '')
+          .replace(/^of\s+\d+\s*--/gi, '')
+          .replace(/^\d+\)\s*/, '')
           .replace(/^\(?\d+\)?[\.\)]\s*/, '')
           .replace(/^[\s\:\.\-]+/, '')
           .trim();
@@ -1573,32 +1849,20 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       const isPlaceholderOpt = (opt) => !opt || /^Option\s*[1-4]$/i.test(String(opt).trim()) || String(opt).trim().length === 0;
       if (Array.isArray(q.options)) {
         if (q.options.some(isPlaceholderOpt) && rawLines.length > 0) {
-          // 1. Try to find combination options (A, B, C only / A and B only)
-          const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4][\.\)]|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर\(\)\-]+)/gi;
-          const comboMatches = [...rawText.matchAll(comboRegex)];
-          if (comboMatches.length >= 4) {
-            q.options = comboMatches.slice(0, 4).map(m => {
-              let opt = m[1].replace(/\[Option ID[\s\S]*$/, '').replace(/^[<>\s]+/, '').trim();
-              opt = opt.replace(/([A-E])only/i, '$1 only').replace(/\s+/g, ' ');
-              return opt;
-            });
+          const generalOpts = harvestOptionsGeneral(rawText, LANGUAGE);
+          if (generalOpts) {
+            q.options = generalOpts;
             preFlightRepairs++;
           } else {
-            // 2. Try to find numeric options: 1. ... 2. ... 3. ... 4. ...
-            const numOpts = [];
-            for (const line of rawLines) {
-              if (/^SI\.?\s*No|QBID|\[Option ID|\[Question ID|--\s*\d+\s+of|Topic:/i.test(line)) continue;
-              const m = line.match(/^(?:\(?([1-4])\)?[\.\:\s\-]+|\b([1-4])\.\s+)([^\n]+)/i);
-              if (m) {
-                const optIdx = parseInt(m[1] || m[2], 10) - 1;
-                const content = (m[3] || '').replace(/\[Option ID[\s\S]*$/, '').trim();
-                if (content.length > 0 && !numOpts[optIdx]) {
-                  numOpts[optIdx] = content;
-                }
-              }
-            }
-            if (numOpts.filter(Boolean).length === 4) {
-              q.options = numOpts;
+            // 1. Try to find combination options (A, B, C only / A and B only)
+            const comboRegex = /(?:\n|^)\s*(?:\([1-4]\)|[1-4][\.\)]|\([1-4]\))\s*[<>\s]*([A-E\s,\.andonlyकेवलऔर\(\)\-]+)/gi;
+            const comboMatches = [...rawText.matchAll(comboRegex)];
+            if (comboMatches.length >= 4) {
+              q.options = comboMatches.slice(0, 4).map(m => {
+                let opt = m[1].replace(/\[Option ID[\s\S]*$/, '').replace(/^[<>\s]+/, '').trim();
+                opt = opt.replace(/([A-E])only/i, '$1 only').replace(/\s+/g, ' ');
+                return opt;
+              });
               preFlightRepairs++;
             }
           }
@@ -1606,6 +1870,9 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
         q.options = q.options.map((opt, i) => {
           let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+          if (LANGUAGE === 'English') {
+            cleanOpt = cleanLanguageText(cleanOpt, 'English');
+          }
           return cleanOpt || `Option ${i + 1}`;
         });
       }
