@@ -1276,6 +1276,7 @@ app.delete('/api/questions/:id', async (req, res) => {
 // Global indices for API key rotation in individual explanation requests
 let geminiExplainIndex = 0;
 let groqExplainIndex = 0;
+let openRouterExplainIndex = 0;
 
 // Generate detailed explanation using Google Gemini AI with OpenRouter / Groq fallback
 app.post('/api/questions/explain', async (req, res) => {
@@ -1284,15 +1285,17 @@ app.post('/api/questions/explain', async (req, res) => {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
-      const geminiKeys = getAllGeminiKeys();
+  const geminiKeys = getAllGeminiKeys();
   const groqKeys = (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
+  const openRouterKeys = (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
   const geminiApiKey = geminiKeys.length > 0 ? geminiKeys[geminiExplainIndex++ % geminiKeys.length] : '';
   const groqApiKey = groqKeys.length > 0 ? groqKeys[groqExplainIndex++ % groqKeys.length] : '';
+  const openRouterApiKey = openRouterKeys.length > 0 ? openRouterKeys[openRouterExplainIndex++ % openRouterKeys.length] : '';
 
-  if (!geminiApiKey && !groqApiKey) {
+  if (!geminiApiKey && !groqApiKey && !openRouterApiKey) {
     return res.status(400).json({ 
-      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY or GROQ_API_KEY to your server\'s .env file.' 
+      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY to your server\'s .env file.' 
     });
   }
 
@@ -1669,7 +1672,123 @@ CRITICAL RULES:
         } catch (_) {}
 
         console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
-        return res.status(502).json({ message: errMsg });
+      }
+    }
+
+    // 3. Fallback to OpenRouter Direct if configured (Tertiary Option)
+    if (openRouterKeys.length > 0) {
+      const openRouterCandidateModels = Array.from(new Set([
+        process.env.OPENROUTER_MODEL,
+        'openai/gpt-oss-20b:free',
+        'google/gemma-4-31b-it:free',
+        'google/gemma-4-26b-a4b-it:free',
+        'openrouter/free'
+      ])).filter(Boolean);
+
+      const activeOpenRouterKey = openRouterKeys[openRouterExplainIndex++ % openRouterKeys.length];
+
+      const callOpenRouterExplain = async (modelName) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeOpenRouterKey}`,
+            'HTTP-Referer': 'https://ugcfreepaper.com',
+            'X-Title': 'UGC NET Prep Platform'
+          },
+          body: JSON.stringify({
+            model: modelName,
+            stream: true,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 3000
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return resp;
+      };
+
+      let openRouterResponse;
+      for (const orModel of openRouterCandidateModels) {
+        console.log(`[AI Explain] Trying OpenRouter model ${orModel}...`);
+        try {
+          openRouterResponse = await callOpenRouterExplain(orModel);
+          if (openRouterResponse && openRouterResponse.ok) {
+            break;
+          } else {
+            console.warn(`[AI Explain] OpenRouter ${orModel} failed (${openRouterResponse?.status}). Trying next OpenRouter model...`);
+          }
+        } catch (err) {
+          console.warn(`[AI Explain] OpenRouter ${orModel} error: ${err.message}. Trying next OpenRouter model...`);
+        }
+      }
+
+      if (openRouterResponse && openRouterResponse.ok) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        const reader = openRouterResponse.body;
+        if (reader) {
+          const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+          let orBuffer = '';
+
+          const processOrChunk = (chunkBytes) => {
+            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : new TextDecoder('utf-8').decode(chunkBytes);
+            orBuffer += chunkText;
+
+            let lineIndex;
+            while ((lineIndex = orBuffer.indexOf('\n')) !== -1) {
+              const line = orBuffer.slice(0, lineIndex).trim();
+              orBuffer = orBuffer.slice(lineIndex + 1);
+
+              if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (dataStr === '[DONE]') {
+                  res.write('data: [DONE]\n\n');
+                  continue;
+                }
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  const text = parsed.choices?.[0]?.delta?.content || '';
+                  if (text) {
+                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                  }
+                } catch (_) {}
+              }
+            }
+          };
+
+          if (typeof reader[Symbol.asyncIterator] === 'function') {
+            for await (const chunk of reader) {
+              processOrChunk(chunk);
+            }
+          } else {
+            while (true) {
+              const { done, value } = await streamReader.read();
+              if (done) break;
+              processOrChunk(value);
+            }
+          }
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      } else {
+        const errText = openRouterResponse ? await openRouterResponse.text() : '';
+        let errMsg = 'Failed call to OpenRouter API';
+        try {
+          const errJson = JSON.parse(errText);
+          errMsg = errJson.error?.message || errMsg;
+        } catch (_) {}
+
+        console.warn(`[AI Explain] OpenRouter fallback failed: ${errMsg}`);
       }
     }
 
