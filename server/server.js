@@ -1459,134 +1459,7 @@ CRITICAL RULES:
       systemPrompt += ` CRITICAL: The question is written in Sindhi. You MUST generate the entire explanation in Sindhi (using ${scriptName}). All explanations, steps, lists, and headings must be in Sindhi. Do NOT use English for explanations except for technical terms or abbreviations where necessary, but keep the overall content in Sindhi.`;
     }
 
-    // 1. Try Google Gemini Direct with Full Key Pool Rotation (Primary Option)
-    let geminiSuccess = false;
-    let geminiErrorMsg = '';
-
-    if (geminiKeys.length > 0) {
-      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-flash-latest').replace(/^models\//, '');
-      const candidateModels = Array.from(new Set([
-        preferredModel,
-        'gemini-flash-latest',
-        'gemini-3.6-flash',
-        'gemini-3.7-flash',
-        'gemini-2.5-flash'
-      ])).filter(Boolean);
-
-      // Try up to 10 attempts across available keys
-      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 15);
-      let attemptsCount = 0;
-
-      for (const geminiModel of candidateModels) {
-        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
-
-        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
-        for (let k = 0; k < keysToTryForThisModel; k++) {
-          attemptsCount++;
-          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
-          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-            const geminiResponse = await fetch(geminiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': currentGeminiKey
-              },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { 
-                  temperature: 0.2,
-                  maxOutputTokens: 3000
-                },
-                safetySettings: [
-                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
-                ]
-              }),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (geminiResponse.ok) {
-              geminiSuccess = true;
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
-
-              const reader = geminiResponse.body;
-              let buffer = '';
-
-              if (reader) {
-                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-                const processChunk = (chunkBytes) => {
-                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
-                  buffer += chunkText;
-                  
-                  let lineIndex;
-                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-                    const line = buffer.slice(0, lineIndex).trim();
-                    buffer = buffer.slice(lineIndex + 1);
-                    
-                    if (line.startsWith('data: ')) {
-                      const dataStr = line.slice(6).trim();
-                      try {
-                        const parsed = JSON.parse(dataStr);
-                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                        if (text) {
-                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                        }
-                      } catch (_) {}
-                    }
-                  }
-                };
-
-                if (typeof reader[Symbol.asyncIterator] === 'function') {
-                  for await (const chunk of reader) {
-                    processChunk(chunk);
-                  }
-                } else {
-                  while (true) {
-                    const { done, value } = await streamReader.read();
-                    if (done) break;
-                    processChunk(value);
-                  }
-                }
-              }
-
-              res.write('data: [DONE]\n\n');
-              res.end();
-              return; // Complete request successfully
-            } else {
-              const errText = await geminiResponse.text();
-              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
-              try {
-                const errJson = JSON.parse(errText);
-                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
-              } catch (_) {}
-              console.warn(`[AI Explain] Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
-              
-              // If status is 429 (rate limit), continue to next key immediately
-              if (geminiResponse.status === 429) continue;
-            }
-          } catch (err) {
-            geminiErrorMsg = err.message;
-            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
-          }
-        }
-      }
-      console.warn(`[AI Explain] Gemini keys/models exhausted. Attempting fallback to Groq...`);
-    }
-
-    // 2. Fallback to Groq Direct if configured (Secondary Option)
+    // 1. Try Groq Direct (Primary Option - Ultra Fast 0.2s LPU Response)
     if (groqKeys.length > 0) {
       const groqCandidateModels = Array.from(new Set([
         process.env.GROQ_MODEL,
@@ -1697,11 +1570,11 @@ CRITICAL RULES:
           errMsg = errJson.error?.message || errMsg;
         } catch (_) {}
 
-        console.warn(`[AI Explain] Groq fallback failed: ${errMsg}`);
+        console.warn(`[AI Explain] Groq failed (${errMsg}). Routing to Tier 2: OpenRouter fallback...`);
       }
     }
 
-    // 3. Fallback to OpenRouter Direct if configured (Tertiary Option)
+    // 2. Fallback to OpenRouter Direct (Secondary Option - Fast Free Models)
     if (openRouterKeys.length > 0) {
       const openRouterCandidateModels = Array.from(new Set([
         process.env.OPENROUTER_MODEL,
@@ -1814,7 +1687,130 @@ CRITICAL RULES:
           errMsg = errJson.error?.message || errMsg;
         } catch (_) {}
 
-        console.warn(`[AI Explain] OpenRouter fallback failed: ${errMsg}`);
+        console.warn(`[AI Explain] OpenRouter failed (${errMsg}). Routing to Tier 3: Gemini pool safety net...`);
+      }
+    }
+
+    // 3. Fallback to Google Gemini Direct Key Pool (Tertiary Safety Net Option)
+    let geminiSuccess = false;
+    let geminiErrorMsg = '';
+
+    if (geminiKeys.length > 0) {
+      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-flash-latest').replace(/^models\//, '');
+      const candidateModels = Array.from(new Set([
+        preferredModel,
+        'gemini-flash-latest',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash',
+        'gemini-2.5-flash'
+      ])).filter(Boolean);
+
+      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
+      let attemptsCount = 0;
+
+      for (const geminiModel of candidateModels) {
+        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
+
+        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
+        for (let k = 0; k < keysToTryForThisModel; k++) {
+          attemptsCount++;
+          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
+          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+            const geminiResponse = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': currentGeminiKey
+              },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { 
+                  temperature: 0.2,
+                  maxOutputTokens: 3000
+                },
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
+                ]
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (geminiResponse.ok) {
+              geminiSuccess = true;
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              const reader = geminiResponse.body;
+              let buffer = '';
+
+              if (reader) {
+                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                const processChunk = (chunkBytes) => {
+                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+                  buffer += chunkText;
+                  
+                  let lineIndex;
+                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+                    const line = buffer.slice(0, lineIndex).trim();
+                    buffer = buffer.slice(lineIndex + 1);
+                    
+                    if (line.startsWith('data: ')) {
+                      const dataStr = line.slice(6).trim();
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        if (text) {
+                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                if (typeof reader[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of reader) {
+                    processChunk(chunk);
+                  }
+                } else {
+                  while (true) {
+                    const { done, value } = await streamReader.read();
+                    if (done) break;
+                    processChunk(value);
+                  }
+                }
+              }
+
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            } else {
+              const errText = await geminiResponse.text();
+              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
+              try {
+                const errJson = JSON.parse(errText);
+                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
+              } catch (_) {}
+              console.warn(`[AI Explain] Gemini Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
+              if (geminiResponse.status === 429) continue;
+            }
+          } catch (err) {
+            geminiErrorMsg = err.message;
+            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
+          }
+        }
       }
     }
 
