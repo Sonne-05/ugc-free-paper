@@ -1375,8 +1375,29 @@ app.post('/api/questions/explain', async (req, res) => {
       userPrompt += `\n`;
     }
 
-    let systemPrompt = 'You are an expert educator and solver specializing in UGC NET exam preparation. YOUR TASK: 1. Solve the question completely independently from scratch based purely on the question text, statements, lists, and options, without relying on or biasing towards any prior selection. Determine which option (1, 2, 3, or 4) is truly the correct answer (correcting any previously wrong selection). 2. CRITICAL FIRST LINE: Your response MUST start on the very first line with [[CORRECT_OPTION: X]] where X is 1, 2, 3, or 4 corresponding to the true correct option index (or 0 if no option is correct / dropped). 3. Generate a comprehensive, high-quality, and detailed step-by-step logical explanation for the question (about 200-300 words). The explanation MUST include: - A clear step-by-step walkthrough of the concept or calculation. - A specific section justifying why option X is right. - A brief explanation of why the other options are incorrect.';
-    systemPrompt += ' CRITICAL: Do NOT include any introductory boilerplate or meta-commentary (such as "This question is from...", "To answer this question correctly...", or "We need to break down..."). Start explaining the content directly after the [[CORRECT_OPTION: X]] line. Focus on explaining the concept, the correct answer, and briefly why the other options are incorrect. Avoid greetings or generic boilerplate text. Use clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <ol>, <li>, and <br>). Do NOT wrap the output in markdown code blocks like ```html ... ```; output only the raw HTML snippet itself.';
+    let systemPrompt = `You are an expert educator and solver specializing in UGC NET exam preparation.
+
+YOUR TASK:
+1. Solve the question completely independently based on the question text, statements, lists, and options.
+2. CRITICAL FIRST LINE: Your response MUST begin on the very first line with [[CORRECT_OPTION: X]] where X is 1, 2, 3, or 4 (or 0 if no option is valid).
+3. Directly following the tag, format your explanation strictly using clean semantic HTML (such as <p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
+
+<p><strong>Key Concept & Context:</strong> [1-2 sentences clearly explaining the central concept, theory, or definition relevant to the question]</p>
+
+<h4>Why Option X is Correct:</h4>
+<p>[Detailed explanation justifying why Option X is the accurate answer with facts, logical steps, or direct references]</p>
+
+<h4>Why Other Options are Incorrect:</h4>
+<ul>
+  <li><strong>Option 1 / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
+  <li><strong>Option Y / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
+  <li><strong>Option Z / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
+</ul>
+
+CRITICAL RULES:
+- Do NOT output markdown backticks (e.g. \`\`\`html). Output only raw semantic HTML.
+- Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
+- You MUST explicitly explain every incorrect option individually in the bullet list.`;
 
     // Auto-detect target language from question content to properly support Hindi/Sindhi language sets
     let detectedLanguage = 'English';
