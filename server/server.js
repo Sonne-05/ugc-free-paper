@@ -1415,16 +1415,16 @@ Step 2: Output the verified correct option number on its own line:
 
 Step 3: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
 
-<p><strong>Key Concept & Context:</strong> [1-2 sentences clearly explaining the central concept, theory, or definition relevant to the question]</p>
+<p><strong>Key Concept & Context:</strong> A clear, concise 1-2 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question.</p>
 
 <h4>Why Option X is Correct:</h4>
-<p>[Detailed explanation justifying why Option X is the accurate answer with facts, logical steps, or direct references]</p>
+<p>A comprehensive, factually accurate explanation justifying why Option X is the exact correct answer with direct proofs, historical dates, or conceptual arguments.</p>
 
 <h4>Why Other Options are Incorrect:</h4>
 <ul>
-  <li><strong>Option 1 / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
-  <li><strong>Option Y / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
-  <li><strong>Option Z / Name:</strong> [Clear, concise explanation of why this option does not apply]</li>
+  <li><strong>Option 1 / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option Y / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option Z / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
 </ul>
 
 CRITICAL RULES:
@@ -1496,7 +1496,7 @@ CRITICAL RULES:
 
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 25000);
+            const timeoutId = setTimeout(() => controller.abort(), 35000);
 
             const geminiResponse = await fetch(geminiUrl, {
               method: 'POST',
@@ -1508,8 +1508,11 @@ CRITICAL RULES:
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: { 
-                  temperature: 0.15,
-                  maxOutputTokens: 3000
+                  temperature: 0.1,
+                  maxOutputTokens: 8192,
+                  thinkingConfig: {
+                    thinkingBudget: 512
+                  }
                 },
                 safetySettings: [
                   { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
@@ -1547,7 +1550,11 @@ CRITICAL RULES:
                       const dataStr = line.slice(6).trim();
                       try {
                         const parsed = JSON.parse(dataStr);
-                        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                        const parts = parsed.candidates?.[0]?.content?.parts || [];
+                        const text = parts
+                          .filter(p => !p.thought)
+                          .map(p => p.text || '')
+                          .join('');
                         if (text) {
                           res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
                         }
@@ -1607,7 +1614,7 @@ CRITICAL RULES:
 
       const callGroqExplain = async (modelName) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1621,8 +1628,8 @@ CRITICAL RULES:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.15,
-            max_tokens: 3000
+            temperature: 0.1,
+            max_tokens: 8192
           }),
           signal: controller.signal
         });
@@ -1724,7 +1731,7 @@ CRITICAL RULES:
 
       const callOpenRouterExplain = async (modelName) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
         const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1740,8 +1747,8 @@ CRITICAL RULES:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.15,
-            max_tokens: 3000
+            temperature: 0.1,
+            max_tokens: 8192
           }),
           signal: controller.signal
         });

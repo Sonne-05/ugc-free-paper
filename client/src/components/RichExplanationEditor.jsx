@@ -38,6 +38,8 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
   }, [cooldownSeconds]);
 
   const processAccumulatedText = (text) => {
+    if (!text) return '';
+
     // Robustly check for any variations of [[CORRECT_OPTION: X]] or [[CORRECT_OPTION: Option X]]
     const match = text.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*(?:Option\s*)?([0-4])\s*\]\]/i);
     if (match) {
@@ -48,19 +50,29 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       }
     }
 
-    // Strip internal reasoning / analysis tags (both complete and streaming incomplete)
+    // Strip fully closed internal reasoning / analysis tags
     let cleaned = text.replace(/\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*?\]\]\s*/gi, '');
-    cleaned = cleaned.replace(/^\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*$/gi, '');
     cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
-    cleaned = cleaned.replace(/^<think>[\s\S]*$/gi, '');
+
+    // If still in the middle of streaming the initial analysis tag at the very start
+    if (/^\[\[(?:ANALYSIS|THINK|REASONING)/i.test(cleaned) && !/\]\]/.test(cleaned)) {
+      return '';
+    }
+    if (/^<think>/i.test(cleaned) && !/<\/think>/i.test(cleaned)) {
+      return '';
+    }
 
     // Strip fully formed [[CORRECT...]] tags
     cleaned = cleaned.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
-    // Strip incomplete leading tag if still streaming
-    cleaned = cleaned.replace(/^\[\[[A-Z0-9_: ]*$/i, '');
-    cleaned = cleaned.replace(/^\[\[CORRECT.*?(?:\n|<|$)/gi, '');
+
+    // If still in the middle of streaming the [[CORRECT... tag at the start
+    if (/^\[\[CORRECT/i.test(cleaned) && !/\]\]/.test(cleaned)) {
+      return '';
+    }
+
     cleaned = cleaned.trim();
 
+    // Strip markdown code block wrappers if any
     if (cleaned.startsWith('```html')) {
       cleaned = cleaned.replace(/^```html\s*/, '');
     } else if (cleaned.startsWith('```')) {
