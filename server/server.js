@@ -3092,4 +3092,30 @@ app.listen(PORT, () => {
   console.log(`Local backend server running on port ${PORT}`);
 });
 
+// ============================================================
+// Global crash guards — prevent unhandled rejections/exceptions
+// from taking down the entire server process.
+// Primary cause: AbortController timeouts on AI Explain streams
+// when all API keys are rate-limited (429) simultaneously.
+// ============================================================
+process.on('unhandledRejection', (reason, promise) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  // Suppress known benign abort errors from AbortController timeouts
+  if (msg.includes('aborted') || msg.includes('abort') || msg.includes('This operation was aborted')) {
+    console.warn('[Server] Suppressed AbortError (AI stream timeout):', msg);
+    return;
+  }
+  console.error('[Server] Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  const msg = err.message || '';
+  // Suppress known benign abort errors
+  if (msg.includes('aborted') || msg.includes('abort') || msg.includes('This operation was aborted')) {
+    console.warn('[Server] Suppressed uncaught AbortError (AI stream timeout):', msg);
+    return;
+  }
+  console.error('[Server] Uncaught Exception — server will continue running:', err);
+});
+
 module.exports = { processImportJob, callAIChatToStructureBatch };
