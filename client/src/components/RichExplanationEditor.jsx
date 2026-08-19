@@ -40,7 +40,7 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
   const processAccumulatedText = (text) => {
     if (!text) return '';
 
-    // Robustly check for any variations of [[CORRECT_OPTION: X]] or [[CORRECT_OPTION: Option X]]
+    // Robustly extract correct option number (0-4)
     const match = text.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*(?:Option\s*)?([0-4])\s*\]\]/i);
     if (match) {
       const optionNum = parseInt(match[1], 10);
@@ -50,23 +50,21 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       }
     }
 
-    // Strip fully closed internal reasoning / analysis tags
-    let cleaned = text.replace(/\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*?\]\]\s*/gi, '');
-    cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>\s*/gi, '');
+    // Strip fully closed internal reasoning / analysis and option tags
+    let cleaned = text
+      .replace(/\[\[(?:ANALYSIS|THINK|REASONING)[\s\S]*?\]\]\s*/gi, '')
+      .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
+      .replace(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*(?:Option\s*)?[0-4]\s*\]\]\s*/gi, '')
+      .replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
 
-    // If still in the middle of streaming the initial analysis tag at the very start
-    if (/^\[\[(?:ANALYSIS|THINK|REASONING)/i.test(cleaned) && !/\]\]/.test(cleaned)) {
+    // If still in the middle of streaming the initial tag at the start of output
+    if (/^\[\[(?:ANALYSIS|THINK|REASONING)[^\]]*$/i.test(cleaned)) {
       return '';
     }
-    if (/^<think>/i.test(cleaned) && !/<\/think>/i.test(cleaned)) {
+    if (/^<think>[^<]*$/i.test(cleaned)) {
       return '';
     }
-
-    // Strip fully formed [[CORRECT...]] tags
-    cleaned = cleaned.replace(/\[\[CORRECT.*?\]\]\s*/gi, '');
-
-    // If still in the middle of streaming the [[CORRECT... tag at the start
-    if (/^\[\[CORRECT/i.test(cleaned) && !/\]\]/.test(cleaned)) {
+    if (/^\[\[CORRECT[^\]]*$/i.test(cleaned)) {
       return '';
     }
 
@@ -74,11 +72,11 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
 
     // Strip markdown code block wrappers if any
     if (cleaned.startsWith('```html')) {
-      cleaned = cleaned.replace(/^```html\s*/, '');
+      cleaned = cleaned.replace(/^```html\s*/i, '');
     } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```\s*/, '');
+      cleaned = cleaned.replace(/^```\s*/i, '');
     }
-    cleaned = cleaned.replace(/\s*```$/, '');
+    cleaned = cleaned.replace(/\s*```$/i, '');
 
     return cleaned;
   };

@@ -1299,29 +1299,39 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
-// Global indices for API key rotation in individual explanation requests
+// Global indices and cooldown trackers for API key rotation
 let geminiExplainIndex = 0;
 let groqExplainIndex = 0;
 let openRouterExplainIndex = 0;
 
-// Generate detailed explanation using Google Gemini AI with OpenRouter / Groq fallback
+const groqKeyCooldowns = new Map();
+const geminiKeyCooldowns = new Map();
+
+function getAllGroqKeys() {
+  const keys = new Set();
+  (process.env.GROQ_API_KEY || '').split(',').forEach(k => k.trim() && keys.add(k.trim()));
+  if (process.env.GROQ_OCR_API_KEY) keys.add(process.env.GROQ_OCR_API_KEY.trim());
+  for (let i = 1; i <= 20; i++) {
+    const k = process.env[`GROQ_OCR_KEY_${i}`];
+    if (k && k.trim()) keys.add(k.trim());
+  }
+  return Array.from(keys);
+}
+
+// Generate detailed explanation with High Accuracy & Instant Speed (Groq 120B/27B LPU Primary, Gemini Fallback)
 app.post('/api/questions/explain', async (req, res) => {
   const { questionContext } = req.body;
   if (!questionContext) {
     return res.status(400).json({ message: 'Missing questionContext' });
   }
 
+  const groqKeys = getAllGroqKeys();
   const geminiKeys = getAllGeminiKeys();
-  const groqKeys = (process.env.GROQ_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
   const openRouterKeys = (process.env.OPENROUTER_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
 
-  const geminiApiKey = geminiKeys.length > 0 ? geminiKeys[geminiExplainIndex++ % geminiKeys.length] : '';
-  const groqApiKey = groqKeys.length > 0 ? groqKeys[groqExplainIndex++ % groqKeys.length] : '';
-  const openRouterApiKey = openRouterKeys.length > 0 ? openRouterKeys[openRouterExplainIndex++ % openRouterKeys.length] : '';
-
-  if (!geminiApiKey && !groqApiKey && !openRouterApiKey) {
+  if (groqKeys.length === 0 && geminiKeys.length === 0 && openRouterKeys.length === 0) {
     return res.status(400).json({ 
-      message: 'No AI API keys configured on the server. Please add GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY to your server\'s .env file.' 
+      message: 'No AI API keys configured on the server. Please configure GROQ_API_KEY or GEMINI_API_KEY in your server\'s .env file.' 
     });
   }
 
@@ -1360,35 +1370,38 @@ app.post('/api/questions/explain', async (req, res) => {
     if (reason) {
       userPrompt += `Reason (R): ${reason}\n`;
     }
-    
-    userPrompt += `Question Prompt: ${text}\n\n`;
 
     if (statements && Array.isArray(statements) && statements.some(s => s && s.trim())) {
       userPrompt += `Statements:\n`;
       statements.forEach((stmt, idx) => {
         if (stmt && stmt.trim()) {
-          userPrompt += `${String.fromCharCode(65 + idx)}. ${stmt}\n`;
+          userPrompt += `Statement ${idx + 1}: ${stmt}\n`;
         }
       });
       userPrompt += `\n`;
     }
 
-    if (list1 && Array.isArray(list1) && list1.some(i => i && i.trim())) {
+    if (list1 && Array.isArray(list1) && list1.some(l => l && l.trim())) {
       userPrompt += `${list1Header || 'List I'}:\n`;
       list1.forEach((item, idx) => {
-        if (item && item.trim()) userPrompt += `${idx + 1}. ${item}\n`;
+        if (item && item.trim()) {
+          userPrompt += `${String.fromCharCode(65 + idx)}. ${item}\n`;
+        }
       });
       userPrompt += `\n`;
     }
 
-    if (list2 && Array.isArray(list2) && list2.some(i => i && i.trim())) {
+    if (list2 && Array.isArray(list2) && list2.some(l => l && l.trim())) {
       userPrompt += `${list2Header || 'List II'}:\n`;
-      res.write = res.write; // placeholder logic
       list2.forEach((item, idx) => {
-        if (item && item.trim()) userPrompt += `${idx + 1}. ${item}\n`;
+        if (item && item.trim()) {
+          userPrompt += `${idx + 1}. ${item}\n`;
+        }
       });
       userPrompt += `\n`;
     }
+
+    userPrompt += `Question:\n${text}\n\n`;
 
     if (subPrompt) {
       userPrompt += `Instruction: ${subPrompt}\n\n`;
@@ -1406,8 +1419,8 @@ app.post('/api/questions/explain', async (req, res) => {
 
     let systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
 
-YOUR TASK & SOLVING PROCEDURE:
-Step 1: Rapidly verify the exact facts, author/thinker, theory, chronological sequence, or formula in your internal analysis tag:
+TASK & SOLVING FORMAT:
+Step 1: Rapidly verify the exact facts, author/thinker, publication, theory, or formula in your internal analysis tag:
 [[ANALYSIS: <brief 1-sentence verification identifying the exact fact/author/concept and confirming which Option 1, 2, 3, or 4 matches it>]]
 
 Step 2: Output the verified correct option number on its own line:
@@ -1418,7 +1431,7 @@ Step 3: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li
 <p><strong>Key Concept & Context:</strong> A clear, concise 1-2 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question.</p>
 
 <h4>Why Option X is Correct:</h4>
-<p>A comprehensive, factually accurate explanation justifying why Option X is the exact correct answer with direct proofs, historical dates, or conceptual arguments.</p>
+<p>A comprehensive, factually accurate explanation justifying why Option X is the exact correct answer with direct proofs, historical dates, publications, or conceptual arguments.</p>
 
 <h4>Why Other Options are Incorrect:</h4>
 <ul>
@@ -1428,12 +1441,11 @@ Step 3: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li
 </ul>
 
 CRITICAL RULES:
-- Do NOT guess blindly on the first token. You MUST cross-verify the specific work, author, or theorem in Step 1 before declaring the option.
-- Do NOT output markdown code blocks (e.g. \`\`\`html). Output only raw semantic HTML.
+- Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
 - You MUST explicitly explain every incorrect option individually in the bullet list.`;
 
-    // Auto-detect target language from question content to properly support Hindi/Sindhi language sets
+    // Auto-detect target language from question content to properly support Hindi/Sindhi
     let detectedLanguage = 'English';
     const sampleText = [
       text,
@@ -1465,38 +1477,131 @@ CRITICAL RULES:
     }
 
     // =========================================================================
-    // 1. TIER 1: Google Gemini Key Pool (Primary Option - Top Academic & Multilingual Accuracy)
+    // 1. TIER 1: Groq LPU Direct (Primary: 120B Accuracy + Instant Sub-Second Speed)
     // =========================================================================
-    let geminiSuccess = false;
-    let geminiErrorMsg = '';
+    if (groqKeys.length > 0) {
+      const groqCandidateModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+      const now = Date.now();
 
-    if (geminiKeys.length > 0) {
-      const preferredModel = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace(/^models\//, '');
-      const candidateModels = Array.from(new Set([
-        preferredModel,
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-flash-latest'
-      ])).filter(Boolean);
+      // Find healthy key (not in cooldown)
+      const maxGroqAttempts = Math.min(groqKeys.length, 5);
+      for (let attempt = 0; attempt < maxGroqAttempts; attempt++) {
+        const keyIdx = (groqExplainIndex + attempt) % groqKeys.length;
+        const currentGroqKey = groqKeys[keyIdx];
+        const cooldownUntil = groqKeyCooldowns.get(currentGroqKey) || 0;
+        if (now < cooldownUntil) continue; // Skip keys in rate-limit cooldown
 
-      const maxGeminiAttempts = Math.min(geminiKeys.length * candidateModels.length, 12);
-      let attemptsCount = 0;
+        groqExplainIndex = (keyIdx + 1) % groqKeys.length;
 
-      for (const geminiModel of candidateModels) {
-        if (geminiSuccess || attemptsCount >= maxGeminiAttempts) break;
-
-        const keysToTryForThisModel = Math.min(geminiKeys.length, 4);
-        for (let k = 0; k < keysToTryForThisModel; k++) {
-          attemptsCount++;
-          const currentGeminiKey = geminiKeys[geminiExplainIndex++ % geminiKeys.length];
-          console.log(`[AI Explain] Trying Gemini ${geminiModel} (key #${(geminiExplainIndex - 1) % geminiKeys.length + 1}/${geminiKeys.length})...`);
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-
+        for (const groqModel of groqCandidateModels) {
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 35000);
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${currentGroqKey}`
+              },
+              body: JSON.stringify({
+                model: groqModel,
+                stream: true,
+                messages: [
+                  { role: 'system', content: systemPrompt },
+                  { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.1,
+                max_tokens: 2048
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (groqResponse.ok) {
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              const reader = groqResponse.body;
+              if (reader) {
+                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                let groqBuffer = '';
+                const groqDecoder = new TextDecoder('utf-8');
+
+                const processGroqChunk = (chunkBytes) => {
+                  const chunkText = typeof chunkBytes === 'string' ? chunkBytes : groqDecoder.decode(chunkBytes, { stream: true });
+                  groqBuffer += chunkText;
+
+                  let lineIndex;
+                  while ((lineIndex = groqBuffer.indexOf('\n')) !== -1) {
+                    const line = groqBuffer.slice(0, lineIndex).trim();
+                    groqBuffer = groqBuffer.slice(lineIndex + 1);
+
+                    if (line.startsWith('data: ')) {
+                      const dataStr = line.slice(6).trim();
+                      if (dataStr === '[DONE]') continue;
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const text = parsed.choices?.[0]?.delta?.content || '';
+                        if (text) {
+                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                if (typeof reader[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of reader) {
+                    processGroqChunk(chunk);
+                  }
+                } else {
+                  while (true) {
+                    const { done, value } = await streamReader.read();
+                    if (done) break;
+                    processGroqChunk(value);
+                  }
+                }
+              }
+
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            } else {
+              if (groqResponse.status === 429) {
+                groqKeyCooldowns.set(currentGroqKey, Date.now() + 60000);
+                break; // Try next key
+              }
+            }
+          } catch (err) {
+            console.warn(`[AI Explain] Groq ${groqModel} error: ${err.message}`);
+          }
+        }
+      }
+      console.warn('[AI Explain] Groq tier exhausted or cooling down. Falling back to Tier 2: Gemini...');
+    }
+
+    // =========================================================================
+    // 2. TIER 2: Google Gemini Pool (Secondary Fallback)
+    // =========================================================================
+    if (geminiKeys.length > 0) {
+      const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+      const maxGeminiAttempts = Math.min(geminiKeys.length, 6);
+
+      for (let attempt = 0; attempt < maxGeminiAttempts; attempt++) {
+        const keyIdx = (geminiExplainIndex + attempt) % geminiKeys.length;
+        const currentGeminiKey = geminiKeys[keyIdx];
+        const cooldownUntil = geminiKeyCooldowns.get(currentGeminiKey) || 0;
+        if (Date.now() < cooldownUntil) continue;
+
+        geminiExplainIndex = (keyIdx + 1) % geminiKeys.length;
+
+        for (const geminiModel of candidateModels) {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
 
             const geminiResponse = await fetch(geminiUrl, {
               method: 'POST',
@@ -1509,35 +1614,24 @@ CRITICAL RULES:
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: { 
                   temperature: 0.1,
-                  maxOutputTokens: 8192,
-                  thinkingConfig: {
-                    thinkingBudget: 512
-                  }
-                },
-                safetySettings: [
-                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                  { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" }
-                ]
+                  maxOutputTokens: 2048
+                }
               }),
               signal: controller.signal
             });
             clearTimeout(timeoutId);
 
             if (geminiResponse.ok) {
-              geminiSuccess = true;
               res.setHeader('Content-Type', 'text/event-stream');
               res.setHeader('Cache-Control', 'no-cache');
               res.setHeader('Connection', 'keep-alive');
 
               const reader = geminiResponse.body;
-              let buffer = '';
-              const decoder = new TextDecoder('utf-8');
-
               if (reader) {
                 const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                let buffer = '';
+                const decoder = new TextDecoder('utf-8');
+
                 const processChunk = (chunkBytes) => {
                   const chunkText = typeof chunkBytes === 'string' ? chunkBytes : decoder.decode(chunkBytes, { stream: true });
                   buffer += chunkText;
@@ -1552,10 +1646,7 @@ CRITICAL RULES:
                       try {
                         const parsed = JSON.parse(dataStr);
                         const parts = parsed.candidates?.[0]?.content?.parts || [];
-                        const text = parts
-                          .filter(p => !p.thought)
-                          .map(p => p.text || '')
-                          .join('');
+                        const text = parts.filter(p => !p.thought).map(p => p.text || '').join('');
                         if (text) {
                           res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
                         }
@@ -1580,161 +1671,27 @@ CRITICAL RULES:
               res.write('data: [DONE]\n\n');
               res.end();
               return;
-            } else {
-              const errText = await geminiResponse.text();
-              geminiErrorMsg = `Gemini (${geminiModel}) returned status ${geminiResponse.status}`;
-              try {
-                const errJson = JSON.parse(errText);
-                geminiErrorMsg = errJson.error?.message || geminiErrorMsg;
-              } catch (_) {}
-              console.warn(`[AI Explain] Gemini Key #${(geminiExplainIndex - 1) % geminiKeys.length + 1} (${geminiModel}) failed (${geminiResponse.status}): ${geminiErrorMsg.substring(0, 120)}. Trying next key...`);
-              if (geminiResponse.status === 429) continue;
+            } else if (geminiResponse.status === 429) {
+              geminiKeyCooldowns.set(currentGeminiKey, Date.now() + 60000);
+              break;
             }
           } catch (err) {
-            geminiErrorMsg = err.message;
-            console.warn(`[AI Explain] Gemini attempt failed: ${geminiErrorMsg}. Trying next key...`);
+            console.warn(`[AI Explain] Gemini ${geminiModel} error: ${err.message}`);
           }
         }
       }
-      console.warn(`[AI Explain] Gemini pool exhausted or failed. Routing to Tier 2: Groq fallback...`);
+      console.warn('[AI Explain] Gemini pool exhausted. Falling back to Tier 3: OpenRouter...');
     }
 
     // =========================================================================
-    // 2. TIER 2: Groq Direct (Secondary Fallback - Ultra Fast 0.2s LPU Response)
-    // =========================================================================
-    if (groqKeys.length > 0) {
-      const groqCandidateModels = Array.from(new Set([
-        process.env.GROQ_MODEL,
-        'llama-3.3-70b-versatile',
-        'openai/gpt-oss-120b',
-        'qwen/qwen3.6-27b',
-        'openai/gpt-oss-20b'
-      ])).filter(Boolean);
-
-      const activeGroqKey = groqKeys[groqExplainIndex++ % groqKeys.length];
-
-      const callGroqExplain = async (modelName) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${activeGroqKey}`
-          },
-          body: JSON.stringify({
-            model: modelName,
-            stream: true,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt }
-            ],
-            temperature: 0.1,
-            max_tokens: 8192
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return resp;
-      };
-
-      let groqResponse;
-      for (const groqModel of groqCandidateModels) {
-        console.log(`[AI Explain] Trying Groq model ${groqModel}...`);
-        try {
-          groqResponse = await callGroqExplain(groqModel);
-          if (groqResponse && groqResponse.ok) {
-            break;
-          } else {
-            console.warn(`[AI Explain] Groq ${groqModel} failed (${groqResponse?.status}). Trying next Groq model...`);
-          }
-        } catch (err) {
-          console.warn(`[AI Explain] Groq ${groqModel} error: ${err.message}. Trying next Groq model...`);
-        }
-      }
-
-      if (groqResponse && groqResponse.ok) {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-
-        const reader = groqResponse.body;
-        if (reader) {
-          const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-          let groqBuffer = '';
-          const groqDecoder = new TextDecoder('utf-8');
-
-          const processGroqChunk = (chunkBytes) => {
-            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : groqDecoder.decode(chunkBytes, { stream: true });
-            groqBuffer += chunkText;
-
-            let lineIndex;
-            while ((lineIndex = groqBuffer.indexOf('\n')) !== -1) {
-              const line = groqBuffer.slice(0, lineIndex).trim();
-              groqBuffer = groqBuffer.slice(lineIndex + 1);
-
-              if (line.startsWith('data: ')) {
-                const dataStr = line.slice(6).trim();
-                if (dataStr === '[DONE]') {
-                  res.write('data: [DONE]\n\n');
-                  continue;
-                }
-                try {
-                  const parsed = JSON.parse(dataStr);
-                  const text = parsed.choices?.[0]?.delta?.content || '';
-                  if (text) {
-                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                  }
-                } catch (_) {}
-              }
-            }
-          };
-
-          if (typeof reader[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of reader) {
-              processGroqChunk(chunk);
-            }
-          } else {
-            while (true) {
-              const { done, value } = await streamReader.read();
-              if (done) break;
-              processGroqChunk(value);
-            }
-          }
-        }
-        res.write('data: [DONE]\n\n');
-        res.end();
-        return;
-      } else {
-        const errText = groqResponse ? await groqResponse.text() : '';
-        let errMsg = 'Failed call to Groq API';
-        try {
-          const errJson = JSON.parse(errText);
-          errMsg = errJson.error?.message || errMsg;
-        } catch (_) {}
-
-        console.warn(`[AI Explain] Groq failed (${errMsg}). Routing to Tier 3: OpenRouter fallback...`);
-      }
-    }
-
-    // =========================================================================
-    // 3. TIER 3: OpenRouter Direct (Tertiary Option - Fast Free Fallback Models)
+    // 3. TIER 3: OpenRouter Fallback
     // =========================================================================
     if (openRouterKeys.length > 0) {
-      const openRouterCandidateModels = Array.from(new Set([
-        process.env.OPENROUTER_MODEL,
-        'openai/gpt-oss-20b:free',
-        'google/gemma-4-31b-it:free',
-        'google/gemma-4-26b-a4b-it:free',
-        'openrouter/free'
-      ])).filter(Boolean);
-
       const activeOpenRouterKey = openRouterKeys[openRouterExplainIndex++ % openRouterKeys.length];
-
-      const callOpenRouterExplain = async (modelName) => {
+      try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 35000);
-        const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1743,102 +1700,75 @@ CRITICAL RULES:
             'X-Title': 'UGC NET Prep Platform'
           },
           body: JSON.stringify({
-            model: modelName,
+            model: 'openrouter/free',
             stream: true,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
             temperature: 0.1,
-            max_tokens: 8192
+            max_tokens: 2048
           }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        return resp;
-      };
 
-      let openRouterResponse;
-      for (const orModel of openRouterCandidateModels) {
-        console.log(`[AI Explain] Trying OpenRouter model ${orModel}...`);
-        try {
-          openRouterResponse = await callOpenRouterExplain(orModel);
-          if (openRouterResponse && openRouterResponse.ok) {
-            break;
-          } else {
-            console.warn(`[AI Explain] OpenRouter ${orModel} failed (${openRouterResponse?.status}). Trying next OpenRouter model...`);
-          }
-        } catch (err) {
-          console.warn(`[AI Explain] OpenRouter ${orModel} error: ${err.message}. Trying next OpenRouter model...`);
-        }
-      }
+        if (openRouterResponse && openRouterResponse.ok) {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
 
-      if (openRouterResponse && openRouterResponse.ok) {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
+          const reader = openRouterResponse.body;
+          if (reader) {
+            const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+            let orBuffer = '';
+            const orDecoder = new TextDecoder('utf-8');
 
-        const reader = openRouterResponse.body;
-        if (reader) {
-          const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-          let orBuffer = '';
-          const orDecoder = new TextDecoder('utf-8');
+            const processOrChunk = (chunkBytes) => {
+              const chunkText = typeof chunkBytes === 'string' ? chunkBytes : orDecoder.decode(chunkBytes, { stream: true });
+              orBuffer += chunkText;
 
-          const processOrChunk = (chunkBytes) => {
-            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : orDecoder.decode(chunkBytes, { stream: true });
-            orBuffer += chunkText;
+              let lineIndex;
+              while ((lineIndex = orBuffer.indexOf('\n')) !== -1) {
+                const line = orBuffer.slice(0, lineIndex).trim();
+                orBuffer = orBuffer.slice(lineIndex + 1);
 
-            let lineIndex;
-            while ((lineIndex = orBuffer.indexOf('\n')) !== -1) {
-              const line = orBuffer.slice(0, lineIndex).trim();
-              orBuffer = orBuffer.slice(lineIndex + 1);
-
-              if (line.startsWith('data: ')) {
-                const dataStr = line.slice(6).trim();
-                if (dataStr === '[DONE]') {
-                  res.write('data: [DONE]\n\n');
-                  continue;
+                if (line.startsWith('data: ')) {
+                  const dataStr = line.slice(6).trim();
+                  if (dataStr === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(dataStr);
+                    const text = parsed.choices?.[0]?.delta?.content || '';
+                    if (text) {
+                      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                    }
+                  } catch (_) {}
                 }
-                try {
-                  const parsed = JSON.parse(dataStr);
-                  const text = parsed.choices?.[0]?.delta?.content || '';
-                  if (text) {
-                    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                  }
-                } catch (_) {}
+              }
+            };
+
+            if (typeof reader[Symbol.asyncIterator] === 'function') {
+              for await (const chunk of reader) {
+                processOrChunk(chunk);
+              }
+            } else {
+              while (true) {
+                const { done, value } = await streamReader.read();
+                if (done) break;
+                processOrChunk(value);
               }
             }
-          };
-
-          if (typeof reader[Symbol.asyncIterator] === 'function') {
-            for await (const chunk of reader) {
-              processOrChunk(chunk);
-            }
-          } else {
-            while (true) {
-              const { done, value } = await streamReader.read();
-              if (done) break;
-              processOrChunk(value);
-            }
           }
+          res.write('data: [DONE]\n\n');
+          res.end();
+          return;
         }
-        res.write('data: [DONE]\n\n');
-        res.end();
-        return;
-      } else {
-        const errText = openRouterResponse ? await openRouterResponse.text() : '';
-        let errMsg = 'Failed call to OpenRouter API';
-        try {
-          const errJson = JSON.parse(errText);
-          errMsg = errJson.error?.message || errMsg;
-        } catch (_) {}
-
-        console.warn(`[AI Explain] OpenRouter failed (${errMsg}).`);
+      } catch (err) {
+        console.warn(`[AI Explain] OpenRouter error: ${err.message}`);
       }
     }
 
-    const finalError = geminiErrorMsg || 'No AI API keys configured or available on the server.';
-    return res.status(502).json({ message: finalError });
+    return res.status(502).json({ message: 'All AI explanation providers are currently rate-limited. Please retry shortly.' });
   } catch (err) {
     if (!res.headersSent) {
       res.status(500).json({ message: 'Internal server error while generating explanation', error: err.message });
