@@ -1534,11 +1534,12 @@ CRITICAL RULES:
 
               const reader = geminiResponse.body;
               let buffer = '';
+              const decoder = new TextDecoder('utf-8');
 
               if (reader) {
                 const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
                 const processChunk = (chunkBytes) => {
-                  const chunkText = new TextDecoder('utf-8').decode(chunkBytes);
+                  const chunkText = typeof chunkBytes === 'string' ? chunkBytes : decoder.decode(chunkBytes, { stream: true });
                   buffer += chunkText;
                   
                   let lineIndex;
@@ -1661,9 +1662,10 @@ CRITICAL RULES:
         if (reader) {
           const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
           let groqBuffer = '';
+          const groqDecoder = new TextDecoder('utf-8');
 
           const processGroqChunk = (chunkBytes) => {
-            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : new TextDecoder('utf-8').decode(chunkBytes);
+            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : groqDecoder.decode(chunkBytes, { stream: true });
             groqBuffer += chunkText;
 
             let lineIndex;
@@ -1780,9 +1782,10 @@ CRITICAL RULES:
         if (reader) {
           const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
           let orBuffer = '';
+          const orDecoder = new TextDecoder('utf-8');
 
           const processOrChunk = (chunkBytes) => {
-            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : new TextDecoder('utf-8').decode(chunkBytes);
+            const chunkText = typeof chunkBytes === 'string' ? chunkBytes : orDecoder.decode(chunkBytes, { stream: true });
             orBuffer += chunkText;
 
             let lineIndex;
