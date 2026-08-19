@@ -1477,7 +1477,108 @@ CRITICAL RULES:
     }
 
     // =========================================================================
-    // 1. TIER 1: Groq LPU Direct (Primary: 120B Accuracy + Instant Sub-Second Speed)
+    // 1. TIER 1: Google Gemini Pool (Primary: Highest Academic Accuracy & Zero Hallucination)
+    // =========================================================================
+    if (geminiKeys.length > 0) {
+      const candidateModels = ['gemini-flash-latest', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+      const maxGeminiAttempts = Math.min(geminiKeys.length * 2, 8);
+
+      for (let attempt = 0; attempt < maxGeminiAttempts; attempt++) {
+        const keyIdx = (geminiExplainIndex + attempt) % geminiKeys.length;
+        const currentGeminiKey = geminiKeys[keyIdx];
+        const cooldownUntil = geminiKeyCooldowns.get(currentGeminiKey) || 0;
+        if (Date.now() < cooldownUntil) continue;
+
+        geminiExplainIndex = (keyIdx + 1) % geminiKeys.length;
+
+        for (const geminiModel of candidateModels) {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            const geminiResponse = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': currentGeminiKey
+              },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: { 
+                  temperature: 0.0,
+                  maxOutputTokens: 2048
+                }
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (geminiResponse.ok) {
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+
+              const reader = geminiResponse.body;
+              if (reader) {
+                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
+                let buffer = '';
+                const decoder = new TextDecoder('utf-8');
+
+                const processChunk = (chunkBytes) => {
+                  const chunkText = typeof chunkBytes === 'string' ? chunkBytes : decoder.decode(chunkBytes, { stream: true });
+                  buffer += chunkText;
+                  
+                  let lineIndex;
+                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
+                    const line = buffer.slice(0, lineIndex).trim();
+                    buffer = buffer.slice(lineIndex + 1);
+                    
+                    if (line.startsWith('data: ')) {
+                      const dataStr = line.slice(6).trim();
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const parts = parsed.candidates?.[0]?.content?.parts || [];
+                        const text = parts.filter(p => !p.thought).map(p => p.text || '').join('');
+                        if (text) {
+                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
+                        }
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                if (typeof reader[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of reader) {
+                    processChunk(chunk);
+                  }
+                } else {
+                  while (true) {
+                    const { done, value } = await streamReader.read();
+                    if (done) break;
+                    processChunk(value);
+                  }
+                }
+              }
+
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            } else if (geminiResponse.status === 429) {
+              geminiKeyCooldowns.set(currentGeminiKey, Date.now() + 60000);
+              break;
+            }
+          } catch (err) {
+            console.warn(`[AI Explain] Gemini ${geminiModel} error: ${err.message}`);
+          }
+        }
+      }
+      console.warn('[AI Explain] Gemini pool exhausted or cooling down. Falling back to Tier 2: Groq...');
+    }
+
+    // =========================================================================
+    // 2. TIER 2: Groq LPU Direct (Secondary Fallback - Ultra Fast)
     // =========================================================================
     if (groqKeys.length > 0) {
       const groqCandidateModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
@@ -1580,108 +1681,7 @@ CRITICAL RULES:
           }
         }
       }
-      console.warn('[AI Explain] Groq tier exhausted or cooling down. Falling back to Tier 2: Gemini...');
-    }
-
-    // =========================================================================
-    // 2. TIER 2: Google Gemini Pool (Secondary Fallback)
-    // =========================================================================
-    if (geminiKeys.length > 0) {
-      const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-      const maxGeminiAttempts = Math.min(geminiKeys.length, 6);
-
-      for (let attempt = 0; attempt < maxGeminiAttempts; attempt++) {
-        const keyIdx = (geminiExplainIndex + attempt) % geminiKeys.length;
-        const currentGeminiKey = geminiKeys[keyIdx];
-        const cooldownUntil = geminiKeyCooldowns.get(currentGeminiKey) || 0;
-        if (Date.now() < cooldownUntil) continue;
-
-        geminiExplainIndex = (keyIdx + 1) % geminiKeys.length;
-
-        for (const geminiModel of candidateModels) {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-            const geminiResponse = await fetch(geminiUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': currentGeminiKey
-              },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: { 
-                  temperature: 0.0,
-                  maxOutputTokens: 2048
-                }
-              }),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (geminiResponse.ok) {
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
-
-              const reader = geminiResponse.body;
-              if (reader) {
-                const streamReader = typeof reader[Symbol.asyncIterator] === 'function' ? reader : reader.getReader();
-                let buffer = '';
-                const decoder = new TextDecoder('utf-8');
-
-                const processChunk = (chunkBytes) => {
-                  const chunkText = typeof chunkBytes === 'string' ? chunkBytes : decoder.decode(chunkBytes, { stream: true });
-                  buffer += chunkText;
-                  
-                  let lineIndex;
-                  while ((lineIndex = buffer.indexOf('\n')) !== -1) {
-                    const line = buffer.slice(0, lineIndex).trim();
-                    buffer = buffer.slice(lineIndex + 1);
-                    
-                    if (line.startsWith('data: ')) {
-                      const dataStr = line.slice(6).trim();
-                      try {
-                        const parsed = JSON.parse(dataStr);
-                        const parts = parsed.candidates?.[0]?.content?.parts || [];
-                        const text = parts.filter(p => !p.thought).map(p => p.text || '').join('');
-                        if (text) {
-                          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`);
-                        }
-                      } catch (_) {}
-                    }
-                  }
-                };
-
-                if (typeof reader[Symbol.asyncIterator] === 'function') {
-                  for await (const chunk of reader) {
-                    processChunk(chunk);
-                  }
-                } else {
-                  while (true) {
-                    const { done, value } = await streamReader.read();
-                    if (done) break;
-                    processChunk(value);
-                  }
-                }
-              }
-
-              res.write('data: [DONE]\n\n');
-              res.end();
-              return;
-            } else if (geminiResponse.status === 429) {
-              geminiKeyCooldowns.set(currentGeminiKey, Date.now() + 60000);
-              break;
-            }
-          } catch (err) {
-            console.warn(`[AI Explain] Gemini ${geminiModel} error: ${err.message}`);
-          }
-        }
-      }
-      console.warn('[AI Explain] Gemini pool exhausted. Falling back to Tier 3: OpenRouter...');
+      console.warn('[AI Explain] Groq tier exhausted or cooling down. Falling back to Tier 3: OpenRouter...');
     }
 
     // =========================================================================
