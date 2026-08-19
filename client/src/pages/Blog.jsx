@@ -124,7 +124,9 @@ const Blog = () => {
                 <section className="featured-post">
                   <div className="featured-content">
                     <span className="post-badge">{featuredPost.category}</span>
-                    <h2 className="featured-title" onClick={() => navigate(`/blog/${featuredPost._id}`)}>{featuredPost.title}</h2>
+                    <Link to={`/blog/${featuredPost._id}`}>
+                      <h2 className="featured-title">{featuredPost.title}</h2>
+                    </Link>
                     <p className="featured-excerpt">{featuredPost.excerpt}</p>
                     <div className="post-meta">
                       <span>By {featuredPost.author}</span>
@@ -133,13 +135,13 @@ const Blog = () => {
                       <span>•</span>
                       <span>{featuredPost.readTime}</span>
                     </div>
-                    <button className="read-more-btn" onClick={() => navigate(`/blog/${featuredPost._id}`)}>
+                    <Link to={`/blog/${featuredPost._id}`} className="read-more-btn">
                       Read Article 
                       <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
                       </svg>
-                    </button>
+                    </Link>
                   </div>
                 </section>
               )}
@@ -150,16 +152,18 @@ const Blog = () => {
                 {(selectedCategory !== 'All' || searchTerm) && filteredPosts.map((post, idx) => (
                   <div key={post._id} style={{ display: 'contents' }}>
                     <article className="post-card">
-                      <div className="post-card-content">
-                        <span className="post-badge">{post.category}</span>
-                        <h3 className="post-card-title" onClick={() => navigate(`/blog/${post._id}`)}>{post.title}</h3>
-                        <p className="post-card-excerpt">{post.excerpt}</p>
-                        <div className="post-meta">
-                          <span>{post.date}</span>
-                          <span>•</span>
-                          <span>{post.readTime}</span>
+                      <Link to={`/blog/${post._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="post-card-content">
+                          <span className="post-badge">{post.category}</span>
+                          <h3 className="post-card-title">{post.title}</h3>
+                          <p className="post-card-excerpt">{post.excerpt}</p>
+                          <div className="post-meta">
+                            <span>{post.date}</span>
+                            <span>•</span>
+                            <span>{post.readTime}</span>
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     </article>
                     {/* Native In-Feed Ad Slot after the 3rd post */}
                     {idx === 2 && (
@@ -181,16 +185,18 @@ const Blog = () => {
                 {selectedCategory === 'All' && !searchTerm && otherPosts.map((post, idx) => (
                   <div key={post._id} style={{ display: 'contents' }}>
                     <article className="post-card">
-                      <div className="post-card-content">
-                        <span className="post-badge">{post.category}</span>
-                        <h3 className="post-card-title" onClick={() => navigate(`/blog/${post._id}`)}>{post.title}</h3>
-                        <p className="post-card-excerpt">{post.excerpt}</p>
-                        <div className="post-meta">
-                          <span>{post.date}</span>
-                          <span>•</span>
-                          <span>{post.readTime}</span>
+                      <Link to={`/blog/${post._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <div className="post-card-content">
+                          <span className="post-badge">{post.category}</span>
+                          <h3 className="post-card-title">{post.title}</h3>
+                          <p className="post-card-excerpt">{post.excerpt}</p>
+                          <div className="post-meta">
+                            <span>{post.date}</span>
+                            <span>•</span>
+                            <span>{post.readTime}</span>
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     </article>
                     {/* Native In-Feed Ad Slot after the 3rd post */}
                     {idx === 2 && (
@@ -235,10 +241,12 @@ const Blog = () => {
                     <h3>Popular Articles</h3>
                     <div className="sidebar-popular-list">
                       {popularPosts.map(p => (
-                        <div key={p._id} className="popular-item" onClick={() => navigate(`/blog/${p._id}`)}>
-                          <span className="popular-category">{p.category}</span>
-                          <h4 className="popular-title">{p.title}</h4>
-                        </div>
+                        <Link key={p._id} to={`/blog/${p._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <div className="popular-item">
+                            <span className="popular-category">{p.category}</span>
+                            <h4 className="popular-title">{p.title}</h4>
+                          </div>
+                        </Link>
                       ))}
                     </div>
                   </div>

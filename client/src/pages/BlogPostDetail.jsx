@@ -213,15 +213,17 @@ const BlogPostDetail = () => {
                 <h3 className="suggested-section-title">You Might Also Like</h3>
                 <div className="suggested-reads-grid">
                   {suggestedPosts.map(item => (
-                    <article key={item._id} className="suggested-item-card" onClick={() => navigate(`/blog/${item._id}`)}>
-                      <span className="suggested-item-badge">{item.category}</span>
-                      <h4 className="suggested-item-title">{item.title}</h4>
-                      <div className="suggested-item-meta">
-                        <span>{item.date}</span>
-                        <span>•</span>
-                        <span>{item.readTime}</span>
-                      </div>
-                    </article>
+                    <Link key={item._id} to={`/blog/${item._id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <article className="suggested-item-card">
+                        <span className="suggested-item-badge">{item.category}</span>
+                        <h4 className="suggested-item-title">{item.title}</h4>
+                        <div className="suggested-item-meta">
+                          <span>{item.date}</span>
+                          <span>•</span>
+                          <span>{item.readTime}</span>
+                        </div>
+                      </article>
+                    </Link>
                   ))}
                 </div>
               </section>
