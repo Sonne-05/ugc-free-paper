@@ -1417,7 +1417,49 @@ app.post('/api/questions/explain', async (req, res) => {
       userPrompt += `\n`;
     }
 
-    let systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
+    // Check if the user/system has already selected a specific correct option (Option 1, 2, 3, 4 or 0 for Dropped)
+    const hasPreselectedOption = typeof correct !== 'undefined' && correct !== null && correct !== '' && Number(correct) >= 1 && Number(correct) <= 4;
+    const selectedOptionNum = hasPreselectedOption ? Number(correct) : (correct === 0 || correct === '0' ? 0 : null);
+
+    if (selectedOptionNum !== null && selectedOptionNum >= 1 && selectedOptionNum <= 4) {
+      userPrompt += `SPECIFIED CORRECT ANSWER: Option ${selectedOptionNum}\n`;
+      userPrompt += `TASK INSTRUCTION: The officially verified correct answer is Option ${selectedOptionNum}. You MUST generate a comprehensive academic explanation proving why Option ${selectedOptionNum} is correct, and explain why each of the other options is incorrect.\n\n`;
+    } else if (selectedOptionNum === 0) {
+      userPrompt += `SPECIFIED STATUS: Dropped Question / Discrepancy\n`;
+      userPrompt += `TASK INSTRUCTION: This question is dropped/invalid. Explain the discrepancies and review the options.\n\n`;
+    }
+
+    let systemPrompt = '';
+    if (selectedOptionNum !== null && selectedOptionNum >= 1 && selectedOptionNum <= 4) {
+      systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
+
+TASK & SOLVING FORMAT:
+The verified correct option is OPTION ${selectedOptionNum}. You MUST explain why Option ${selectedOptionNum} is the correct answer.
+
+Step 1: Output the confirmed correct option number on its own line:
+[[CORRECT_OPTION: ${selectedOptionNum}]]
+
+Step 2: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
+
+<p><strong>Key Concept & Context:</strong> A clear, concise 1-2 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question.</p>
+
+<h4>Why Option ${selectedOptionNum} is Correct:</h4>
+<p>A comprehensive, factually accurate explanation justifying why Option ${selectedOptionNum} is the correct answer with direct proofs, historical dates, publications, or conceptual arguments.</p>
+
+<h4>Why Other Options are Incorrect:</h4>
+<ul>
+  <li><strong>Option 1 / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option Y / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option Z / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+</ul>
+
+CRITICAL RULES:
+- You MUST follow Option ${selectedOptionNum} as the correct answer.
+- Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
+- Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
+- You MUST explicitly explain every other incorrect option individually in the bullet list.`;
+    } else {
+      systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
 
 TASK & SOLVING FORMAT:
 Step 1: Rapidly verify the exact facts, author/thinker, publication, theory, or formula in your internal analysis tag:
@@ -1444,6 +1486,7 @@ CRITICAL RULES:
 - Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
 - You MUST explicitly explain every incorrect option individually in the bullet list.`;
+    }
 
     // Auto-detect target language from question content to properly support Hindi/Sindhi
     let detectedLanguage = 'English';
