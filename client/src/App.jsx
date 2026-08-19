@@ -73,8 +73,15 @@ function App() {
       title = 'UGC NET Paper 1 Unit Wise PYQ Practice & Mock Tests (All 10 Units) - UGC Free Paper';
       description = 'Topic-wise UGC NET Paper 1 previous year questions for Teaching Aptitude, Research, ICT, Higher Education, and all 10 syllabus units. 100% free CBT tests.';
     } else if (path === '/paper2') {
-      title = 'UGC NET Paper 2 Previous Year Questions & CBT Mock Tests Free - UGC Free Paper';
-      description = 'Free UGC NET Paper 2 subject-specific mock tests and full 100-question solved previous year papers for Sociology, Sindhi, and core disciplines.';
+      const searchParams = new URLSearchParams(location.search);
+      const subjectParam = searchParams.get('subject');
+      if (subjectParam) {
+        title = `UGC NET ${subjectParam} Paper 2 PYQ & CBT Mock Tests Free (2020–2025) - UGC Free Paper`;
+        description = `Practice free UGC NET ${subjectParam} Paper 2 previous year questions (PYQs) and realistic CBT mock tests. Solved question papers with detailed academic solutions.`;
+      } else {
+        title = 'UGC NET Paper 2 Previous Year Questions & CBT Mock Tests Free - UGC Free Paper';
+        description = 'Free UGC NET Paper 2 subject-specific mock tests and full 100-question solved previous year papers for Sociology, Sindhi, and core disciplines.';
+      }
     } else if (path === '/paper1-notes') {
       title = 'UGC NET Paper 1 Notes PDF (All 10 Units) - Free Study Material 2025 - UGC Free Paper';
       description = 'Download and read free UGC NET Paper 1 revision notes, concept summaries, and short study guides for all 10 units. High-yield JRF exam preparation.';
