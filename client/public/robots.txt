@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
 
+# Block non-indexable app pages to save crawl budget
+Disallow: /signin
+Disallow: /signup
+Disallow: /profile
+Disallow: /admin
+Disallow: /admin/
+
 Sitemap: https://ugcfreepaper.com/sitemap.xml

@@ -77,7 +77,17 @@ const UnitNotes = () => {
       }
       metaDesc.setAttribute('content', desc);
     }
-  }, [customData, fallbackUnit, cleanedId])
+
+    // Set explicit self-referencing canonical for each unit page
+    const canonicalUrl = `https://ugcfreepaper.com/paper1-notes/${unitId}`;
+    let link = document.querySelector("link[rel='canonical']");
+    if (!link) {
+      link = document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      document.head.appendChild(link);
+    }
+    link.setAttribute('href', canonicalUrl);
+  }, [customData, fallbackUnit, cleanedId, unitId])
 
   if (loading) {
     return <div style={{ padding: '100px', textAlign: 'center' }}>Loading notes...</div>
@@ -119,9 +129,48 @@ const UnitNotes = () => {
     )
   }
 
+  // BreadcrumbList schema for all unit pages — helps Google understand page hierarchy
+  const unitDisplayName = customData?.unitTitle || fallbackUnit?.title || `Unit ${cleanedId}`;
+  const BreadcrumbSchema = () => (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            {
+              '@type': 'ListItem',
+              position: 1,
+              name: 'Home',
+              item: 'https://ugcfreepaper.com/'
+            },
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: 'UGC NET Paper 1 Notes',
+              item: 'https://ugcfreepaper.com/paper1-notes'
+            },
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: unitDisplayName,
+              item: `https://ugcfreepaper.com/paper1-notes/${unitId}`
+            }
+          ]
+        })
+      }}
+    />
+  )
+
   // If custom JSON data exists, render the template
   if (customData) {
-    return <UnitNotesTemplate data={customData} />
+    return (
+      <>
+        <BreadcrumbSchema />
+        <UnitNotesTemplate data={customData} />
+      </>
+    )
   }
 
   // Fallback to original logic if no custom JSON data
@@ -147,20 +196,25 @@ const UnitNotes = () => {
   // Render static HTML file for Unit 1
   if (cleanedId === '1') {
     return (
-      <div style={{ width: '100%', height: '100vh', paddingTop: '56px', overflow: 'hidden', boxSizing: 'border-box' }}>
-        <iframe 
-          src="/notes/Unit%201%20P1%20notes.html" 
-          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-          title="Unit 1 Notes"
-        />
-      </div>
+      <>
+        <BreadcrumbSchema />
+        <div style={{ width: '100%', height: '100vh', paddingTop: '56px', overflow: 'hidden', boxSizing: 'border-box' }}>
+          <iframe 
+            src="/notes/Unit%201%20P1%20notes.html" 
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            title="Unit 1 Notes"
+          />
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="unit-notes">
-      <div className="unit-notes__container">
-        <Link to="/paper1-notes" className="unit-notes__back-link">
+    <>
+      <BreadcrumbSchema />
+      <div className="unit-notes">
+        <div className="unit-notes__container">
+          <Link to="/paper1-notes" className="unit-notes__back-link">
           &larr; Back to Paper I Notes
         </Link>
 
@@ -252,6 +306,7 @@ const UnitNotes = () => {
         </main>
       </div>
     </div>
+    </>
   )
 }
 

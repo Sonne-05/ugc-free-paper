@@ -28,6 +28,7 @@ function askQuestion(query) {
 // Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
 function parseAnswerKey(text) {
   const mapping = {};
+  if (!text) return mapping;
 
   // Format E: "[Question ID = X]...[Option ID = Y]"
   const qIdOptionPattern = /\[Question ID\s*=\s*(\d+)\].*?\n(?:.*?\n)*?1\.\s*1\s*\[Option ID\s*=\s*(\d+)\]/g;
@@ -56,6 +57,30 @@ function parseAnswerKey(text) {
     if (Object.keys(mapping).some(k => k.startsWith('qid:'))) {
       return mapping;
     }
+  }
+
+  // Tabular / Embedded ANSWER KEY parser (e.g. "ANSWER KEY\nQ.NO ANS Q.NO ANS" or "1 D 51 B")
+  const ansKeyIdx = text.search(/ANSWER\s*KEY/i);
+  const relevantText = ansKeyIdx !== -1 ? text.substring(ansKeyIdx) : text;
+
+  const normalized = relevantText
+    .replace(/([A-D])\s*,\s*([A-D])/gi, '$1')
+    .replace(/\b(DROPPED|DROP|NULL)\b/gi, '0');
+
+  const pairRegex = /\b(\d{1,3})\s+([A-D1-4]|0)\b/gi;
+  let match;
+  while ((match = pairRegex.exec(normalized)) !== null) {
+    const qNum = parseInt(match[1], 10);
+    const ansRaw = match[2].toUpperCase();
+    const map = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4, '0': 0 };
+    if (qNum >= 1 && qNum <= 150 && map[ansRaw] !== undefined) {
+      mapping[qNum] = map[ansRaw];
+      mapping[String(qNum)] = map[ansRaw];
+    }
+  }
+
+  if (Object.keys(mapping).length >= 10) {
+    return mapping;
   }
 
   // Standard line-by-line format
@@ -508,20 +533,26 @@ function harvestMultipleStatementData(rawText, targetLang = 'English') {
   if (!rawText) return null;
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
   
-  // 1. Harvest Statements (A, B, C, D, E)
+  // Split into statement lines (before "Choose the correct" or before combinations) and option lines (after)
+  const chooseIdx = lines.findIndex(l => /^(?:Choose the|नीचे दिए|Options?\s*:)/i.test(l) || /^[A-D1-4\.\(\)\s\-]*\b(?:only|and)\b/i.test(l));
+  
+  const stmtLines = chooseIdx !== -1 ? lines.slice(0, chooseIdx) : lines;
+  const optLines = chooseIdx !== -1 ? lines.slice(chooseIdx) : lines;
+
+  // 1. Harvest Statements (a, b, c, d, e or A, B, C, D, E or Statement I, II)
   const statementsMap = new Map();
-  for (let line of lines) {
+  for (let line of stmtLines) {
     if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line) || /^(?:Correct|Wrong)\s*Marks/i.test(line) || /^\d+\)$/.test(line)) continue;
     
     // In English mode, skip lines that contain Hindi / Devanagari script entirely
     if (targetLang === 'English' && /[\u0900-\u097F]/.test(line)) continue;
     // In Hindi mode, skip lines that are pure English
-    if (targetLang === 'Hindi' && !/[\u0900-\u097F]/.test(line) && !/^[A-E1-4\.\(\)\s\-]+$/.test(line)) continue;
+    if (targetLang === 'Hindi' && !/[\u0900-\u097F]/.test(line) && !/^[A-Ea-e1-4\.\(\)\s\-]+$/.test(line)) continue;
 
-    const stmtMatch = line.match(/^(\([A-E]\)|[A-E]\.)\s*(.+)$/i);
+    const stmtMatch = line.match(/^(?:(?:\(([A-Ea-e])\)|\b([A-Ea-e])[\.:\)]|Statement\s*([I|V|X]+|[1-5])\s*[\.:\-–])\s*)(.+)$/i);
     if (stmtMatch) {
-      const letter = stmtMatch[1].replace(/[\(\)\.]/g, '').toUpperCase();
-      let content = stmtMatch[2].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description|नीचे दिए)[\s\S]*$/i, '').trim();
+      const letter = (stmtMatch[1] || stmtMatch[2] || stmtMatch[3]).toUpperCase();
+      let content = stmtMatch[4].replace(/\[Option ID[\s\S]*$/, '').replace(/\b(?:Choose the correct|Question Description|नीचे दिए)[\s\S]*$/i, '').trim();
       if (targetLang === 'English') {
         const slashIdx = content.indexOf('/');
         if (slashIdx !== -1 && /[\u0900-\u097F]/.test(content.substring(slashIdx))) {
@@ -529,7 +560,7 @@ function harvestMultipleStatementData(rawText, targetLang = 'English') {
         }
         content = content.replace(/[\u0900-\u097F]+/g, '').trim();
       }
-      if (content.replace(/[^A-Za-z0-9\u0900-\u097F]/g, '').length >= 2) {
+      if (content.replace(/[^A-Za-z0-9\u0900-\u097F]/g, '').length >= 1) {
         if (!statementsMap.has(letter) || (targetLang === 'English' && !/[\u0900-\u097F]/.test(content))) {
           statementsMap.set(letter, content);
         }
@@ -537,15 +568,25 @@ function harvestMultipleStatementData(rawText, targetLang = 'English') {
     }
   }
 
-  // 2. Harvest Options (1, 2, 3, 4)
+  // 2. Harvest Options (1, 2, 3, 4 or A, B, C, D)
   const optionsMap = new Map();
-  for (let line of lines) {
-    if (targetLang === 'English' && /^[0-9\.\(\)\s\-]*[\u0900-\u097F]/.test(line) && !/\b(?:only|and|[A-E])\b/i.test(line)) continue;
+  const letterToNum = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'a': 1, 'b': 2, 'c': 3, 'd': 4 };
 
-    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\))\s*(.+)$/);
+  for (let line of optLines) {
+    if (targetLang === 'English' && /^[0-9\.\(\)\s\-]*[\u0900-\u097F]/.test(line) && !/\b(?:only|and|[A-Ea-e])\b/i.test(line)) continue;
+
+    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\)|\(?([A-Da-d])\)?[\.\:\-\s]|\(([A-Da-d])\))\s*(.+)$/);
     if (optMatch) {
-      const optNum = parseInt(optMatch[1] || optMatch[2], 10);
-      let optText = optMatch[3].replace(/\[Option ID[\s\S]*$/, '').trim();
+      let optNum;
+      const numChar = optMatch[1] || optMatch[2];
+      const letterChar = optMatch[3] || optMatch[4];
+      if (numChar) {
+        optNum = parseInt(numChar, 10);
+      } else if (letterChar) {
+        optNum = letterToNum[letterChar];
+      }
+
+      let optText = optMatch[5].replace(/\[Option ID[\s\S]*$/, '').trim();
       if (targetLang === 'English') {
         const slashIdx = optText.indexOf('/');
         if (slashIdx !== -1 && /[\u0900-\u097F]/.test(optText.substring(slashIdx))) {
@@ -574,11 +615,21 @@ function harvestOptionsGeneral(rawText, targetLang = 'English') {
   if (!rawText) return null;
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
   const optionsMap = new Map();
+  const letterToNum = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, 'a': 1, 'b': 2, 'c': 3, 'd': 4 };
+
   for (let line of lines) {
-    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\))\s*(.+)$/);
+    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\)|\(?([A-Da-d])\)?[\.\:\-\s]|\(([A-Da-d])\))\s*(.+)$/);
     if (optMatch) {
-      const optNum = parseInt(optMatch[1] || optMatch[2], 10);
-      let optText = optMatch[3].replace(/\[Option ID[\s\S]*$/, '').trim();
+      let optNum;
+      const numChar = optMatch[1] || optMatch[2];
+      const letterChar = optMatch[3] || optMatch[4];
+      if (numChar) {
+        optNum = parseInt(numChar, 10);
+      } else if (letterChar) {
+        optNum = letterToNum[letterChar];
+      }
+
+      let optText = optMatch[5].replace(/\[Option ID[\s\S]*$/, '').trim();
       if (targetLang === 'English') {
         const slashIdx = optText.indexOf('/');
         if (slashIdx !== -1 && /[\u0900-\u097F]/.test(optText.substring(slashIdx))) {
@@ -599,15 +650,19 @@ function harvestOptionsGeneral(rawText, targetLang = 'English') {
 
 function harvestMatchColumnData(rawText, targetLang = 'English') {
   if (!rawText) return null;
-  const l1Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([A-D]\)|[A-D]\.)\s*([^\n]+)/gi)];
-  const l2Matches = [...rawText.matchAll(/(?:\n|^)\s*(?:\([I|V|X]+\)|[I|V|X]+\.|\([1-4]\))\s*([^\n]+)/gi)];
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const chooseIdx = lines.findIndex(l => /^(?:Choose the|नीचे दिए|Options?\s*:)/i.test(l) || /^[A-D1-4\.\(\)\s\-]*\([a-d]\)-/i.test(l));
+  const contentText = chooseIdx !== -1 ? lines.slice(0, chooseIdx).join('\n') : rawText;
+
+  const l1Matches = [...contentText.matchAll(/(?:\n|^)\s*(?:\([A-Da-d]\)|[A-Da-d]\.)\s*([^\n\t\(\)]+)/gi)];
+  const l2Matches = [...contentText.matchAll(/(?:\n|^|[^\w])(?:\([I|V|X]+\)|[I|V|X]+\.|\([1-4]\))\s*([^\n]+)/gi)];
 
   if (l1Matches.length >= 4 && l2Matches.length >= 4) {
     const list1 = [];
     const list2 = [];
     for (let j = 0; j < 4; j++) {
       const lLetter = String.fromCharCode(65 + j);
-      let t1 = l1Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim();
+      let t1 = l1Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').replace(/\(?[I|V|X]+\)?[\s\S]*$/, '').trim();
       let t2 = l2Matches[j][1].replace(/\[Option ID[\s\S]*$/, '').trim();
       if (targetLang === 'English') {
         t1 = cleanLanguageText(t1, 'English');
@@ -623,8 +678,8 @@ function harvestMatchColumnData(rawText, targetLang = 'English') {
 
 function harvestAssertionReasonData(rawText, targetLang = 'English') {
   if (!rawText) return null;
-  const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|Reason|कारण|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
-  const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|Reason\s*\(?R\)?|कारण\s*\(?R\)?)\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.))[^\n]+)*)/i);
+  const aMatch = rawText.match(/(?:Assertion\s*\([A-Z]\)|Assertion\s*\(?A\)?|अभिकथन\s*\(?A\)?)\s*:\s*([^\n]+(?:\n(?!(?:Reason\s*\([A-Z]\)|Reason|कारण|In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.|\(A\)|\(B\)|\(C\)|\(D\)))[^\n]+)*)/i);
+  const rMatch = rawText.match(/(?:Reason\s*\([A-Z]\)|Reason\s*\(?R\)?|कारण\s*\(?R\)?)\s*:\s*([^\n]+(?:\n(?!(?:In light of|Choose the|Options\s*:|\[Option ID|\(1\)|\(2\)|\(3\)|\(4\)|1\.|2\.|3\.|4\.|\(A\)|\(B\)|\(C\)|\(D\)))[^\n]+)*)/i);
   if (aMatch && rMatch) {
     let assertion = aMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
     let reason = rMatch[1].replace(/\[Option ID[\s\S]*$/, '').trim();
@@ -646,7 +701,7 @@ function cleanQuestionPromptText(rawQText, targetLang = 'English') {
     if (/^SI\.?\s*No/i.test(line) || /^QBID/i.test(line) || /\[Option ID/i.test(line) || /^\[Question ID/i.test(line) || /^--\s*\d+\s+of/i.test(line) || /^Question Description/i.test(line) || /^Topic:/i.test(line) || /^(?:Correct|Wrong)\s*Marks/i.test(line) || /^Question\s*Type/i.test(line) || /^\d+\)$/.test(line) || /^(?:--\s*)?\d*\s*of\s*\d+\s*--/i.test(line) || /^of\s+\d+\s*--/i.test(line)) continue;
     
     // Check if line is the start of statements or subprompt
-    if (/^(\([A-E]\)|[A-E]\.)\s+/i.test(line) || /^Statement\s*(?:I|II|III|IV|[1-4])\s*[\:\-\.]/i.test(line) || /^Choose the/i.test(line) || /^नीचे/i.test(line) || /^Options?\s*:?$/i.test(line) || /^List\s*[-–]?\s*I\b/i.test(line) || /^Assertion/i.test(line) || /^Reason/i.test(line)) {
+    if (/^(\([A-Ea-e]\)|[A-Ea-e]\.)\s*/i.test(line) || /^Statement\s*(?:I|II|III|IV|[1-4])\s*[\:\-\.]/i.test(line) || /^Choose the/i.test(line) || /^नीचे/i.test(line) || /^Options?\s*:?$/i.test(line) || /^List\s*[-–]?\s*I\b/i.test(line) || /^Assertion/i.test(line) || /^Reason/i.test(line)) {
       break;
     }
     
@@ -845,6 +900,13 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
     console.log(`Extracted ${text.length} characters of raw text.`);
     if (text.length < 500) {
       console.warn('⚠️  Warning: PDF text is extremely short or empty.');
+    }
+
+    // Auto-detect embedded answer key inside the PDF if no external key was provided
+    if (!answerKeyMap && text.search(/ANSWER\s*KEY/i) !== -1) {
+      console.log('✨ Auto-detected embedded Answer Key table inside PDF document...');
+      answerKeyMap = parseAnswerKey(text);
+      console.log(`Mapped ${Object.keys(answerKeyMap).length / 2} answers from embedded Answer Key.`);
     }
 
     // 2. Multi-Format Question Header Detection
@@ -1051,6 +1113,66 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
     // Comprehension Passages Extraction (Range & Section Aware)
     const compPassages = {};
+
+    // Format G: Booklet / Sequential Numbered Question Slicer (1. to 50., 1. to 100., 1. to 150.)
+    if (matchesList.length === 0 && cleanQuestions.length === 0) {
+      console.log('Scanning for Format G: Booklet / Numbered Question Sequences...');
+      const ansKeyIdx = text.search(/ANSWER\s*KEY/i);
+      const bodyText = (ansKeyIdx !== -1 ? text.substring(0, ansKeyIdx) : text)
+        .replace(/To get free NTA NET study materials[^\n]*\n?/gi, '')
+        .replace(/www\.aifer\.in\s*\d*\n?/gi, '')
+        .replace(/--\s*\d+\s+of\s+\d+\s*--\n?/gi, '');
+
+      const qNumHeaderRegex = /(?:^|\n)\s*(\d{1,3})\s*[\.:]\s*/g;
+      let qMatches = [];
+      let qm;
+      while ((qm = qNumHeaderRegex.exec(bodyText)) !== null) {
+        qMatches.push({ index: qm.index, matchLength: qm[0].length, qNum: parseInt(qm[1], 10) });
+      }
+
+      const filteredMatches = [];
+      let expectedNext = 1;
+      for (const mItem of qMatches) {
+        if (mItem.qNum === expectedNext) {
+          filteredMatches.push(mItem);
+          expectedNext++;
+        } else if (mItem.qNum > expectedNext && mItem.qNum <= expectedNext + 2) {
+          filteredMatches.push(mItem);
+          expectedNext = mItem.qNum + 1;
+        }
+      }
+
+      if (filteredMatches.length >= 25) {
+        console.log(`Detected Format G (Booklet / Numbered Questions): found ${filteredMatches.length} sequential questions.`);
+        for (let i = 0; i < filteredMatches.length; i++) {
+          const cur = filteredMatches[i];
+          const next = i + 1 < filteredMatches.length ? filteredMatches[i + 1] : null;
+          let rawBlock = bodyText.substring(cur.index + cur.matchLength, next ? next.index : bodyText.length).trim();
+
+          // Check if this block contains an embedded Comprehension header
+          const compMatch = rawBlock.match(/Comprehension\s*:\s*\(\s*(\d+)\s*[-–to\s]+\s*(\d+)\s*\)[\r\n\s]*(?:Read the following passage[^\n]*[\r\n\s]*)?([\s\S]+)$/i);
+          if (compMatch) {
+            const startQ = parseInt(compMatch[1], 10);
+            const endQ = parseInt(compMatch[2], 10);
+            const pText = compMatch[3].trim();
+            compPassages[`${startQ}_${endQ}`] = pText;
+            if (startQ >= 91 && endQ <= 95) compPassages['paper2_rc1'] = pText;
+            if (startQ >= 96 && endQ <= 100) compPassages['paper2_rc2'] = pText;
+            if (startQ >= 1 && endQ <= 5) compPassages['paper1_di'] = pText;
+            if (startQ >= 46 && endQ <= 50) compPassages['paper1_rc'] = pText;
+            
+            rawBlock = rawBlock.substring(0, compMatch.index).trim();
+          }
+
+          cleanQuestions.push({
+            qIndex: cur.qNum,
+            pdfQNum: cur.qNum,
+            qId: String(cur.qNum),
+            text: rawBlock
+          });
+        }
+      }
+    }
     const compRegex = /Question Id\s*:\s*(\d+)[\s\S]{0,120}?Question Type\s*:\s*(?:COMPREHENSION)[\s\S]{0,200}?Question Numbers?\s*:\s*\(\s*(\d+)\s+to\s+(\d+)\s*\)/gi;
     while ((match = compRegex.exec(text)) !== null) {
       const qId = match[1];
@@ -1318,7 +1440,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
 
       options = options.map((opt, i) => {
-        let str = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+        let str = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4A-Da-d]\)?[\.:\-–\s]*/, '').trim();
         if (LANGUAGE === 'English') {
           str = cleanLanguageText(str, 'English');
         }
@@ -1869,7 +1991,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
         }
 
         q.options = q.options.map((opt, i) => {
-          let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4]\)?[\.:\-–\s]*/, '').trim();
+          let cleanOpt = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4A-Da-d]\)?[\.:\-–\s]*/, '').trim();
           if (LANGUAGE === 'English') {
             cleanOpt = cleanLanguageText(cleanOpt, 'English');
           }

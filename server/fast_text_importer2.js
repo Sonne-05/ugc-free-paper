@@ -29,6 +29,7 @@ function askQuestion(query) {
 // Utility function to parse answer key PDF text into a mapping object
 function parseAnswerKey(text) {
   const mapping = {};
+  if (!text) return mapping;
 
   const qIdOptionPattern = /\[Question ID\s*=\s*(\d+)\].*?\n(?:.*?\n)*?1\.\s*1\s*\[Option ID\s*=\s*(\d+)\]/g;
   const formatEMatches = [];
@@ -56,6 +57,30 @@ function parseAnswerKey(text) {
     if (Object.keys(mapping).some(k => k.startsWith('qid:'))) {
       return mapping;
     }
+  }
+
+  // Tabular / Embedded ANSWER KEY parser (e.g. "ANSWER KEY\nQ.NO ANS Q.NO ANS" or "1 D 51 B")
+  const ansKeyIdx = text.search(/ANSWER\s*KEY/i);
+  const relevantText = ansKeyIdx !== -1 ? text.substring(ansKeyIdx) : text;
+
+  const normalized = relevantText
+    .replace(/([A-D])\s*,\s*([A-D])/gi, '$1')
+    .replace(/\b(DROPPED|DROP|NULL)\b/gi, '0');
+
+  const pairRegex = /\b(\d{1,3})\s+([A-D1-4]|0)\b/gi;
+  let match;
+  while ((match = pairRegex.exec(normalized)) !== null) {
+    const qNum = parseInt(match[1], 10);
+    const ansRaw = match[2].toUpperCase();
+    const map = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4, '0': 0 };
+    if (qNum >= 1 && qNum <= 150 && map[ansRaw] !== undefined) {
+      mapping[qNum] = map[ansRaw];
+      mapping[String(qNum)] = map[ansRaw];
+    }
+  }
+
+  if (Object.keys(mapping).length >= 10) {
+    return mapping;
   }
 
   const lines = text.split('\n');
@@ -165,71 +190,108 @@ function cleanJsonString(str) {
   return cleaned;
 }
 
-// Active Working OpenCode Models
-const OPENCODE_FREE_MODELS = [
-  'big-pickle',
-  'hy3-free',
-  'deepseek-v4-flash-free',
-  'nemotron-3-ultra-free'
-];
-
-const OMNIROUTE_OPENCODE_MODELS = [
-  'oc/big-pickle',
-  'oc/hy3-free',
-  'oc/deepseek-v4-flash-free',
-  'oc/nemotron-3-ultra-free'
-];
-
-let globalActiveHealthyModel = null;
-
-// Unified API Caller (Supports OmniRoute Local Gateway + Direct OpenCode Zen)
-async function callOpenCodeApi(prompt, model, retryCount = 0) {
-  let baseUrl = (process.env.OPENCODE_BASE_URL || 'https://opencode.ai/zen/v1').replace(/\/+$/, '');
-  if (baseUrl.includes('opencodezen.com')) {
-    baseUrl = 'https://opencode.ai/zen/v1';
-  }
+// OpenRouter Key Pool & Rate Limiter
+function setupOpenRouterKeyPool() {
+  const rawKeys = [];
   
-  const isOmniRoute = baseUrl.includes('20128') || model.startsWith('auto') || model.startsWith('oc/') || process.env.USE_OMNIROUTE === 'true';
-  let apiKey = (process.env.OPENCODE_API_KEY || '').replace(/\"/g, '').trim();
-
-  if (isOmniRoute && !apiKey) {
-    apiKey = 'omniroute';
-  } else if (!apiKey) {
-    throw new Error('OPENCODE_API_KEY is not set in .env file.');
+  if (process.env.OPENROUTER_API_KEY) {
+    rawKeys.push(...process.env.OPENROUTER_API_KEY.split(',').map(s => s.trim()).filter(Boolean));
+  }
+  if (process.env.OPENROUTER_API_KEYS) {
+    rawKeys.push(...process.env.OPENROUTER_API_KEYS.split(',').map(s => s.trim()).filter(Boolean));
+  }
+  for (let i = 1; i <= 50; i++) {
+    if (process.env[`OPENROUTER_API_KEY_${i}`]) rawKeys.push(process.env[`OPENROUTER_API_KEY_${i}`].trim());
+    if (process.env[`OR_KEY_${i}`]) rawKeys.push(process.env[`OR_KEY_${i}`].trim());
   }
 
-  const urlEndpoint = `${baseUrl}/chat/completions`;
-
-  // Start with the currently healthy model if available
-  const startModel = (retryCount === 0 && globalActiveHealthyModel) ? globalActiveHealthyModel : model;
-
-  // Build model cascade list strictly using the 4 verified active OpenCode models
-  let modelCascade;
-  if (isOmniRoute) {
-    const formattedModel = startModel.startsWith('oc/') ? startModel : (startModel.startsWith('auto') ? 'oc/big-pickle' : `oc/${startModel}`);
-    modelCascade = [
-      formattedModel,
-      ...OMNIROUTE_OPENCODE_MODELS.filter(m => m !== formattedModel)
-    ];
-  } else {
-    modelCascade = [
-      startModel,
-      ...OPENCODE_FREE_MODELS.filter(m => m !== startModel)
-    ];
+  const keys = Array.from(new Set(rawKeys)).filter(Boolean);
+  if (keys.length === 0) {
+    throw new Error('No OPENROUTER_API_KEY found in environment (.env). Please provide at least one OpenRouter key.');
   }
-    
-  const currentModel = modelCascade[retryCount % modelCascade.length];
+
+  return {
+    keys,
+    history: keys.map(() => []),
+    cooldowns: keys.map(() => 0),
+    lastUsed: keys.map(() => 0),
+    index: 0,
+    PER_KEY_RPM: 20,
+    MIN_INTERVAL_MS: 1500,
+
+    async getNextKey() {
+      const now = Date.now();
+      const windowMs = 60000;
+
+      for (let i = 0; i < this.history.length; i++) {
+        this.history[i] = this.history[i].filter(ts => now - ts < windowMs);
+      }
+
+      for (let attempt = 0; attempt < this.keys.length; attempt++) {
+        const idx = (this.index + attempt) % this.keys.length;
+        const isNotCooling = this.cooldowns[idx] <= now;
+        const isUnderRpm = this.history[idx].length < this.PER_KEY_RPM;
+        const hasPassedInterval = (now - this.lastUsed[idx]) >= this.MIN_INTERVAL_MS;
+
+        if (isNotCooling && isUnderRpm && hasPassedInterval) {
+          this.index = (idx + 1) % this.keys.length;
+          this.history[idx].push(now);
+          this.lastUsed[idx] = now;
+          return { key: this.keys[idx], keyIndex: idx };
+        }
+      }
+
+      // If all keys are busy, pick the one clearing cooldown earliest
+      const shortestCooldown = Math.min(...this.cooldowns);
+      const waitMs = Math.max(500, shortestCooldown - now);
+      await new Promise(r => setTimeout(r, Math.min(waitMs, 3000)));
+
+      const fallbackIdx = this.index % this.keys.length;
+      this.index = (fallbackIdx + 1) % this.keys.length;
+      return { key: this.keys[fallbackIdx], keyIndex: fallbackIdx };
+    },
+
+    markRateLimited(keyIndex, cooldownSeconds = 20) {
+      if (keyIndex >= 0 && keyIndex < this.cooldowns.length) {
+        this.cooldowns[keyIndex] = Date.now() + (cooldownSeconds * 1000);
+        console.warn(`[OpenRouter Key Pool] Key #${keyIndex + 1} marked cooling for ${cooldownSeconds}s.`);
+      }
+    }
+  };
+}
+
+let globalKeyPool = null;
+
+// Unified OpenRouter API Caller with multi-key round-robin rotation & model fallback
+async function callOpenRouterApi(prompt, model, keyPool, retryCount = 0) {
+  if (!keyPool) {
+    if (!globalKeyPool) globalKeyPool = setupOpenRouterKeyPool();
+    keyPool = globalKeyPool;
+  }
+
+  const { key, keyIndex } = await keyPool.getNextKey();
+  const urlEndpoint = 'https://openrouter.ai/api/v1/chat/completions';
+
+  const modelFallbacks = [
+    model,
+    'google/gemini-2.5-flash',
+    'deepseek/deepseek-chat',
+    'qwen/qwen-2.5-72b-instruct'
+  ];
+  const targetModel = modelFallbacks[retryCount % modelFallbacks.length];
 
   try {
     const res = await fetch(urlEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': 'https://ugc-free-paper.vercel.app',
+        'X-Title': 'UGC NET Question Importer'
       },
-      signal: AbortSignal.timeout(50000),
+      signal: AbortSignal.timeout(60000),
       body: JSON.stringify({
-        model: currentModel,
+        model: targetModel,
         messages: [
           {
             role: 'system',
@@ -250,57 +312,41 @@ async function callOpenCodeApi(prompt, model, retryCount = 0) {
     if (res.ok) {
       const rawText = await res.text();
       let rawJson = '';
-      if (rawText.trim().startsWith('data:')) {
-        const lines = rawText.split('\n');
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('data:') && !trimmed.includes('[DONE]')) {
-            try {
-              const chunk = JSON.parse(trimmed.replace(/^data:\s*/, ''));
-              const chunkContent = chunk.choices?.[0]?.delta?.content || chunk.choices?.[0]?.message?.content || '';
-              rawJson += chunkContent;
-            } catch (_) {}
-          }
-        }
-      } else {
-        try {
-          const data = JSON.parse(rawText);
-          rawJson = data.choices?.[0]?.message?.content || (typeof data === 'string' ? data : JSON.stringify(data));
-        } catch (_) {
-          rawJson = rawText;
-        }
+      try {
+        const data = JSON.parse(rawText);
+        rawJson = data.choices?.[0]?.message?.content || (typeof data === 'string' ? data : JSON.stringify(data));
+      } catch (_) {
+        rawJson = rawText;
       }
 
       const parsed = JSON.parse(cleanJsonString(rawJson));
       const questionsList = parsed.questions || (Array.isArray(parsed) ? parsed : []);
-      if (questionsList.length > 0) {
-        globalActiveHealthyModel = currentModel; // Remember this healthy model for future batches!
-      }
       return questionsList;
     }
 
     const errText = await res.text();
+    if (res.status === 429) {
+      keyPool.markRateLimited(keyIndex, 25);
+    } else if (res.status === 401 || res.status === 402 || res.status === 403) {
+      keyPool.markRateLimited(keyIndex, 600);
+    }
+
     if (retryCount < 10) {
-      const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-      console.warn(`[AI Gateway ${res.status}] ${currentModel} error (${errText.substring(0, 80)}). Switching to "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
-      return callOpenCodeApi(prompt, model, retryCount + 1);
+      console.warn(`[OpenRouter ${res.status}] Key #${keyIndex + 1} (${targetModel}): ${errText.substring(0, 100)}. Switching key/model (Attempt ${retryCount + 1}/10)...`);
+      await new Promise(r => setTimeout(r, 1000));
+      return callOpenRouterApi(prompt, model, keyPool, retryCount + 1);
     }
   } catch (err) {
-    if (isOmniRoute && err.message.includes('ECONNREFUSED')) {
-      console.error('\n❌ Could not connect to local OmniRoute on http://localhost:20128.');
-      console.error('👉 Please start OmniRoute in a separate terminal: npx omniroute\n');
-    } else {
-      console.warn(`[AI Gateway Network Error on ${currentModel}]: ${err.message}`);
-    }
+    console.warn(`[OpenRouter Network Error on Key #${keyIndex + 1} (${targetModel})]: ${err.message}`);
+    keyPool.markRateLimited(keyIndex, 10);
   }
 
   if (retryCount < 10) {
-    const nextModel = modelCascade[(retryCount + 1) % modelCascade.length];
-    console.warn(`[AI Gateway] Switching to backup "${nextModel}" (Attempt ${retryCount + 1}/10)...`);
-    return callOpenCodeApi(prompt, model, retryCount + 1);
+    await new Promise(r => setTimeout(r, 1500));
+    return callOpenRouterApi(prompt, model, keyPool, retryCount + 1);
   }
 
-  throw new Error(`All AI Gateway models exhausted after 10 retry cycles.`);
+  throw new Error(`All OpenRouter keys and model attempts exhausted after 10 retry cycles.`);
 }
 
 function buildPrompt(batch, compPassages, answerKeyMap, isPaperII, importLanguage) {
@@ -424,8 +470,11 @@ Questions to process:\n\n`;
 // Main CLI Execution
 async function main() {
   console.log('\n======================================================');
-  console.log('⚡ OpenCode Zen High-Speed Text Question Importer');
+  console.log('⚡ OpenRouter Multi-Key High-Speed Text Question Importer');
   console.log('======================================================\n');
+
+  const keyPool = setupOpenRouterKeyPool();
+  console.log(`🔑 Loaded ${keyPool.keys.length} OpenRouter API key(s) into round-robin pool.\n`);
 
   const args = process.argv.slice(2);
   const getArg = (flag) => {
@@ -433,7 +482,6 @@ async function main() {
     return idx !== -1 && args[idx + 1] ? args[idx + 1] : null;
   };
 
-  const cliOmniroute = args.includes('--omniroute');
   const cliPdf = getArg('--pdf');
   const cliSetId = getArg('--setId');
   const cliLang = getArg('--lang');
@@ -446,42 +494,32 @@ async function main() {
   let LANGUAGE;
   let ANSWER_KEY_PATH;
 
-  if (cliOmniroute) {
-    process.env.OPENCODE_BASE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
-    process.env.USE_OMNIROUTE = 'true';
-  }
-
   if (cliPdf && cliSetId) {
-    selectedModel = cliModel || (cliOmniroute ? 'auto/coding' : (process.env.OPENCODE_MODEL || 'deepseek-v4-flash-free'));
+    selectedModel = cliModel || (process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash');
     PDF_PATH = cliPdf;
     TARGET_SET_ID = cliSetId;
     LANGUAGE = cliLang || 'English';
     ANSWER_KEY_PATH = cliKey || null;
-    console.log(`Using CLI Args -> ${cliOmniroute ? '🌐 Gateway: OmniRoute | ' : ''}Model: "${selectedModel}", Language: "${LANGUAGE}"`);
+    console.log(`Using CLI Args -> Model: "${selectedModel}", Language: "${LANGUAGE}"`);
   } else {
-    // Available AI Models & Gateways
+    // Available OpenRouter AI Models
     const availableModels = [
-      { name: '🚀 OmniRoute Local Gateway (Auto-fallback across active OpenCode free models)', id: 'oc/hy3-free', isOmni: true },
-      { name: 'Hy3 Free (Active & Fast)', id: 'hy3-free' },
-      { name: 'Nemotron 3 Ultra Free', id: 'nemotron-3-ultra-free' },
-      { name: 'DeepSeek V4 Flash Free', id: 'deepseek-v4-flash-free' },
-      { name: 'Big Pickle', id: 'big-pickle' }
+      { name: '🌟 Google Gemini 2.5 Flash [Recommended: Fast, accurate, high-context]', id: 'google/gemini-2.5-flash' },
+      { name: '🧠 DeepSeek V3 (deepseek-chat) [High precision]', id: 'deepseek/deepseek-chat' },
+      { name: '⚡ Qwen 2.5 72B Instruct [Open weights power]', id: 'qwen/qwen-2.5-72b-instruct' },
+      { name: '🦙 Meta Llama 3.3 70B Instruct', id: 'meta-llama/llama-3.3-70b-instruct' },
+      { name: '🚀 OpenAI GPT-4o Mini', id: 'openai/gpt-4o-mini' }
     ];
 
-    console.log('Select AI Provider / Model:');
+    console.log('Select OpenRouter AI Model:');
     availableModels.forEach((m, idx) => console.log(`  ${idx + 1}. ${m.name} [${m.id}]`));
-    const modelChoice = await askQuestion(`\nEnter choice (1-${availableModels.length}) [Default: 1 - OmniRoute / auto]: `);
+    const modelChoice = await askQuestion(`\nEnter choice (1-${availableModels.length}) [Default: 1 - Gemini 2.5 Flash]: `);
     const choiceIdx = parseInt(modelChoice, 10) - 1;
     const selected = (choiceIdx >= 0 && choiceIdx < availableModels.length)
       ? availableModels[choiceIdx]
       : availableModels[0];
 
     selectedModel = selected.id;
-    if (selected.isOmni) {
-      process.env.OPENCODE_BASE_URL = process.env.OMNIROUTE_BASE_URL || 'http://localhost:20128/v1';
-      process.env.USE_OMNIROUTE = 'true';
-    }
-
     console.log(`Using Model: "${selectedModel}"\n`);
 
     PDF_PATH = await askQuestion('Enter the absolute path to your Questions PDF file: ');
@@ -538,6 +576,13 @@ async function main() {
       console.warn('⚠️  Warning: PDF text is extremely short or empty.');
       const proceed = await askQuestion('Continue anyway? (y/n): ');
       if (proceed.toLowerCase() !== 'y') process.exit(0);
+    }
+
+    // Auto-detect embedded answer key inside the PDF if no external key was provided
+    if (!answerKeyMap && text.search(/ANSWER\s*KEY/i) !== -1) {
+      console.log('✨ Auto-detected embedded Answer Key table inside PDF document...');
+      answerKeyMap = parseAnswerKey(text);
+      console.log(`Mapped ${Object.keys(answerKeyMap).length / 2} answers from embedded Answer Key.`);
     }
 
     // 2. Multi-Format Question Header Detection
@@ -662,6 +707,67 @@ async function main() {
 
     // Comprehension Passages
     const compPassages = {};
+
+    // Format G: Booklet / Sequential Numbered Question Slicer (1. to 50., 1. to 100., 1. to 150.)
+    if (matchesList.length === 0 && cleanQuestions.length === 0) {
+      console.log('Scanning for Format G: Booklet / Numbered Question Sequences...');
+      const ansKeyIdx = text.search(/ANSWER\s*KEY/i);
+      const bodyText = (ansKeyIdx !== -1 ? text.substring(0, ansKeyIdx) : text)
+        .replace(/To get free NTA NET study materials[^\n]*\n?/gi, '')
+        .replace(/www\.aifer\.in\s*\d*\n?/gi, '')
+        .replace(/--\s*\d+\s+of\s+\d+\s*--\n?/gi);
+
+      const qNumHeaderRegex = /(?:^|\n)\s*(\d{1,3})\s*[\.:]\s*/g;
+      let qMatches = [];
+      let qm;
+      while ((qm = qNumHeaderRegex.exec(bodyText)) !== null) {
+        qMatches.push({ index: qm.index, matchLength: qm[0].length, qNum: parseInt(qm[1], 10) });
+      }
+
+      const filteredMatches = [];
+      let expectedNext = 1;
+      for (const mItem of qMatches) {
+        if (mItem.qNum === expectedNext) {
+          filteredMatches.push(mItem);
+          expectedNext++;
+        } else if (mItem.qNum > expectedNext && mItem.qNum <= expectedNext + 2) {
+          filteredMatches.push(mItem);
+          expectedNext = mItem.qNum + 1;
+        }
+      }
+
+      if (filteredMatches.length >= 25) {
+        console.log(`Detected Format G (Booklet / Numbered Questions): found ${filteredMatches.length} sequential questions.`);
+        for (let i = 0; i < filteredMatches.length; i++) {
+          const cur = filteredMatches[i];
+          const next = i + 1 < filteredMatches.length ? filteredMatches[i + 1] : null;
+          let rawBlock = bodyText.substring(cur.index + cur.matchLength, next ? next.index : bodyText.length).trim();
+
+          // Check if this block contains an embedded Comprehension header
+          const compMatch = rawBlock.match(/Comprehension\s*:\s*\(\s*(\d+)\s*[-–to\s]+\s*(\d+)\s*\)[\r\n\s]*(?:Read the following passage[^\n]*[\r\n\s]*)?([\s\S]+)$/i);
+          if (compMatch) {
+            const startQ = parseInt(compMatch[1], 10);
+            const endQ = parseInt(compMatch[2], 10);
+            const pText = compMatch[3].trim();
+            compPassages[`${startQ}_${endQ}`] = pText;
+            if (startQ >= 91 && endQ <= 95) compPassages['paper2_rc1'] = pText;
+            if (startQ >= 96 && endQ <= 100) compPassages['paper2_rc2'] = pText;
+            if (startQ >= 1 && endQ <= 5) compPassages['paper1_di'] = pText;
+            if (startQ >= 46 && endQ <= 50) compPassages['paper1_rc'] = pText;
+            
+            rawBlock = rawBlock.substring(0, compMatch.index).trim();
+          }
+
+          cleanQuestions.push({
+            qIndex: cur.qNum,
+            pdfQNum: cur.qNum,
+            qId: String(cur.qNum),
+            text: rawBlock
+          });
+        }
+      }
+    }
+
     const compRegex = /Question Id\s*:\s*(\d+)\s+Question Type\s*:\s*(COMPREHENSION)/g;
     while ((match = compRegex.exec(text)) !== null) {
       const qId = match[1];
@@ -771,7 +877,7 @@ async function main() {
       let options = Array.isArray(rawParsed.options) && rawParsed.options.length >= 4 
         ? rawParsed.options.slice(0, 4) 
         : ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
-      options = options.map((opt, i) => String(opt || `Option ${i + 1}`).trim());
+      options = options.map((opt, i) => String(opt || `Option ${i + 1}`).replace(/^\(?[1-4A-Da-d]\)?[\.:\-–\s]*/, '').trim());
 
       // Match-column Headers
       let list1Header = rawParsed.list1Header || (LANGUAGE === 'Hindi' ? 'सूची - I' : 'List - I');
@@ -809,7 +915,7 @@ async function main() {
     }
 
     // 3. Batch AI Processing with Checkpoint
-    const checkpointFile = path.resolve(`checkpoint_opencode_${TARGET_SET_ID}.json`);
+    const checkpointFile = path.resolve(`checkpoint_openrouter_${TARGET_SET_ID}.json`);
     let completedQuestions = [];
     let processedIndices = new Set();
 
@@ -831,7 +937,7 @@ async function main() {
       batches.push(pendingQuestions.slice(i, i + 3));
     }
 
-    console.log(`\n[3/4] Processing ${batches.length} remaining batches using OpenCode Zen (${selectedModel})...`);
+    console.log(`\n[3/4] Processing ${batches.length} remaining batches using OpenRouter (${selectedModel})...`);
 
     for (let b = 0; b < batches.length; b++) {
       const batch = batches[b];
@@ -841,7 +947,7 @@ async function main() {
       let batchResults = [];
 
       try {
-        batchResults = await callOpenCodeApi(prompt, selectedModel);
+        batchResults = await callOpenRouterApi(prompt, selectedModel, keyPool);
         if (!Array.isArray(batchResults) || batchResults.length < batch.length) {
           throw new Error(`Incomplete batch: got ${batchResults ? batchResults.length : 0}/${batch.length}`);
         }
@@ -852,7 +958,7 @@ async function main() {
           if (!returnedIndices.has(singleQ.qIndex)) {
             try {
               const singlePrompt = buildPrompt([singleQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
-              const singleRes = await callOpenCodeApi(singlePrompt, selectedModel);
+              const singleRes = await callOpenRouterApi(singlePrompt, selectedModel, keyPool);
               if (singleRes && singleRes.length > 0) {
                 if (!batchResults) batchResults = [];
                 batchResults.push(singleRes[0]);
@@ -903,7 +1009,7 @@ async function main() {
         try {
           console.log(`Auto-recovering Q${misQ.qIndex}...`);
           const singlePrompt = buildPrompt([misQ], compPassages, answerKeyMap, isPaperII, LANGUAGE);
-          const singleRes = await callOpenCodeApi(singlePrompt, selectedModel);
+          const singleRes = await callOpenRouterApi(singlePrompt, selectedModel, keyPool);
           if (singleRes && singleRes.length > 0) {
             const structuredQ = sanitizeQuestion(singleRes[0], misQ, misQ.qIndex);
             finalMap.set(misQ.qIndex, structuredQ);
