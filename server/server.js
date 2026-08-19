@@ -1480,7 +1480,7 @@ CRITICAL RULES:
     // 1. TIER 1: Google Gemini Pool (Primary: Highest Academic Accuracy & Zero Hallucination)
     // =========================================================================
     if (geminiKeys.length > 0) {
-      const candidateModels = ['gemini-flash-latest', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+      const candidateModels = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
       const maxGeminiAttempts = Math.min(geminiKeys.length * 2, 8);
 
       for (let attempt = 0; attempt < maxGeminiAttempts; attempt++) {
