@@ -1511,7 +1511,8 @@ CRITICAL RULES:
                   { role: 'system', content: systemPrompt },
                   { role: 'user', content: userPrompt }
                 ],
-                temperature: 0.1,
+                temperature: 0.0,
+                seed: 42,
                 max_tokens: 2048
               }),
               signal: controller.signal
@@ -1613,7 +1614,7 @@ CRITICAL RULES:
                 contents: [{ parts: [{ text: userPrompt }] }],
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: { 
-                  temperature: 0.1,
+                  temperature: 0.0,
                   maxOutputTokens: 2048
                 }
               }),
@@ -1706,7 +1707,8 @@ CRITICAL RULES:
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.1,
+            temperature: 0.0,
+            seed: 42,
             max_tokens: 2048
           }),
           signal: controller.signal
