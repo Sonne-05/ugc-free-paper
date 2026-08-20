@@ -39,7 +39,3 @@ build/
 Thumbs.db
 .vscode/
 .idea/
-
-# Secret Importer Tools (Keep Local Only - Never Push to GitHub)
-server/fast_text_importer.js
-server/fast_text_importer2.js
