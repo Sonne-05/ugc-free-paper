@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import AdSensePlaceholder from '../components/layout/AdSensePlaceholder';
 import { API_BASE_URL } from '../services/api';
 import './QuestionSolution.css';
 
@@ -8,11 +9,21 @@ const QuestionSolution = () => {
   const navigate = useNavigate();
   
   const [data, setData] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/settings`)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData && resData.settings) setSettings(resData.settings);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -410,6 +421,9 @@ const QuestionSolution = () => {
             </div>
           )}
 
+          {/* AdSense Placement 1: Post-Solution Horizontal Banner */}
+          <AdSensePlaceholder format="horizontal" config={settings} />
+
           {/* Previous & Next Navigation */}
           <div className="qs-nav-footer">
             {prevQ ? (
@@ -456,6 +470,9 @@ const QuestionSolution = () => {
               </div>
             </div>
           )}
+
+          {/* AdSense Placement 2: Sidebar Rectangle Ad */}
+          <AdSensePlaceholder format="rectangle" config={settings} />
 
           {/* Quick Subject Links */}
           <div className="qs-card qs-links-card">
