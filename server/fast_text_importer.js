@@ -2185,8 +2185,31 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       verificationStatus: 'completed'
     });
 
+    // Invalidate Redis caches so new questions & sets appear in search/sitemap immediately
+    try {
+      const { delCachePattern } = require('./config/redis');
+      await delCachePattern('questions:*');
+      await delCachePattern('pyqsets:*');
+    } catch (cErr) {
+      // Non-critical cache cleanup
+    }
+
     if (fs.existsSync(checkpointFile)) {
       fs.unlinkSync(checkpointFile);
+    }
+
+    // Auto-ping search engines (Google & Bing) for instant SEO crawling
+    try {
+      const sitemapUrl = 'https://ugcfreepaper.com/sitemap.xml';
+      console.log('📡 Notifying search engines of newly imported content...');
+      const pings = [
+        fetch(`https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5000) }),
+        fetch(`https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`, { signal: AbortSignal.timeout(5000) })
+      ];
+      await Promise.allSettled(pings);
+      console.log('✅ Search engines notified for automatic indexing!');
+    } catch (pingErr) {
+      // Non-blocking ping warning
     }
 
     if (onProgress) onProgress(100, `Successfully imported ${finalQuestions.length} questions!`);

@@ -556,6 +556,78 @@ app.get('/api/questions/unit', async (req, res) => {
 });
 
 
+// Public single question SEO endpoint with breadcrumbs, set details, and related questions
+app.get('/api/questions/public/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid question ID format' });
+    }
+
+    const cacheKey = `questions:public:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({ message: 'Question not found' });
+    }
+
+    const questionObj = question.toJSON();
+
+    // Fetch parent PyqSet metadata
+    let setInfo = null;
+    if (question.setId) {
+      const setDoc = await PyqSet.findById(question.setId).select('title year paper subject shift totalQuestions isPublished');
+      if (setDoc) {
+        setInfo = setDoc.toJSON();
+      }
+    }
+
+    // Fetch sibling questions for prev/next and related links
+    let prevQuestion = null;
+    let nextQuestion = null;
+    let relatedQuestions = [];
+
+    if (question.setId) {
+      if (question.qIndex !== undefined && question.qIndex !== null) {
+        prevQuestion = await Question.findOne({ setId: question.setId, qIndex: question.qIndex - 1 }).select('_id qIndex text type unit');
+        nextQuestion = await Question.findOne({ setId: question.setId, qIndex: question.qIndex + 1 }).select('_id qIndex text type unit');
+      }
+
+      // Fetch up to 6 related questions
+      let relatedQuery = { setId: question.setId, _id: { $ne: question._id } };
+      if (question.unit) {
+        relatedQuery = { unit: question.unit, _id: { $ne: question._id } };
+      }
+      relatedQuestions = await Question.find(relatedQuery).limit(6).select('_id qIndex text type unit');
+      
+      if (relatedQuestions.length < 3 && question.setId) {
+        const setRelated = await Question.find({ setId: question.setId, _id: { $ne: question._id } }).limit(6).select('_id qIndex text type unit');
+        relatedQuestions = setRelated;
+      }
+    }
+
+    const responsePayload = {
+      question: questionObj,
+      set: setInfo,
+      prevQuestion: prevQuestion ? prevQuestion.toJSON() : null,
+      nextQuestion: nextQuestion ? nextQuestion.toJSON() : null,
+      relatedQuestions: relatedQuestions.map(q => q.toJSON())
+    };
+
+    // Cache for 24 hours (86400s)
+    await setCache(cacheKey, responsePayload, 86400);
+
+    res.json(responsePayload);
+  } catch (err) {
+    console.error('Error fetching public question:', err);
+    res.status(500).json({ message: 'Failed to fetch question', error: err.message });
+  }
+});
+
 // Bulk add questions
 app.post('/api/questions/bulk', async (req, res) => {
   try {
@@ -3160,6 +3232,22 @@ app.get('/sitemap.xml', async (req, res) => {
       });
     } catch (paperErr) {
       console.warn('Could not fetch CorePapers for sitemap:', paperErr);
+    }
+
+    // Add dynamic single Question solution pages (Programmatic SEO)
+    try {
+      const questions = await Question.find({}).select('_id updatedAt').limit(45000).exec();
+      questions.forEach(q => {
+        const lastmod = q.updatedAt ? new Date(q.updatedAt).toISOString().split('T')[0] : today;
+        xml += '  <url>\n';
+        xml += `    <loc>https://ugcfreepaper.com/question/${q._id}</loc>\n`;
+        xml += `    <lastmod>${lastmod}</lastmod>\n`;
+        xml += '    <changefreq>monthly</changefreq>\n';
+        xml += '    <priority>0.75</priority>\n';
+        xml += '  </url>\n';
+      });
+    } catch (qErr) {
+      console.warn('Could not fetch Questions for sitemap:', qErr);
     }
 
     xml += '</urlset>';

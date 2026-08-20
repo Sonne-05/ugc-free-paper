@@ -22,6 +22,7 @@ import ManageSet from './pages/ManageSet'
 import AdminNoteEditor from './pages/AdminNoteEditor'
 import Support from './pages/Support'
 import MockTest from './pages/MockTest'
+import QuestionSolution from './pages/QuestionSolution'
 import NotFound from './pages/NotFound'
 import { API_BASE_URL } from './services/api'
 import './App.css'
@@ -121,7 +122,7 @@ function App() {
     }
 
     // Set title if it is not a dynamic route (dynamic routes set title in their own components)
-    const isDynamicRoute = path.startsWith('/blog/') || path.startsWith('/paper1-notes/') || path.startsWith('/admin/manage-set') || path.startsWith('/admin/edit-note');
+    const isDynamicRoute = path.startsWith('/blog/') || path.startsWith('/paper1-notes/') || path.startsWith('/question/') || path.startsWith('/admin/manage-set') || path.startsWith('/admin/edit-note');
     if (!isDynamicRoute) {
       document.title = title;
       
@@ -161,22 +162,29 @@ function App() {
           document.head.appendChild(script);
 
           window.dataLayer = window.dataLayer || [];
-          window.gtag = function () {
+          function gtag() {
             window.dataLayer.push(arguments);
-          };
-          window.gtag('js', new Date());
-          window.gtag('config', gaId);
+          }
+          window.gtag = gtag;
+          gtag('js', new Date());
+          gtag('config', gaId, {
+            send_page_view: false // Prevent automatic double pageview tracking
+          });
         }
-      } else {
-        window.gtag('config', gaId, {
-          page_path: location.pathname
+      }
+
+      // Send pageview on route change
+      if (window.gtag) {
+        window.gtag('event', 'page_view', {
+          page_path: location.pathname + location.search,
+          page_title: document.title,
+          page_location: window.location.href
         });
       }
     }
-  }, [location.pathname]);
 
-  useEffect(() => {
-    if (!location.hash) {
+    // Scroll to top on route change if not handling manually
+    if (!location.pathname.startsWith('/paper1-notes/')) {
       window.scrollTo(0, 0);
     }
   }, [location.pathname, location.search]);
@@ -192,6 +200,8 @@ function App() {
           <Route path="/paper2" element={<Paper2PYQ />} />
           <Route path="/paper1-notes" element={<Paper1Notes />} />
           <Route path="/paper1-notes/:unitId" element={<UnitNotes />} />
+          <Route path="/question/:id" element={<QuestionSolution />} />
+          <Route path="/question/:id/:slug" element={<QuestionSolution />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<Profile />} />
           <Route path="/admin/manage-set/:setId" element={<ManageSet />} />
