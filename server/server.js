@@ -3162,15 +3162,58 @@ Allow: /
 Sitemap: https://ugcfreepaper.com/sitemap.xml`);
 });
 
+// ============================================================
+// SCALABLE SITEMAP SYSTEM (Sitemap Index + Child Sitemaps)
+// Supports unlimited questions — auto-chunks at 45,000 per file
+// Google limit: 50,000 URLs per sitemap file
+// ============================================================
+
+const SITEMAP_QUESTIONS_PER_FILE = 45000;
+
+// Sitemap Index — /sitemap.xml
 app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const totalQuestions = await Question.countDocuments({});
+    const totalChunks = Math.max(1, Math.ceil(totalQuestions / SITEMAP_QUESTIONS_PER_FILE));
+    const today = new Date().toISOString().split('T')[0];
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    // Static sitemap (pages, notes, blog, core papers)
+    xml += '  <sitemap>\n';
+    xml += `    <loc>https://ugcfreepaper.com/sitemap-static.xml</loc>\n`;
+    xml += `    <lastmod>${today}</lastmod>\n`;
+    xml += '  </sitemap>\n';
+
+    // Question sitemaps — one per chunk
+    for (let i = 1; i <= totalChunks; i++) {
+      xml += '  <sitemap>\n';
+      xml += `    <loc>https://ugcfreepaper.com/sitemap-questions-${i}.xml</loc>\n`;
+      xml += `    <lastmod>${today}</lastmod>\n`;
+      xml += '  </sitemap>\n';
+    }
+
+    xml += '</sitemapindex>';
+    res.header('Content-Type', 'application/xml');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('Error generating sitemap index:', error);
+    res.status(500).send('Error generating sitemap index');
+  }
+});
+
+// Static Sitemap — /sitemap-static.xml
+app.get('/sitemap-static.xml', async (req, res) => {
   try {
     const BlogPost = require('./models/BlogPost');
     const Note = require('./models/Note');
+    const CorePaper = require('./models/CorePaper');
 
     const posts = await BlogPost.find({}).select('_id updatedAt').exec();
     const notes = await Note.find({ isAvailable: { $ne: false } }).select('unitId updatedAt').exec();
+    const today = new Date().toISOString().split('T')[0];
 
-    // Standard static pages with custom priority and changefreq
     const staticPages = [
       { path: '', priority: '1.0', changefreq: 'weekly' },
       { path: '/paper1', priority: '0.8', changefreq: 'weekly' },
@@ -3190,8 +3233,7 @@ app.get('/sitemap.xml', async (req, res) => {
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    // Add static pages
-    const today = new Date().toISOString().split('T')[0];
+    // Static pages
     staticPages.forEach(page => {
       xml += '  <url>\n';
       xml += `    <loc>https://ugcfreepaper.com${page.path}</loc>\n`;
@@ -3201,7 +3243,7 @@ app.get('/sitemap.xml', async (req, res) => {
       xml += '  </url>\n';
     });
 
-    // Add notes pages
+    // Notes pages
     notes.forEach(note => {
       const lastmod = note.updatedAt ? new Date(note.updatedAt).toISOString().split('T')[0] : today;
       xml += '  <url>\n';
@@ -3212,7 +3254,7 @@ app.get('/sitemap.xml', async (req, res) => {
       xml += '  </url>\n';
     });
 
-    // Fallback units 1 to 10 if not present in the DB
+    // Fallback units 1–10
     for (let i = 1; i <= 10; i++) {
       if (!notes.some(n => String(n.unitId) === String(i))) {
         xml += '  <url>\n';
@@ -3224,7 +3266,7 @@ app.get('/sitemap.xml', async (req, res) => {
       }
     }
 
-    // Add blog posts
+    // Blog posts
     posts.forEach(post => {
       const lastmod = post.updatedAt ? new Date(post.updatedAt).toISOString().split('T')[0] : today;
       xml += '  <url>\n';
@@ -3235,9 +3277,8 @@ app.get('/sitemap.xml', async (req, res) => {
       xml += '  </url>\n';
     });
 
-    // Add dynamic Paper 2 core subjects (e.g. Sociology, Sindhi, etc.)
+    // Core Paper subjects
     try {
-      const CorePaper = require('./models/CorePaper');
       const papers = await CorePaper.find({ isAvailable: { $ne: false } }).select('name updatedAt').exec();
       papers.forEach(paper => {
         const lastmod = paper.updatedAt ? new Date(paper.updatedAt).toISOString().split('T')[0] : today;
@@ -3252,29 +3293,56 @@ app.get('/sitemap.xml', async (req, res) => {
       console.warn('Could not fetch CorePapers for sitemap:', paperErr);
     }
 
-    // Add dynamic single Question solution pages (Programmatic SEO)
-    try {
-      const questions = await Question.find({}).select('_id updatedAt').limit(45000).exec();
-      questions.forEach(q => {
-        const lastmod = q.updatedAt ? new Date(q.updatedAt).toISOString().split('T')[0] : today;
-        xml += '  <url>\n';
-        xml += `    <loc>https://ugcfreepaper.com/question/${q._id}</loc>\n`;
-        xml += `    <lastmod>${lastmod}</lastmod>\n`;
-        xml += '    <changefreq>monthly</changefreq>\n';
-        xml += '    <priority>0.75</priority>\n';
-        xml += '  </url>\n';
-      });
-    } catch (qErr) {
-      console.warn('Could not fetch Questions for sitemap:', qErr);
-    }
-
     xml += '</urlset>';
-
     res.header('Content-Type', 'application/xml');
     res.status(200).send(xml);
   } catch (error) {
-    console.error('Error generating sitemap:', error);
-    res.status(500).send('Error generating sitemap');
+    console.error('Error generating static sitemap:', error);
+    res.status(500).send('Error generating static sitemap');
+  }
+});
+
+// Question Chunk Sitemaps — /sitemap-questions-1.xml, /sitemap-questions-2.xml, ...
+app.get('/sitemap-questions-:page.xml', async (req, res) => {
+  try {
+    const page = parseInt(req.params.page, 10);
+    if (isNaN(page) || page < 1) {
+      return res.status(400).send('Invalid sitemap page number');
+    }
+
+    const skip = (page - 1) * SITEMAP_QUESTIONS_PER_FILE;
+    const today = new Date().toISOString().split('T')[0];
+
+    const questions = await Question.find({})
+      .select('_id updatedAt')
+      .skip(skip)
+      .limit(SITEMAP_QUESTIONS_PER_FILE)
+      .lean()
+      .exec();
+
+    if (questions.length === 0) {
+      return res.status(404).send('No questions found for this sitemap page');
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+    questions.forEach(q => {
+      const lastmod = q.updatedAt ? new Date(q.updatedAt).toISOString().split('T')[0] : today;
+      xml += '  <url>\n';
+      xml += `    <loc>https://ugcfreepaper.com/question/${q._id}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>monthly</changefreq>\n';
+      xml += '    <priority>0.75</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    xml += '</urlset>';
+    res.header('Content-Type', 'application/xml');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('Error generating question sitemap chunk:', error);
+    res.status(500).send('Error generating question sitemap');
   }
 });
 
