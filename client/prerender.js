@@ -88,8 +88,16 @@ async function run() {
 
   const routes = [...staticRoutes]
 
-  // 4. Dynamically fetch blog posts & notes from local API if server is running
-  const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000'
+  // 4. Dynamically fetch blog posts, notes & questions from API
+  let API_BASE_URL = process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || process.env.VITE_API_URL || 'https://api.ugcfreepaper.com';
+  try {
+    const localCheck = await fetch('http://localhost:5000/api/posts', { signal: AbortSignal.timeout(1000) });
+    if (localCheck.ok) {
+      API_BASE_URL = 'http://localhost:5000';
+    }
+  } catch (e) {
+    // Default to https://api.ugcfreepaper.com
+  }
   
   console.log(`Fetching dynamic data from backend API at ${API_BASE_URL}...`)
   try {
