@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UGC Free Paper - 60-Day (2-Month) Scaling & SEO Roadmap</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #f8fafc;
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 48px 56px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .header-title h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .header-title p {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #bfdbfe;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-print {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-print:hover {
+      background: #1d4ed8;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 28px 0 14px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-container {
+      margin: 16px 0 24px 0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+    }
+
+    td {
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .highlight-target {
+      font-weight: 700;
+      color: #2563eb;
+    }
+
+    .phase-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+
+    .phase-card.featured {
+      border-left: 4px solid #2563eb;
+    }
+
+    .phase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .phase-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .phase-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .phase-desc {
+      font-size: 13.5px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    .subject-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0;
+    }
+
+    .subject-tag {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: #334155;
+    }
+
+    ul.task-list {
+      list-style-type: none;
+      margin-top: 10px;
+    }
+
+    ul.task-list li {
+      font-size: 13px;
+      color: #334155;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    ul.task-list li::before {
+      content: "✓";
+      color: #16a34a;
+      font-weight: 700;
+    }
+
+    .checklist-box {
+      background: #eff6ff;
+      border: 1px dashed #3b82f6;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 24px;
+    }
+
+    .checklist-box h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 8px;
+    }
+
+    .checklist-box ul {
+      list-style: none;
+    }
+
+    .checklist-box li {
+      font-size: 13px;
+      color: #1e3a8a;
+      margin-bottom: 6px;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .phase-card {
+        border: 1px solid #cbd5e1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <div class="header">
+      <div class="header-title">
+        <h1>ugcfreepaper.com</h1>
+        <p>60-Day Scaling & Comprehensive SEO Roadmap (930+ Pages Target)</p>
+      </div>
+      <div class="no-print">
+        <button class="btn-print" onclick="window.print()">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+          </svg>
+          Print / Save as PDF
+        </button>
+      </div>
+    </div>
+
+    <h2>🎯 Growth Milestones & Target Metrics</h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Day 1 (Current)</th>
+            <th>Day 30 (Month 1)</th>
+            <th>Day 60 (Month 2 Target)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Indexed URLs</strong></td>
+            <td>~9 pages</td>
+            <td>400+ pages</td>
+            <td class="highlight-target">930+ pages</td>
+          </tr>
+          <tr>
+            <td><strong>Paper 2 Subjects</strong></td>
+            <td>2 (Sociology, Sindhi)</td>
+            <td>40 subjects</td>
+            <td class="highlight-target">83 subjects (100% full syllabus)</td>
+          </tr>
+          <tr>
+            <td><strong>Mock Test Sets</strong></td>
+            <td>~20 sets</td>
+            <td>400 sets</td>
+            <td class="highlight-target">830+ full CBT sets</td>
+          </tr>
+          <tr>
+            <td><strong>Strategic Blog Posts</strong></td>
+            <td>4-5 posts</td>
+            <td>20 posts</td>
+            <td class="highlight-target">40+ high-yield guides</td>
+          </tr>
+          <tr>
+            <td><strong>Estimated Monthly Traffic</strong></td>
+            <td>&lt;100 visits</td>
+            <td>3,000 – 5,000</td>
+            <td class="highlight-target">15,000 – 30,000+ organic visits</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>📅 Execution Schedule: 4-Phase Sprint</h2>
+
+    <!-- Phase 1 -->
+    <div class="phase-card featured">
+      <div class="phase-header">
+        <span class="phase-title">Phase 1 (Weeks 1–2): Top 15 Core Subjects</span>
+        <span class="phase-badge">Days 1–14</span>
+      </div>
+      <p class="phase-desc">Focus on highest search volume subjects accounting for >70% of UGC NET candidate traffic.</p>
+      <div class="subject-list">
+        <span class="subject-tag">History</span>
+        <span class="subject-tag">Political Science</span>
+        <span class="subject-tag">Commerce</span>
+        <span class="subject-tag">Economics</span>
+        <span class="subject-tag">Education</span>
+        <span class="subject-tag">Hindi</span>
+        <span class="subject-tag">English</span>
+        <span class="subject-tag">Geography</span>
+        <span class="subject-tag">Management</span>
+        <span class="subject-tag">Computer Science</span>
+        <span class="subject-tag">Psychology</span>
+        <span class="subject-tag">Public Admin</span>
+        <span class="subject-tag">Sanskrit</span>
+        <span class="subject-tag">Law</span>
+        <span class="subject-tag">Sociology</span>
+      </div>
+      <ul class="task-list">
+        <li>Batch import 10 mock test sets for each of the 15 subjects (150 tests total).</li>
+        <li>Update sitemap.xml with 15 dedicated subject URLs.</li>
+        <li>Publish 6 keyword-targeted blog posts (Cutoffs, PYQ solutions).</li>
+        <li>Daily 12:30 PM Google Search Console URL inspection requests (10 per day).</li>
+      </ul>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="phase-card">
+      <div class="phase-header">
+        <span class="phase-title">Phase 2 (Weeks 3–4): Mid-Tier & Regional Languages</span>
+        <span class="phase-badge">Days 15–28</span>
+      </div>
+      <p class="phase-desc">Target 25 high-intent regional and secondary humanities disciplines with near zero competitive material online.</p>
+      <div class="subject-list">
+        <span class="subject-tag">Philosophy</span>
+        <span class="subject-tag">Home Science</span>
+        <span class="subject-tag">Mass Comm</span>
+        <span class="subject-tag">Social Work</span>
+        <span class="subject-tag">Environmental Sci</span>
+        <span class="subject-tag">Physical Education</span>
+        <span class="subject-tag">Library Sci</span>
+        <span class="subject-tag">Bengali</span>
+        <span class="subject-tag">Marathi</span>
+        <span class="subject-tag">Tamil</span>
+        <span class="subject-tag">Telugu</span>
+        <span class="subject-tag">Urdu</span>
+        <span class="subject-tag">Punjabi</span>
+        <span class="subject-tag">Malayalam</span>
+        <span class="subject-tag">Kannada</span>
+        <span class="subject-tag">Gujarati</span>
+        <span class="subject-tag">Odia</span>
+        <span class="subject-tag">Music</span>
+        <span class="subject-tag">Fine Arts</span>
+        <span class="subject-tag">Yoga</span>
+        <span class="subject-tag">Anthropology</span>
+        <span class="subject-tag">Forensic Sci</span>
+        <span class="subject-tag">Electronic Sci</span>
+        <span class="subject-tag">Adult Education</span>
+        <span class="subject-tag">Population Studies</span>
+      </div>
+      <ul class="task-list">
+        <li>Add 10 mock test sets per subject (250 tests total; 400 cumulative).</li>
+        <li>Publish 6 Paper 1 conceptual revision blogs (Indian Logic, Research Aptitude, ICT).</li>
+        <li>Connect all Paper 1 study units with internal links to Paper 2 subjects.</li>
+      </ul>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="phase-card">
+      <div class="phase-header">
+        <span class="phase-title">Phase 3 (Weeks 5–6): Specialized & Interdisciplinary</span>
+        <span class="phase-badge">Days 29–42</span>
+      </div>
+      <p class="phase-desc">Dominate long-tail niche subject queries where platforms like Testbook & PW do not maintain dedicated test banks.</p>
+      <div class="subject-list">
+        <span class="subject-tag">Defence Studies</span>
+        <span class="subject-tag">Women Studies</span>
+        <span class="subject-tag">Comparative Religions</span>
+        <span class="subject-tag">Sanskrit Traditional</span>
+        <span class="subject-tag">Prakrit</span>
+        <span class="subject-tag">Arabic</span>
+        <span class="subject-tag">Persian</span>
+        <span class="subject-tag">French</span>
+        <span class="subject-tag">German</span>
+        <span class="subject-tag">Russian</span>
+        <span class="subject-tag">Spanish</span>
+        <span class="subject-tag">Linguistics</span>
+        <span class="subject-tag">Pali</span>
+        <span class="subject-tag">Kashmiri</span>
+        <span class="subject-tag">Konkani</span>
+        <span class="subject-tag">Maithili</span>
+        <span class="subject-tag">Manipuri</span>
+        <span class="subject-tag">Nepali</span>
+        <span class="subject-tag">Assamese</span>
+        <span class="subject-tag">Bodo</span>
+        <span class="subject-tag">Santhali</span>
+        <span class="subject-tag">Dogri</span>
+        <span class="subject-tag">Labour Welfare</span>
+        <span class="subject-tag">Criminology</span>
+        <span class="subject-tag">Arab Culture</span>
+      </div>
+      <ul class="task-list">
+        <li>Add 10 mock test sets per subject (250 tests total; 650 cumulative).</li>
+        <li>Publish 6 subject-specific preparation strategy articles.</li>
+        <li>Implement FAQPage structured schema across all dynamic subject pages.</li>
+      </ul>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="phase-card">
+      <div class="phase-header">
+        <span class="phase-title">Phase 4 (Weeks 7–8): 83 Subjects Completion & Backlinks</span>
+        <span class="phase-badge">Days 43–60</span>
+      </div>
+      <p class="phase-desc">Complete all 83 subjects, automate full XML sitemap, and initiate targeted off-page educational backlinks.</p>
+      <div class="subject-list">
+        <span class="subject-tag">Tribal Languages</span>
+        <span class="subject-tag">Comparative Lit</span>
+        <span class="subject-tag">Peace Studies</span>
+        <span class="subject-tag">Folk Lit</span>
+        <span class="subject-tag">Human Rights</span>
+        <span class="subject-tag">Tourism Admin</span>
+        <span class="subject-tag">Archaeology</span>
+        <span class="subject-tag">Museology</span>
+        <span class="subject-tag">Performing Arts</span>
+        <span class="subject-tag">Indian Culture</span>
+        <span class="subject-tag">Chinese</span>
+        <span class="subject-tag">Japanese</span>
+        <span class="subject-tag">Area Studies</span>
+        <span class="subject-tag">International Relations</span>
+        <span class="subject-tag">Social Medicine</span>
+        <span class="subject-tag">Palaeography</span>
+        <span class="subject-tag">Disaster Management</span>
+        <span class="subject-tag">Sindhi (Full Update)</span>
+      </div>
+      <ul class="task-list">
+        <li>Finalize all 83 subjects × 10 mock tests = <strong>830+ total test papers</strong>.</li>
+        <li>Generate and submit master XML sitemap containing all 930+ dynamic pages.</li>
+        <li>Answer 20 targeted questions on Quora with reference links back to specific test sets.</li>
+        <li>Share subject mock test sets across 15+ student Telegram study groups.</li>
+      </ul>
+    </div>
+
+    <div class="checklist-box">
+      <h3>⚡ Daily Routine (1 Hour / Day)</h3>
+      <ul>
+        <li><strong>Step 1:</strong> Use <code>fast_text_importer.js</code> to upload 1-2 subject question batches.</li>
+        <li><strong>Step 2:</strong> Publish 1 short blog post every 2-3 days targeting a long-tail search phrase.</li>
+        <li><strong>Step 3:</strong> At 12:30 PM IST daily, inspect and request indexing for 10 new URLs.</li>
+        <li><strong>Step 4:</strong> Check PM2 status on Oracle server to ensure zero crash restarts.</li>
+      </ul>
+    </div>
+
+  </div>
+
+</body>
+</html>

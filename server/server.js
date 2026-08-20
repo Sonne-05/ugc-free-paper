@@ -1649,23 +1649,27 @@ Step 1: Output the confirmed correct option number on its own line:
 
 Step 2: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
 
-<p><strong>Key Concept & Context:</strong> A clear, concise 1-2 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question.</p>
+<p><strong>Key Concept & Context:</strong> A thorough 3–5 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question. Include historical background, who introduced it, when, and why it matters for the exam.</p>
 
 <h4>Why Option ${selectedOptionNum} is Correct:</h4>
-<p>A comprehensive, factually accurate explanation justifying why Option ${selectedOptionNum} is the correct answer with direct proofs, historical dates, publications, or conceptual arguments.</p>
+<p>A detailed, factually accurate explanation (at least 4–6 sentences) justifying why Option ${selectedOptionNum} is the correct answer. Include direct proofs, historical dates, original publications, specific facts, examples, or conceptual arguments that make this option definitively correct.</p>
 
 <h4>Why Other Options are Incorrect:</h4>
 <ul>
-  <li><strong>Option 1 / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
-  <li><strong>Option Y / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
-  <li><strong>Option Z / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option 1 / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
+  <li><strong>Option Y / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
+  <li><strong>Option Z / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
 </ul>
+
+<h4>Key Takeaway for Exam:</h4>
+<p>A concise 2–3 sentence summary of the most important facts, tricks, or mnemonics a student should remember about this topic to answer similar questions in the UGC NET exam.</p>
 
 CRITICAL RULES:
 - You MUST follow Option ${selectedOptionNum} as the correct answer.
 - Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
-- You MUST explicitly explain every other incorrect option individually in the bullet list.`;
+- You MUST explicitly explain every other incorrect option individually in the bullet list.
+- Be thorough and educational — students depend on this explanation to learn, not just to know the answer.`;
     } else {
       systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
 
@@ -1678,22 +1682,26 @@ Step 2: Output the verified correct option number on its own line:
 
 Step 3: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
 
-<p><strong>Key Concept & Context:</strong> A clear, concise 1-2 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question.</p>
+<p><strong>Key Concept & Context:</strong> A thorough 3–5 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question. Include historical background, who introduced it, when, and why it matters for the exam.</p>
 
 <h4>Why Option X is Correct:</h4>
-<p>A comprehensive, factually accurate explanation justifying why Option X is the exact correct answer with direct proofs, historical dates, publications, or conceptual arguments.</p>
+<p>A detailed, factually accurate explanation (at least 4–6 sentences) justifying why Option X is the exact correct answer. Include direct proofs, historical dates, original publications, specific facts, examples, or conceptual arguments that make this option definitively correct.</p>
 
 <h4>Why Other Options are Incorrect:</h4>
 <ul>
-  <li><strong>Option 1 / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
-  <li><strong>Option Y / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
-  <li><strong>Option Z / Name:</strong> Clear explanation of why this option does not apply or what it actually refers to.</li>
+  <li><strong>Option 1 / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
+  <li><strong>Option Y / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
+  <li><strong>Option Z / Name:</strong> A detailed explanation (2–3 sentences) of why this option is wrong — what it actually refers to, where it's commonly confused, and what the correct context of this term/concept is.</li>
 </ul>
+
+<h4>Key Takeaway for Exam:</h4>
+<p>A concise 2–3 sentence summary of the most important facts, tricks, or mnemonics a student should remember about this topic to answer similar questions in the UGC NET exam.</p>
 
 CRITICAL RULES:
 - Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
-- You MUST explicitly explain every incorrect option individually in the bullet list.`;
+- You MUST explicitly explain every incorrect option individually in the bullet list.
+- Be thorough and educational — students depend on this explanation to learn, not just to know the answer.`;
     }
 
     // Auto-detect target language from question content to properly support Hindi/Sindhi
@@ -1746,7 +1754,7 @@ CRITICAL RULES:
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:streamGenerateContent?alt=sse`;
           try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            const timeoutId = setTimeout(() => controller.abort(), 18000);
 
             const geminiResponse = await fetch(geminiUrl, {
               method: 'POST',
@@ -1759,7 +1767,7 @@ CRITICAL RULES:
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: { 
                   temperature: 0.0,
-                  maxOutputTokens: 2048
+                  maxOutputTokens: 4096
                 }
               }),
               signal: controller.signal
@@ -1865,7 +1873,7 @@ CRITICAL RULES:
                 ],
                 temperature: 0.0,
                 seed: 42,
-                max_tokens: 2048
+                max_tokens: 4096
               }),
               signal: controller.signal
             });
@@ -1942,7 +1950,7 @@ CRITICAL RULES:
       const activeOpenRouterKey = openRouterKeys[openRouterExplainIndex++ % openRouterKeys.length];
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
         const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -1960,7 +1968,7 @@ CRITICAL RULES:
             ],
             temperature: 0.0,
             seed: 42,
-            max_tokens: 2048
+            max_tokens: 4096
           }),
           signal: controller.signal
         });
