@@ -840,17 +840,11 @@ Here is the raw text for the questions:\n\n`;
   if (answerKeyMap) {
     let answersHint = '\nCRITICAL: The official correct option indices for this batch are:';
     batch.forEach(q => {
-      const lookupIndex = q.pdfQNum !== undefined ? q.pdfQNum : q.qIndex;
-      let correctAns = answerKeyMap[lookupIndex];
-      if (correctAns === undefined && q.pdfQNum !== undefined) {
-        correctAns = answerKeyMap[q.qIndex];
-      }
-      // Format E: look up by qId (e.g., "qid:1406")
-      if (correctAns === undefined && q.qId) {
-        correctAns = answerKeyMap[`qid:${q.qId}`];
-      }
-      if (correctAns !== undefined) {
-        answersHint += `\n- Q${q.qIndex}: Option ${correctAns}`;
+      const qId = q.qId ? String(q.qId).trim() : '';
+      const targetRawOpt = qId ? answerKeyMap[`rawopt:qid:${qId}`] : null;
+      const correctAns = resolveCorrectOption(q.qIndex, q, null, answerKeyMap, isPaperII);
+      if (correctAns !== undefined && correctAns >= 1 && correctAns <= 4) {
+        answersHint += `\n- Q${q.qIndex}${targetRawOpt ? ` (Option ID: ${targetRawOpt})` : ''}: Option ${correctAns}`;
       }
     });
     answersHint += '\nYou MUST output these exact correct option indices in the "correct" property for each question.';
@@ -965,13 +959,163 @@ function notifyJobListeners(jobId, data) {
 }
 
 // Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
+// Utility function to extract individual Option IDs from a question's raw text
+function extractOptionIdsFromText(rawText) {
+  if (!rawText) return {};
+  const map = {}; // { 1: optId1, 2: optId2, 3: optId3, 4: optId4 }
+
+  // Format 1: Option 1 ID : 5401
+  const explicitOptRegex = /Option\s*([1-4])\s*ID\s*[:=]\s*(\d+)/gi;
+  let em;
+  while ((em = explicitOptRegex.exec(rawText)) !== null) {
+    map[parseInt(em[1], 10)] = em[2];
+  }
+  if (Object.keys(map).length === 4) return map;
+
+  // Format 2: 1. ... [Option ID = 5401] or (1) ... [Option ID = 5401]
+  const numOptRegex = /(?:^|\n)\s*\(?([1-4])\)?[\.\:\-\s][^\n]*?\[Option ID\s*=\s*(\d+)\]/gi;
+  let nm;
+  while ((nm = numOptRegex.exec(rawText)) !== null) {
+    map[parseInt(nm[1], 10)] = nm[2];
+  }
+  if (Object.keys(map).length === 4) return map;
+
+  // Format 3: All [Option ID = 5401] in sequence
+  const allOptRegex = /\[Option ID\s*=\s*(\d+)\]/gi;
+  const list = [];
+  let am;
+  while ((am = allOptRegex.exec(rawText)) !== null) {
+    list.push(am[1]);
+  }
+  if (list.length >= 4) {
+    list.slice(0, 4).forEach((id, idx) => {
+      if (!map[idx + 1]) map[idx + 1] = id;
+    });
+  }
+
+  return map;
+}
+
+// Robust helper to resolve the exact correct option index (1-4) given answer key data and question context
+function resolveCorrectOption(targetIndex, rawItem, rawParsed, answerKeyMap, isPaperII = false) {
+  let correct = parseInt(rawParsed?.correct, 10);
+  if (isNaN(correct) || correct < 1 || correct > 4) correct = 1;
+
+  if (!answerKeyMap) return correct;
+
+  const rawText = (rawItem && rawItem.text) || '';
+  const qId = rawItem && rawItem.qId ? String(rawItem.qId).trim() : '';
+  const pdfQNum = rawItem && rawItem.pdfQNum !== undefined ? rawItem.pdfQNum : targetIndex;
+
+  let targetRawOpt = null;
+  let directNum = null;
+
+  if (qId && answerKeyMap[`rawopt:qid:${qId}`] !== undefined) {
+    targetRawOpt = answerKeyMap[`rawopt:qid:${qId}`];
+    directNum = answerKeyMap[`optnum:qid:${qId}`] || answerKeyMap[`qid:${qId}`];
+  } else if (qId && answerKeyMap[`qid:${qId}`] !== undefined) {
+    const val = answerKeyMap[`qid:${qId}`];
+    if (String(val).length > 1) targetRawOpt = String(val);
+    else directNum = val;
+  } else if (isPaperII && answerKeyMap[`p2:${targetIndex}`] !== undefined) {
+    directNum = answerKeyMap[`p2:${targetIndex}`];
+    targetRawOpt = answerKeyMap[`rawopt:p2:${targetIndex}`];
+  } else if (answerKeyMap[pdfQNum] !== undefined) {
+    directNum = answerKeyMap[pdfQNum];
+    targetRawOpt = answerKeyMap[`rawopt:${pdfQNum}`];
+  } else if (answerKeyMap[targetIndex] !== undefined) {
+    directNum = answerKeyMap[targetIndex];
+    targetRawOpt = answerKeyMap[`rawopt:${targetIndex}`];
+  }
+
+  if (targetRawOpt === '%' || targetRawOpt === '&' || directNum === 0) {
+    return 1;
+  }
+
+  // If we have a multi-digit Option ID (e.g. "5404"), match against question text options
+  if (targetRawOpt && /^\d{3,8}$/.test(targetRawOpt)) {
+    const optIdMap = extractOptionIdsFromText(rawText);
+    for (let optIdx = 1; optIdx <= 4; optIdx++) {
+      if (optIdMap[optIdx] === targetRawOpt) {
+        return optIdx;
+      }
+    }
+  }
+
+  if (directNum !== undefined && directNum !== null && !isNaN(directNum) && directNum >= 1 && directNum <= 4) {
+    return directNum;
+  }
+
+  return correct;
+}
+
 function parseAnswerKey(text) {
   const mapping = {};
+  if (!text) return mapping;
+
+  // 1. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
+  // e.g. "1351 5404", "1352 5406", "25314 41256", "1351 %", "1352 &"
+  const ntaPairs = [];
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    const cleanLine = line.trim();
+    if (!cleanLine) continue;
+    if (/^Exam\s*Date|^NATIONAL\s*TESTING|^UGC\s*NET|^Subject\s*:|^Question\s*$|^ID\s*$|^Correct\s*$|^Option\s*ID|^Page\s*\d+|^Note\s*:/i.test(cleanLine)) {
+      continue;
+    }
+
+    const pairRegex = /\b(\d{3,8})\s+([0-9]{3,8}|[\%\&]|DROPPED|DROP|NULL|CANCELLED)\b/gi;
+    let pm;
+    while ((pm = pairRegex.exec(cleanLine)) !== null) {
+      ntaPairs.push({ qId: pm[1], correctOpt: pm[2] });
+    }
+  }
+
+  if (ntaPairs.length < 10) {
+    const pairRegex = /\b(\d{3,8})\s+([0-9]{3,8}|[\%\&]|DROPPED|DROP|NULL|CANCELLED)\b/gi;
+    let pm;
+    while ((pm = pairRegex.exec(text)) !== null) {
+      if (!ntaPairs.some(p => p.qId === pm[1])) {
+        ntaPairs.push({ qId: pm[1], correctOpt: pm[2] });
+      }
+    }
+  }
+
+  if (ntaPairs.length >= 10) {
+    console.log(`Detected NTA Final Answer Key format: parsed ${ntaPairs.length} Question ID -> Option ID pairs.`);
+
+    ntaPairs.forEach((p, idx) => {
+      let optNum = 0;
+      if (/^[\%\&]$|DROPPED|DROP|NULL|CANCELLED/i.test(p.correctOpt)) {
+        optNum = 0;
+      } else {
+        const numVal = parseInt(p.correctOpt, 10);
+        if (!isNaN(numVal)) {
+          optNum = ((numVal - 1) % 4) + 1;
+        }
+      }
+
+      mapping[`qid:${p.qId}`] = optNum;
+      mapping[`rawopt:qid:${p.qId}`] = p.correctOpt;
+      mapping[`optnum:qid:${p.qId}`] = optNum;
+
+      const seqIndex = idx + 1;
+      mapping[seqIndex] = optNum;
+      mapping[String(seqIndex)] = optNum;
+      mapping[`rawopt:${seqIndex}`] = p.correctOpt;
+
+      if (ntaPairs.length > 50 && seqIndex > 50) {
+        const p2Idx = seqIndex - 50;
+        mapping[`p2:${p2Idx}`] = optNum;
+        mapping[`rawopt:p2:${p2Idx}`] = p.correctOpt;
+      }
+    });
+
+    return mapping;
+  }
 
   // --- Format E Answer Key: "[Question ID = X]...[Option ID = Y]" style (OCR bilingual PDFs) ---
-  // In these PDFs, the answer key lists correct option IDs. Each question's option IDs are
-  // sequential (e.g., Q1 has option IDs 5621-5624, Q2 has 5625-5628, etc.)
-  // Pattern: N)\n[correct answer text]\n[Question ID = XXXX]...\n1. 1 [Option ID = YYYY]\n...
   const qIdOptionPattern = /\[Question ID\s*=\s*(\d+)\].*?\n(?:.*?\n)*?1\.\s*1\s*\[Option ID\s*=\s*(\d+)\]/g;
   const formatEMatches = [];
   let fmatch;
@@ -980,63 +1124,46 @@ function parseAnswerKey(text) {
   }
 
   if (formatEMatches.length > 0) {
-    // Build a map of questionId -> firstOptionId
     const qIdToFirstOption = {};
     for (const m of formatEMatches) {
       qIdToFirstOption[m.questionId] = m.firstOptionId;
     }
 
-    // Now find correct answer: look for "[Question ID = X]" followed by a single [Option ID = Y] (the correct one)
-    // In answer key PDFs, only the correct option is listed: "[Question ID = X][Question Description = ...]\n1. Y [Option ID = Z]"
     const correctPattern = /\[Question ID\s*=\s*(\d+)\].*?(\d+)\.\s*(\d+)\s*\[Option ID\s*=\s*(\d+)\]/gs;
     let cp;
     while ((cp = correctPattern.exec(text)) !== null) {
       const questionId = cp[1];
-      const listedOptionNum = parseInt(cp[3], 10); // 1, 2, 3, or 4
+      const listedOptionNum = parseInt(cp[3], 10);
       if (listedOptionNum >= 1 && listedOptionNum <= 4 && qIdToFirstOption[questionId] !== undefined) {
-        // Map questionId to qNum using the formatEMatches positional index
-        const matchEntry = formatEMatches.find(m => m.questionId === questionId);
-        if (matchEntry) {
-          // Use the listed option number directly as the correct answer
-          // (In Format E answer key: "1. 3 [Option ID = Z]" means option 3 is correct)
-          // We store by questionId and resolve to qNum later
-          mapping[`qid:${questionId}`] = listedOptionNum;
-        }
+        mapping[`qid:${questionId}`] = listedOptionNum;
       }
     }
 
-    // If we got qid-keyed mappings, return them (caller will resolve by qId)
     if (Object.keys(mapping).some(k => k.startsWith('qid:'))) {
       return mapping;
     }
   }
 
   // --- Standard Answer Key Parsing (line-by-line "qNum answer" pairs) ---
-  const lines = text.split('\n');
-  
   for (const line of lines) {
     let cleanLine = line.trim();
     if (!cleanLine) continue;
     
-    // Apply pre-processing string replacements for common OCR typos
     cleanLine = cleanLine
-      .replace(/\s*\|\s*/g, '1 ')        // '8 | B' -> '81 B' (replace space-pipe-space with '1 ')
-      .replace(/\]/g, '1')              // '4]' -> '41', '9]' -> '91'
-      .replace(/\bT(\d+)\b/g, '7$1')     // 'T7' -> '77'
-      .replace(/\bl(\d+)\b/g, '1$1')     // 'l5' -> '15'
-      .replace(/\bI(\d+)\b/g, '1$1')     // 'I5' -> '15'
-      .replace(/\bl\b/g, '1')            // isolated 'l' -> '1'
-      .replace(/\bI\b/g, '1')            // isolated 'I' -> '1'
-      .replace(/\big\b/g, '11');         // 'ig' -> '11'
+      .replace(/\s*\|\s*/g, '1 ')
+      .replace(/\]/g, '1')
+      .replace(/\bT(\d+)\b/g, '7$1')
+      .replace(/\bl(\d+)\b/g, '1$1')
+      .replace(/\bI(\d+)\b/g, '1$1')
+      .replace(/\bl\b/g, '1')
+      .replace(/\bI\b/g, '1')
+      .replace(/\big\b/g, '11');
       
-    // Split by whitespace, comma, tab, semicolon, vertical bar
     const tokens = cleanLine.split(/[\s,;|]+/);
     
-    // Check if there are any words with length >= 3 to avoid headers/footers
     let hasLongWord = false;
     for (const t of tokens) {
       const lower = t.toLowerCase();
-      // Allow 'dropped', 'drop', 'null' as valid answer key tokens
       if (['dropped', 'drop', 'null'].includes(lower)) {
         continue;
       }
@@ -1047,7 +1174,6 @@ function parseAnswerKey(text) {
     }
     if (hasLongWord) continue;
     
-    // Clean tokens: remove Q/q from start, dots/colons from end
     const cleanTokens = tokens.map(t => {
       return t.replace(/^[Qq]/, '').replace(/[.:]$/, '').trim();
     }).filter(Boolean);

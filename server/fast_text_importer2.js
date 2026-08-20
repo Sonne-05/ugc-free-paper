@@ -26,10 +26,162 @@ function askQuestion(query) {
   return new Promise(resolve => rl.question(query, ans => { rl.close(); resolve(ans.trim()); }));
 }
 
+// Utility function to extract individual Option IDs from a question's raw text
+function extractOptionIdsFromText(rawText) {
+  if (!rawText) return {};
+  const map = {}; // { 1: optId1, 2: optId2, 3: optId3, 4: optId4 }
+
+  // Format 1: Option 1 ID : 5401
+  const explicitOptRegex = /Option\s*([1-4])\s*ID\s*[:=]\s*(\d+)/gi;
+  let em;
+  while ((em = explicitOptRegex.exec(rawText)) !== null) {
+    map[parseInt(em[1], 10)] = em[2];
+  }
+  if (Object.keys(map).length === 4) return map;
+
+  // Format 2: 1. ... [Option ID = 5401] or (1) ... [Option ID = 5401]
+  const numOptRegex = /(?:^|\n)\s*\(?([1-4])\)?[\.\:\-\s][^\n]*?\[Option ID\s*=\s*(\d+)\]/gi;
+  let nm;
+  while ((nm = numOptRegex.exec(rawText)) !== null) {
+    map[parseInt(nm[1], 10)] = nm[2];
+  }
+  if (Object.keys(map).length === 4) return map;
+
+  // Format 3: All [Option ID = 5401] in sequence
+  const allOptRegex = /\[Option ID\s*=\s*(\d+)\]/gi;
+  const list = [];
+  let am;
+  while ((am = allOptRegex.exec(rawText)) !== null) {
+    list.push(am[1]);
+  }
+  if (list.length >= 4) {
+    list.slice(0, 4).forEach((id, idx) => {
+      if (!map[idx + 1]) map[idx + 1] = id;
+    });
+  }
+
+  return map;
+}
+
+// Robust helper to resolve the exact correct option index (1-4) given answer key data and question context
+function resolveCorrectOption(targetIndex, rawItem, rawParsed, answerKeyMap, isPaperII = false) {
+  let correct = parseInt(rawParsed?.correct, 10);
+  if (isNaN(correct) || correct < 1 || correct > 4) correct = 1;
+
+  if (!answerKeyMap) return correct;
+
+  const rawText = (rawItem && rawItem.text) || '';
+  const qId = rawItem && rawItem.qId ? String(rawItem.qId).trim() : '';
+  const pdfQNum = rawItem && rawItem.pdfQNum !== undefined ? rawItem.pdfQNum : targetIndex;
+
+  let targetRawOpt = null;
+  let directNum = null;
+
+  if (qId && answerKeyMap[`rawopt:qid:${qId}`] !== undefined) {
+    targetRawOpt = answerKeyMap[`rawopt:qid:${qId}`];
+    directNum = answerKeyMap[`optnum:qid:${qId}`] || answerKeyMap[`qid:${qId}`];
+  } else if (qId && answerKeyMap[`qid:${qId}`] !== undefined) {
+    const val = answerKeyMap[`qid:${qId}`];
+    if (String(val).length > 1) targetRawOpt = String(val);
+    else directNum = val;
+  } else if (isPaperII && answerKeyMap[`p2:${targetIndex}`] !== undefined) {
+    directNum = answerKeyMap[`p2:${targetIndex}`];
+    targetRawOpt = answerKeyMap[`rawopt:p2:${targetIndex}`];
+  } else if (answerKeyMap[pdfQNum] !== undefined) {
+    directNum = answerKeyMap[pdfQNum];
+    targetRawOpt = answerKeyMap[`rawopt:${pdfQNum}`];
+  } else if (answerKeyMap[targetIndex] !== undefined) {
+    directNum = answerKeyMap[targetIndex];
+    targetRawOpt = answerKeyMap[`rawopt:${targetIndex}`];
+  }
+
+  if (targetRawOpt === '%' || targetRawOpt === '&' || directNum === 0) {
+    return 1;
+  }
+
+  // If we have a multi-digit Option ID (e.g. "5404"), match against question text options
+  if (targetRawOpt && /^\d{3,8}$/.test(targetRawOpt)) {
+    const optIdMap = extractOptionIdsFromText(rawText);
+    for (let optIdx = 1; optIdx <= 4; optIdx++) {
+      if (optIdMap[optIdx] === targetRawOpt) {
+        return optIdx;
+      }
+    }
+  }
+
+  if (directNum !== undefined && directNum !== null && !isNaN(directNum) && directNum >= 1 && directNum <= 4) {
+    return directNum;
+  }
+
+  return correct;
+}
+
 // Utility function to parse answer key PDF text into a mapping object
 function parseAnswerKey(text) {
   const mapping = {};
   if (!text) return mapping;
+
+  // 1. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
+  // e.g. "1351 5404", "1352 5406", "25314 41256", "1351 %", "1352 &"
+  const ntaPairs = [];
+  const lines = text.split('\n');
+
+  for (const line of lines) {
+    const cleanLine = line.trim();
+    if (!cleanLine) continue;
+    if (/^Exam\s*Date|^NATIONAL\s*TESTING|^UGC\s*NET|^Subject\s*:|^Question\s*$|^ID\s*$|^Correct\s*$|^Option\s*ID|^Page\s*\d+|^Note\s*:/i.test(cleanLine)) {
+      continue;
+    }
+
+    const pairRegex = /\b(\d{3,8})\s+([0-9]{3,8}|[\%\&]|DROPPED|DROP|NULL|CANCELLED)\b/gi;
+    let pm;
+    while ((pm = pairRegex.exec(cleanLine)) !== null) {
+      ntaPairs.push({ qId: pm[1], correctOpt: pm[2] });
+    }
+  }
+
+  if (ntaPairs.length < 10) {
+    const pairRegex = /\b(\d{3,8})\s+([0-9]{3,8}|[\%\&]|DROPPED|DROP|NULL|CANCELLED)\b/gi;
+    let pm;
+    while ((pm = pairRegex.exec(text)) !== null) {
+      if (!ntaPairs.some(p => p.qId === pm[1])) {
+        ntaPairs.push({ qId: pm[1], correctOpt: pm[2] });
+      }
+    }
+  }
+
+  if (ntaPairs.length >= 10) {
+    console.log(`Detected NTA Final Answer Key format: parsed ${ntaPairs.length} Question ID -> Option ID pairs.`);
+
+    ntaPairs.forEach((p, idx) => {
+      let optNum = 0;
+      if (/^[\%\&]$|DROPPED|DROP|NULL|CANCELLED/i.test(p.correctOpt)) {
+        optNum = 0;
+      } else {
+        const numVal = parseInt(p.correctOpt, 10);
+        if (!isNaN(numVal)) {
+          optNum = ((numVal - 1) % 4) + 1;
+        }
+      }
+
+      mapping[`qid:${p.qId}`] = optNum;
+      mapping[`rawopt:qid:${p.qId}`] = p.correctOpt;
+      mapping[`optnum:qid:${p.qId}`] = optNum;
+
+      const seqIndex = idx + 1;
+      mapping[seqIndex] = optNum;
+      mapping[String(seqIndex)] = optNum;
+      mapping[`rawopt:${seqIndex}`] = p.correctOpt;
+
+      if (ntaPairs.length > 50 && seqIndex > 50) {
+        const p2Idx = seqIndex - 50;
+        mapping[`p2:${p2Idx}`] = optNum;
+        mapping[`rawopt:p2:${p2Idx}`] = p.correctOpt;
+      }
+    });
+
+    return mapping;
+  }
 
   const qIdOptionPattern = /\[Question ID\s*=\s*(\d+)\].*?\n(?:.*?\n)*?1\.\s*1\s*\[Option ID\s*=\s*(\d+)\]/g;
   const formatEMatches = [];
@@ -83,7 +235,6 @@ function parseAnswerKey(text) {
     return mapping;
   }
 
-  const lines = text.split('\n');
   for (const line of lines) {
     let cleanLine = line.trim();
     if (!cleanLine) continue;
@@ -160,8 +311,8 @@ const PyqSetSchema = new mongoose.Schema({
   questionsLoaded: Number
 }, { collection: 'pyqsets' });
 
-const Question = mongoose.model('Question', QuestionSchema);
-const PyqSet = mongoose.model('PyqSet', PyqSetSchema);
+const Question = mongoose.models.Question || mongoose.model('Question', QuestionSchema);
+const PyqSet = mongoose.models.PyqSet || mongoose.model('PyqSet', PyqSetSchema);
 
 function cleanJsonString(str) {
   let cleaned = str.trim();
@@ -430,10 +581,11 @@ Questions to process:\n\n`;
   if (answerKeyMap) {
     prompt += `Official Answer Key Hints:\n`;
     batch.forEach(q => {
-      const lookup = q.pdfQNum || q.qIndex;
-      let ans = answerKeyMap[lookup] || (q.qId ? answerKeyMap[`qid:${q.qId}`] : undefined);
-      if (ans !== undefined) {
-        prompt += `- Q${q.qIndex}: Option ${ans}\n`;
+      const qId = q.qId ? String(q.qId).trim() : '';
+      const targetRawOpt = qId ? answerKeyMap[`rawopt:qid:${qId}`] : null;
+      const ans = resolveCorrectOption(q.qIndex, q, null, answerKeyMap, isPaperII);
+      if (ans !== undefined && ans >= 1 && ans <= 4) {
+        prompt += `- Q${q.qIndex}${targetRawOpt ? ` (Option ID: ${targetRawOpt})` : ''}: Option ${ans}\n`;
       }
     });
     prompt += `\n`;
@@ -884,14 +1036,7 @@ async function main() {
       let list2Header = rawParsed.list2Header || (LANGUAGE === 'Hindi' ? 'सूची - II' : 'List - II');
 
       // Correct Answer Resolution
-      let correct = parseInt(rawParsed.correct, 10);
-      if (isNaN(correct) || correct < 1 || correct > 4) correct = 1;
-
-      if (answerKeyMap) {
-        const lookup = (rawItem && rawItem.pdfQNum) || targetIndex;
-        const ans = answerKeyMap[lookup] || (rawItem && rawItem.qId && answerKeyMap[`qid:${rawItem.qId}`]);
-        if (ans !== undefined && ans >= 1 && ans <= 4) correct = ans;
-      }
+      let correct = resolveCorrectOption(targetIndex, rawItem, rawParsed, answerKeyMap, isPaperII);
 
       return {
         setId: new mongoose.Types.ObjectId(TARGET_SET_ID),
@@ -1052,4 +1197,13 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  parseAnswerKey,
+  resolveCorrectOption,
+  extractOptionIdsFromText,
+  cleanJsonString
+};

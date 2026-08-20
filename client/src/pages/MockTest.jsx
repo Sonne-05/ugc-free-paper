@@ -419,7 +419,6 @@ const MockTest = () => {
   const [reportQuestionId, setReportQuestionId] = useState('')
   const [reportEmail, setReportEmail] = useState('support@ugcfreepaper.com')
   const [reportIssue, setReportIssue] = useState('Incorrect Answer Key')
-  const [reportDescription, setReportDescription] = useState('')
   const [isSubmittingReport, setIsSubmittingReport] = useState(false)
 
 
@@ -534,8 +533,8 @@ const MockTest = () => {
   }, [showReportModal, activeQuestionIndex, questionsState]);
 
   const handleSubmitReport = () => {
-    if (!reportEmail || !reportDescription) {
-      alert("Please provide email and description.");
+    if (!reportEmail) {
+      alert("Please provide your email address.");
       return;
     }
     
@@ -558,7 +557,6 @@ Question PYQ Year: ${qYear}
 Question PYQ Set: ${qSet}
 Question ID: ${reportQuestionId}
 Issue Category: ${reportIssue}
-Description: ${reportDescription}
 ${qDetails}
 Submitted by User: ${userName}
 `;
@@ -581,7 +579,6 @@ Submitted by User: ${userName}
       .then(() => {
         alert("Thank you! The error report has been submitted to the administrator.");
         setShowReportModal(false);
-        setReportDescription('');
       })
       .catch(err => {
         console.error("Failed to submit error report:", err);
@@ -646,7 +643,7 @@ Submitted by User: ${userName}
             </select>
           </div>
 
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
               Type of Issue
             </label>
@@ -671,28 +668,6 @@ Submitted by User: ${userName}
             </select>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-              Describe the issue
-            </label>
-            <textarea
-              placeholder="Please describe what is wrong with the question..."
-              value={reportDescription}
-              onChange={(e) => setReportDescription(e.target.value)}
-              required
-              rows={4}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.85rem',
-                resize: 'vertical',
-                fontFamily: 'inherit'
-              }}
-            />
-          </div>
-
           <div className="mt-modal__buttons">
             <button 
               type="button" 
@@ -706,7 +681,7 @@ Submitted by User: ${userName}
               type="button" 
               className="modal-btn modal-btn--confirm" 
               onClick={handleSubmitReport}
-              disabled={isSubmittingReport || !reportEmail || !reportDescription}
+              disabled={isSubmittingReport || !reportEmail}
               style={{ backgroundColor: '#ef4444' }}
             >
               {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
