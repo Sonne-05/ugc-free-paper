@@ -556,6 +556,16 @@ app.get('/api/questions/unit', async (req, res) => {
 });
 
 
+// Endpoint to fetch all question IDs for sitemap generation
+app.get('/api/questions/sitemap-ids', async (req, res) => {
+  try {
+    const questions = await Question.find({}).select('_id updatedAt').limit(50000).lean();
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch question sitemap IDs', error: err.message });
+  }
+});
+
 // Public single question SEO endpoint with breadcrumbs, set details, and related questions
 app.get('/api/questions/public/:id', async (req, res) => {
   try {

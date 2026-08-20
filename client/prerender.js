@@ -187,6 +187,52 @@ async function run() {
     fs.writeFileSync(path.join(destDir, 'index.html'), html)
   }
 
+  // 6. Generate dynamic sitemap.xml in dist/ with all routes and questions
+  try {
+    const sitemapPath = toAbsolute('dist/sitemap.xml');
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    const today = new Date().toISOString().split('T')[0];
+
+    // Core and prerendered static/dynamic pages
+    routes.forEach(r => {
+      if (r.path === '/404') return;
+      const isCore = ['/', '/paper1', '/paper1-unit-pyq', '/paper2', '/paper1-notes'].includes(r.path);
+      xml += '  <url>\n';
+      xml += `    <loc>https://ugcfreepaper.com${r.path === '/' ? '' : r.path}</loc>\n`;
+      xml += `    <lastmod>${today}</lastmod>\n`;
+      xml += `    <changefreq>${isCore ? 'daily' : 'weekly'}</changefreq>\n`;
+      xml += `    <priority>${r.path === '/' ? '1.0' : (isCore ? '0.9' : '0.75')}</priority>\n`;
+      xml += '  </url>\n';
+    });
+
+    // Fetch dynamic questions from backend
+    try {
+      const qRes = await fetch(`${API_BASE_URL}/api/questions/sitemap-ids`);
+      if (qRes.ok) {
+        const qList = await qRes.json();
+        qList.forEach(q => {
+          const lastmod = q.updatedAt ? new Date(q.updatedAt).toISOString().split('T')[0] : today;
+          xml += '  <url>\n';
+          xml += `    <loc>https://ugcfreepaper.com/question/${q._id || q.id}</loc>\n`;
+          xml += `    <lastmod>${lastmod}</lastmod>\n`;
+          xml += '    <changefreq>monthly</changefreq>\n';
+          xml += '    <priority>0.75</priority>\n';
+          xml += '  </url>\n';
+        });
+        console.log(`Generated sitemap with ${qList.length} question pages!`);
+      }
+    } catch (qErr) {
+      console.warn('Could not fetch questions list for static sitemap:', qErr.message);
+    }
+
+    xml += '</urlset>';
+    fs.writeFileSync(sitemapPath, xml);
+    console.log('Saved updated dist/sitemap.xml successfully!');
+  } catch (smErr) {
+    console.warn('Could not generate dist/sitemap.xml:', smErr.message);
+  }
+
   console.log('Prerendering completed successfully!')
 }
 
