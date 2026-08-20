@@ -165,6 +165,22 @@ const QuestionSolution = () => {
     };
   }, [data, id]);
 
+  const formatContent = (str) => {
+    if (!str || typeof str !== 'string') return '';
+    if (/<[a-z][\s\S]*>/i.test(str)) {
+      return <div className="qs-rich-text" dangerouslySetInnerHTML={{ __html: str }} />;
+    }
+    const formatted = str
+      .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
+      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>')
+      .replace(/\[bar\/([^\]]+)\]/g, '<span style="text-decoration: overline;">$1</span>')
+      .replace(/!=/g, '≠')
+      .replace(/=>/g, '⇒')
+      .replace(/->/g, '→');
+
+    return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
+  };
+
   const handleCopyLink = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
@@ -245,73 +261,74 @@ const QuestionSolution = () => {
             {q.ntaQuestionId && <span className="qs-badge qs-badge-nta">NTA ID: {q.ntaQuestionId}</span>}
           </div>
 
-          {/* Reading Comprehension Passage */}
-          {q.passage && (
+          {/* Reading Comprehension Passage (Type: comprehension) */}
+          {q.passage && q.passage.trim() !== '' && (
             <div className="qs-passage-box">
               <h4 className="qs-passage-title">📖 Read the following passage carefully:</h4>
-              <div className="qs-passage-body">{q.passage}</div>
+              <div className="qs-passage-body">{formatContent(q.passage)}</div>
             </div>
           )}
 
           {/* Question Text */}
           <div className="qs-question-text">
-            <h3>{q.text}</h3>
+            <h3>{formatContent(q.text)}</h3>
           </div>
 
-          {/* Assertion & Reason */}
-          {(q.assertion || q.reason) && (
+          {/* Assertion & Reason (Type: assertion-reason) */}
+          {((q.assertion && q.assertion.trim() !== '') || (q.reason && q.reason.trim() !== '')) && (
             <div className="qs-assertion-box">
-              {q.assertion && (
+              {q.assertion && q.assertion.trim() !== '' && (
                 <div className="qs-ar-item">
                   <span className="qs-ar-label">Assertion (A):</span>
-                  <span className="qs-ar-text">{q.assertion}</span>
+                  <span className="qs-ar-text">{formatContent(q.assertion)}</span>
                 </div>
               )}
-              {q.reason && (
+              {q.reason && q.reason.trim() !== '' && (
                 <div className="qs-ar-item">
                   <span className="qs-ar-label">Reason (R):</span>
-                  <span className="qs-ar-text">{q.reason}</span>
+                  <span className="qs-ar-text">{formatContent(q.reason)}</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Multiple Statements */}
-          {Array.isArray(q.statements) && q.statements.length > 0 && (
+          {/* Multiple Statements / Arrangement (Type: multiple-statement) */}
+          {Array.isArray(q.statements) && q.statements.some(s => s && s.trim() !== '') && (
             <div className="qs-statements-box">
               <span className="qs-stmt-header">Given the statements:</span>
               <ul className="qs-stmt-list">
-                {q.statements.map((stmt, idx) => (
-                  <li key={idx}><strong>({String.fromCharCode(65 + idx)})</strong> {stmt}</li>
+                {q.statements.filter(s => s && s.trim() !== '').map((stmt, idx) => (
+                  <li key={idx}><strong>({String.fromCharCode(65 + idx)})</strong> {formatContent(stmt)}</li>
                 ))}
               </ul>
-              {q.subPrompt && <div className="qs-subprompt">{q.subPrompt}</div>}
+              {q.subPrompt && <div className="qs-subprompt">{formatContent(q.subPrompt)}</div>}
             </div>
           )}
 
-          {/* Match the Following Column Grid */}
-          {Array.isArray(q.list1) && q.list1.length > 0 && (
+          {/* Match the Following Column Grid (Type: match-column) */}
+          {(q.type === 'match-column' || (q.list1Header && q.list2Header)) && 
+           Array.isArray(q.list1) && q.list1.some(item => item && item.trim() !== '') && (
             <div className="qs-match-grid">
               <div className="qs-match-col">
                 <div className="qs-match-header">{q.list1Header || 'List I'}</div>
-                {q.list1.map((item, idx) => (
+                {q.list1.filter(item => item && item.trim() !== '').map((item, idx) => (
                   <div key={idx} className="qs-match-item">
-                    <span className="qs-match-tag">({String.fromCharCode(65 + idx)})</span> {item}
+                    <span className="qs-match-tag">({String.fromCharCode(65 + idx)})</span> {formatContent(item)}
                   </div>
                 ))}
               </div>
               <div className="qs-match-col">
                 <div className="qs-match-header">{q.list2Header || 'List II'}</div>
-                {(q.list2 || []).map((item, idx) => (
+                {(q.list2 || []).filter(item => item && item.trim() !== '').map((item, idx) => (
                   <div key={idx} className="qs-match-item">
-                    <span className="qs-match-tag">({idx + 1})</span> {item}
+                    <span className="qs-match-tag">({idx + 1})</span> {formatContent(item)}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Interactive Options List */}
+          {/* Interactive Options List (MCQ / All Types) */}
           <div className="qs-options-container">
             <span className="qs-options-title">Select an option to test your answer:</span>
             <div className="qs-options-list">
@@ -337,7 +354,7 @@ const QuestionSolution = () => {
                     }}
                   >
                     <span className="qs-opt-number">({optNum})</span>
-                    <span className="qs-opt-content">{opt}</span>
+                    <span className="qs-opt-content">{formatContent(opt)}</span>
                     {(showExplanation || selectedOption !== null) && isCorrect && (
                       <span className="qs-opt-badge-correct">✓ Correct</span>
                     )}
@@ -374,14 +391,16 @@ const QuestionSolution = () => {
                 <span className="qs-sol-icon">🎯</span>
                 <div>
                   <strong>Official Correct Answer: Option ({correctIndex})</strong>
-                  <div className="qs-correct-text">{options[correctIndex - 1]}</div>
+                  <div className="qs-correct-text">{formatContent(options[correctIndex - 1])}</div>
                 </div>
               </div>
 
               <div className="qs-sol-body">
                 <h4 className="qs-sol-title">📖 Detailed Academic Explanation:</h4>
                 <div className="qs-explanation-content">
-                  {q.explanation || (
+                  {q.explanation ? (
+                    formatContent(q.explanation)
+                  ) : (
                     <p className="qs-no-exp">
                       The official key issued by the National Testing Agency (NTA) confirms <strong>Option ({correctIndex})</strong> as the correct answer.
                     </p>
