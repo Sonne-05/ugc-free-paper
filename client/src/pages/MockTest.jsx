@@ -553,6 +553,7 @@ const MockTest = () => {
 Unit: ${paperDetails.unitName || 'Paper 1'}
 Active Session: Session ${activeSessionIndex + 1}
 Question Number: ${qNo}
+Question Set Slot: ${selectedQ?.qIndex ? 'Q' + selectedQ.qIndex : 'N/A'}
 Question PYQ Year: ${qYear}
 Question PYQ Set: ${qSet}
 Question ID: ${reportQuestionId}
@@ -801,6 +802,7 @@ Submitted by User: ${userName}
           const formattedQuestions = data.map((q, i) => ({
             id: i + 1, // 1-indexed for the UI
             dbId: q.id,
+            qIndex: q.qIndex || null,
             type: q.type || 'mcq',
             question: q.text,
             unit: q.unit,

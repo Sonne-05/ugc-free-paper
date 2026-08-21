@@ -666,7 +666,7 @@ const DataInterpretationGroup = ({
   year,
   targetQNum
 }) => {
-  const isTargetGroup = Boolean(targetQNum && targetQNum >= 1 && targetQNum <= 5);
+  const isTargetGroup = Boolean((targetQId && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex <= 5)) || (targetQNum && targetQNum >= 1 && targetQNum <= 5));
   const [isOpen, setIsOpen] = useState(isTargetGroup);
 
   useEffect(() => {
@@ -1307,7 +1307,7 @@ const ReadingComprehensionGroup = ({
   year,
   targetQNum
 }) => {
-  const isTargetGroup = Boolean(targetQNum && targetQNum >= 46 && targetQNum <= 50);
+  const isTargetGroup = Boolean((targetQId && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex >= 46 && q.qIndex <= 50)) || (targetQNum && targetQNum >= 46 && targetQNum <= 50));
   const [isOpen, setIsOpen] = useState(isTargetGroup);
 
   useEffect(() => {
@@ -3116,6 +3116,12 @@ const ManageSet = () => {
 
   const targetQNum = searchParams.get('qNum') ? parseInt(searchParams.get('qNum'), 10) : null
   const targetQId = searchParams.get('qId') || null
+
+  const targetQuestion = targetQId
+    ? editingSetQuestions.find(q => String(q.id || q._id) === String(targetQId))
+    : (targetQNum ? editingSetQuestions.find(q => q.qIndex === targetQNum) : null);
+
+  const resolvedTargetSlot = targetQuestion ? targetQuestion.qIndex : targetQNum;
   
   const [isAdmin, setIsAdmin] = useState(false)
   const [pyqSets, setPyqSets] = useState([])
@@ -3352,21 +3358,21 @@ const ManageSet = () => {
 
   // Auto-scroll to targeted question when opened from an Error Report
   useEffect(() => {
-    if (targetQNum && editingSetQuestions.length > 0) {
+    if (resolvedTargetSlot && editingSetQuestions.length > 0) {
       const timer = setTimeout(() => {
-        const targetElementId = (targetQNum >= 1 && targetQNum <= 5 && isPaperI) 
+        const targetElementId = (resolvedTargetSlot >= 1 && resolvedTargetSlot <= 5 && isPaperI) 
           ? 'q-slot-di' 
-          : (targetQNum >= 46 && targetQNum <= 50 && isPaperI)
+          : (resolvedTargetSlot >= 46 && resolvedTargetSlot <= 50 && isPaperI)
             ? 'q-slot-rc'
-            : `q-slot-${targetQNum}`;
+            : `q-slot-${resolvedTargetSlot}`;
         const element = document.getElementById(targetElementId);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 350);
+      }, 400);
       return () => clearTimeout(timer);
     }
-  }, [targetQNum, editingSetQuestions.length, isPaperI]);
+  }, [resolvedTargetSlot, editingSetQuestions.length, isPaperI]);
 
 
   const handleEditQuestion = (q) => {
@@ -5148,7 +5154,7 @@ const ManageSet = () => {
                         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.88rem', boxShadow: '0 1px 3px rgba(37,99,235,0.1)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '1.2rem' }}>🎯</span>
-                            <span><strong>Navigated from Question Error Report:</strong> Editing <strong>Question {targetQNum}</strong></span>
+                            <span><strong>Navigated from Question Error Report:</strong> Focused on <strong>Question {resolvedTargetSlot}</strong> in this set {targetQuestion?.text ? `("${targetQuestion.text.replace(/<[^>]*>/g, '').substring(0, 50)}...")` : ''}</span>
                           </span>
                           <button
                             type="button"
@@ -5166,7 +5172,7 @@ const ManageSet = () => {
                         {newSetPaperType === 'Paper I' ? (
                           <>
                             <DataInterpretationGroup
-                              targetQNum={targetQNum}
+                              targetQNum={resolvedTargetSlot}
                               editingSetQuestions={editingSetQuestions}
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
@@ -5207,7 +5213,7 @@ const ManageSet = () => {
                                   pyqSets={pyqSets}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
-                                  targetQNum={targetQNum}
+                                  targetQNum={resolvedTargetSlot}
                                   targetQId={targetQId}
                                   onSave={(savedData, updatedSet) => {
                                     setEditingSetQuestions(prev => {
@@ -5239,7 +5245,7 @@ const ManageSet = () => {
                             })}
 
                              <ReadingComprehensionGroup
-                               targetQNum={targetQNum}
+                               targetQNum={resolvedTargetSlot}
                                editingSetQuestions={editingSetQuestions}
                                setId={editingSetId}
                                API_BASE_URL={API_BASE_URL}

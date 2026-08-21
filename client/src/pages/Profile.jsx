@@ -3469,7 +3469,7 @@ const Profile = () => {
                             const targetQId = qIdMatch ? qIdMatch[1] : null;
 
                             const manageSetUrl = targetSetId 
-                              ? `/admin/manage-set/${targetSetId}${targetQNum ? `?qNum=${targetQNum}` : (targetQId ? `?qId=${targetQId}` : '')}`
+                              ? `/admin/manage-set/${targetSetId}?${targetQId ? `qId=${targetQId}` : ''}${targetQNum ? `&qNum=${targetQNum}` : ''}`
                               : null;
 
                             return (
