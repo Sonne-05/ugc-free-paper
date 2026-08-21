@@ -5150,24 +5150,7 @@ const ManageSet = () => {
                         </div>
                       </div>
                       
-                      {targetQNum && (
-                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.88rem', boxShadow: '0 1px 3px rgba(37,99,235,0.1)' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '1.2rem' }}>🎯</span>
-                            <span><strong>Navigated from Question Error Report:</strong> Focused on <strong>Question {resolvedTargetSlot}</strong> in this set {targetQuestion?.text ? `("${targetQuestion.text.replace(/<[^>]*>/g, '').substring(0, 50)}...")` : ''}</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const el = document.getElementById((targetQNum >= 1 && targetQNum <= 5 && isPaperI) ? 'q-slot-di' : (targetQNum >= 46 && targetQNum <= 50 && isPaperI) ? 'q-slot-rc' : `q-slot-${targetQNum}`);
-                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }}
-                            style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}
-                          >
-                            Focus Question {targetQNum}
-                          </button>
-                        </div>
-                      )}
+
                       {resolvedTargetSlot && (
                         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.88rem', boxShadow: '0 1px 3px rgba(37,99,235,0.1)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -5191,6 +5174,7 @@ const ManageSet = () => {
                           <>
                             <DataInterpretationGroup
                               targetQNum={resolvedTargetSlot}
+                              targetQId={targetQId}
                               editingSetQuestions={editingSetQuestions}
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
@@ -5264,6 +5248,7 @@ const ManageSet = () => {
 
                              <ReadingComprehensionGroup
                                targetQNum={resolvedTargetSlot}
+                               targetQId={targetQId}
                                editingSetQuestions={editingSetQuestions}
                                setId={editingSetId}
                                API_BASE_URL={API_BASE_URL}
