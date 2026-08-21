@@ -180,12 +180,30 @@ const Profile = () => {
   const [noteCategoryTargetUrl, setNoteCategoryTargetUrl] = useState('')
   const [noteCategoryIsAvailable, setNoteCategoryIsAvailable] = useState(true)
   const [isNoteCategoryFormOpen, setIsNoteCategoryFormOpen] = useState(false)
-  const [selectedFilterYear, setSelectedFilterYear] = useState('All')
-  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState('All')
-  const [selectedFilterSubject, setSelectedFilterSubject] = useState('All')
-  const [selectedFilterStatus, setSelectedFilterStatus] = useState('All')
+  const [selectedFilterYear, setSelectedFilterYear] = useState(() => {
+    try { return localStorage.getItem('admin_pyq_filter_year') || 'All'; } catch (e) { return 'All'; }
+  })
+  const [selectedFilterPaperType, setSelectedFilterPaperType] = useState(() => {
+    try { return localStorage.getItem('admin_pyq_filter_paper') || 'All'; } catch (e) { return 'All'; }
+  })
+  const [selectedFilterSubject, setSelectedFilterSubject] = useState(() => {
+    try { return localStorage.getItem('admin_pyq_filter_subject') || 'All'; } catch (e) { return 'All'; }
+  })
+  const [selectedFilterStatus, setSelectedFilterStatus] = useState(() => {
+    try { return localStorage.getItem('admin_pyq_filter_status') || 'All'; } catch (e) { return 'All'; }
+  })
   const [newSetIsVerified, setNewSetIsVerified] = useState(false)
   const [activePresences, setActivePresences] = useState({})
+
+  // Persist PYQ filters in browser cache (localStorage)
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_pyq_filter_year', selectedFilterYear)
+      localStorage.setItem('admin_pyq_filter_paper', selectedFilterPaperType)
+      localStorage.setItem('admin_pyq_filter_subject', selectedFilterSubject)
+      localStorage.setItem('admin_pyq_filter_status', selectedFilterStatus)
+    } catch (e) {}
+  }, [selectedFilterYear, selectedFilterPaperType, selectedFilterSubject, selectedFilterStatus])
 
   useEffect(() => {
     const fetchPresences = async () => {
