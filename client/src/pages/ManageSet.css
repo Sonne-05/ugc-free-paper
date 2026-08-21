@@ -506,6 +506,28 @@ textarea.ms-input {
   border-color: #3b82f6;
 }
 
+@keyframes slotPulseHighlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.6);
+    border-color: #2563eb;
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.2);
+    border-color: #1d4ed8;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+    border-color: #3b82f6;
+  }
+}
+
+.ms-q-slot-card--highlighted {
+  animation: slotPulseHighlight 1.8s ease-in-out 3;
+  border: 2px solid #2563eb !important;
+  border-left: 6px solid #2563eb !important;
+  scroll-margin-top: 100px;
+}
+
 .ms-q-slot-header {
   padding: 14px 20px;
   cursor: pointer;

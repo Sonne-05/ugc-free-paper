@@ -116,12 +116,59 @@ function resolveCorrectOption(targetIndex, rawItem, rawParsed, answerKeyMap, isP
   return correct;
 }
 
-// Utility function to parse answer key PDF text into a mapping object
+// Utility function to parse answer key PDF text or JSON into a mapping object
 function parseAnswerKey(text) {
   const mapping = {};
   if (!text) return mapping;
 
-  // 1. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
+  // 0. Format: Direct JSON String
+  try {
+    const trimmed = text.trim();
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((item, idx) => {
+          const qNum = item.qIndex || item.targetIndex || (idx + 1);
+          let correctNum = item.correct;
+          if (!correctNum && item.letter) {
+            correctNum = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 }[item.letter.toUpperCase()];
+          }
+          if (correctNum) {
+            mapping[qNum] = correctNum;
+            mapping[String(qNum)] = correctNum;
+            if (item.ntaQuestionId) {
+              mapping[`qid:${item.ntaQuestionId}`] = correctNum;
+              mapping[`optnum:qid:${item.ntaQuestionId}`] = correctNum;
+            }
+          }
+        });
+        if (Object.keys(mapping).length >= 10) return mapping;
+      }
+    }
+  } catch (e) {}
+
+  // 1. Format: Auto PDF Solver & CrossMatcher Quick Grid ("Q  1: C", "Q1: C", "1:C", "Q100: D")
+  const gridPattern = /(?:^|\s)Q?\s*(\d{1,3})\s*:\s*([A-D1-4])\b/gi;
+  let gm;
+  const gridPairs = [];
+  while ((gm = gridPattern.exec(text)) !== null) {
+    const qNum = parseInt(gm[1], 10);
+    const ansChar = gm[2].toUpperCase();
+    const map = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+    if (qNum >= 1 && qNum <= 150 && map[ansChar] !== undefined) {
+      gridPairs.push({ qNum, ans: map[ansChar] });
+    }
+  }
+  if (gridPairs.length >= 20) {
+    gridPairs.forEach(p => {
+      mapping[p.qNum] = p.ans;
+      mapping[String(p.qNum)] = p.ans;
+    });
+    console.log(`Detected Quick Grid Answer Key format: mapped ${gridPairs.length} questions.`);
+    return mapping;
+  }
+
+  // 2. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
   // e.g. "1351 5404", "1352 5406", "25314 41256", "1351 %", "1352 &"
   const ntaPairs = [];
   const lines = text.split('\n');
@@ -280,6 +327,7 @@ function parseAnswerKey(text) {
 
   return mapping;
 }
+
 
 // Define Mongoose Models
 const QuestionSchema = new mongoose.Schema({
@@ -692,17 +740,23 @@ async function main() {
 
   let answerKeyMap = null;
   if (ANSWER_KEY_PATH && fs.existsSync(ANSWER_KEY_PATH)) {
-    console.log('Parsing Answer Key PDF...');
+    console.log('Parsing Answer Key...');
     try {
-      const keyBuffer = fs.readFileSync(ANSWER_KEY_PATH);
-      const keyParser = new PDFParse({ data: keyBuffer });
-      const parsedKey = await keyParser.getText();
-      answerKeyMap = parseAnswerKey(parsedKey.text);
+      if (ANSWER_KEY_PATH.toLowerCase().endsWith('.json')) {
+        const jsonText = fs.readFileSync(ANSWER_KEY_PATH, 'utf8');
+        answerKeyMap = parseAnswerKey(jsonText);
+      } else {
+        const keyBuffer = fs.readFileSync(ANSWER_KEY_PATH);
+        const keyParser = new PDFParse({ data: keyBuffer });
+        const parsedKey = await keyParser.getText();
+        answerKeyMap = parseAnswerKey(parsedKey.text);
+      }
       console.log(`Mapped ${Object.keys(answerKeyMap).length} answers from Answer Key.`);
     } catch (kErr) {
       console.warn(`Warning: Could not parse answer key: ${kErr.message}`);
     }
   }
+
 
   try {
     console.log('\nConnecting to MongoDB...');

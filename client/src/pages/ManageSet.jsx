@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../services/api'
 import RichExplanationEditor from '../components/RichExplanationEditor'
 import { PAPER1_UNITS } from '../constants/paper1Units'
@@ -663,9 +663,18 @@ const DataInterpretationGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year
+  year,
+  targetQNum
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const isTargetGroup = Boolean(targetQNum && targetQNum >= 1 && targetQNum <= 5);
+  const [isOpen, setIsOpen] = useState(isTargetGroup);
+
+  useEffect(() => {
+    if (isTargetGroup) {
+      setIsOpen(true);
+    }
+  }, [isTargetGroup]);
+
   const [diMode, setDiMode] = useState('visual')
   const [localPassage, setLocalPassage] = useState('')
   const [diTable, setDiTable] = useState([
@@ -974,7 +983,11 @@ const DataInterpretationGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex === 1 && q.type === 'di')
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}>
+    <div 
+      id="q-slot-di"
+      className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'} ${isTargetGroup ? 'ms-q-slot-card--highlighted' : ''}`} 
+      style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #94a3b8' }}
+    >
       <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0fdf4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#166534' }}>Q1 - Q5</span>
@@ -1291,9 +1304,18 @@ const ReadingComprehensionGroup = ({
   API_BASE_URL,
   onSave,
   onDeleteGroup,
-  year
+  year,
+  targetQNum
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  const isTargetGroup = Boolean(targetQNum && targetQNum >= 46 && targetQNum <= 50);
+  const [isOpen, setIsOpen] = useState(isTargetGroup);
+
+  useEffect(() => {
+    if (isTargetGroup) {
+      setIsOpen(true);
+    }
+  }, [isTargetGroup]);
+
   const [localPassage, setLocalPassage] = useState('')
 
   const [questions, setQuestions] = useState([
@@ -1543,7 +1565,11 @@ const ReadingComprehensionGroup = ({
   const isSaved = editingSetQuestions.some(q => q.qIndex >= 46 && q.qIndex <= 50 && q.type === 'comprehension')
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`} style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}>
+    <div 
+      id="q-slot-rc"
+      className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'} ${isTargetGroup ? 'ms-q-slot-card--highlighted' : ''}`} 
+      style={{ borderLeft: isSaved ? '4px solid #10b981' : '4px solid #0284c7' }}
+    >
       <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)} style={{ background: '#f0f9ff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number" style={{ color: '#0369a1' }}>Q46 - Q50</span>
@@ -1780,12 +1806,25 @@ const QuestionSlot = ({
   onDelete, 
   API_BASE_URL,
   year,
-  pyqSets = []
+  pyqSets = [],
+  targetQNum,
+  targetQId
 }) => {
   const activeSet = pyqSets.find(s => (s.id || s._id) === setId);
   const isPaperI = !activeSet || activeSet.paperType === 'Paper I';
 
-  const [isOpen, setIsOpen] = useState(false)
+  const isTarget = Boolean(
+    (targetQNum && index === targetQNum) || 
+    (targetQId && question && ((question.id && question.id === targetQId) || (question._id && question._id === targetQId)))
+  );
+  const [isOpen, setIsOpen] = useState(isTarget);
+
+  useEffect(() => {
+    if (isTarget) {
+      setIsOpen(true);
+    }
+  }, [isTarget]);
+
   const [qType, setQType] = useState('mcq')
   const [qText, setQText] = useState('')
   const [qOpts, setQOpts] = useState(['', '', '', ''])
@@ -2423,7 +2462,10 @@ const QuestionSlot = ({
   const isSaved = !!question
 
   return (
-    <div className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'}`}>
+    <div 
+      id={`q-slot-${index}`}
+      className={`ms-q-slot-card ${isOpen ? 'ms-q-slot-card--open' : ''} ${isSaved ? 'ms-q-slot-card--saved' : 'ms-q-slot-card--empty'} ${isTarget ? 'ms-q-slot-card--highlighted' : ''}`}
+    >
       <div className="ms-q-slot-header" onClick={() => setIsOpen(!isOpen)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="ms-q-slot-number">Q{index}</span>
@@ -3069,7 +3111,11 @@ const QuestionSlot = ({
 
 const ManageSet = () => {
   const { setId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+
+  const targetQNum = searchParams.get('qNum') ? parseInt(searchParams.get('qNum'), 10) : null
+  const targetQId = searchParams.get('qId') || null
   
   const [isAdmin, setIsAdmin] = useState(false)
   const [pyqSets, setPyqSets] = useState([])
@@ -3303,6 +3349,24 @@ const ManageSet = () => {
       console.error('Failed to load questions:', err)
     }
   }
+
+  // Auto-scroll to targeted question when opened from an Error Report
+  useEffect(() => {
+    if (targetQNum && editingSetQuestions.length > 0) {
+      const timer = setTimeout(() => {
+        const targetElementId = (targetQNum >= 1 && targetQNum <= 5 && isPaperI) 
+          ? 'q-slot-di' 
+          : (targetQNum >= 46 && targetQNum <= 50 && isPaperI)
+            ? 'q-slot-rc'
+            : `q-slot-${targetQNum}`;
+        const element = document.getElementById(targetElementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [targetQNum, editingSetQuestions.length, isPaperI]);
 
 
   const handleEditQuestion = (q) => {
@@ -5080,10 +5144,29 @@ const ManageSet = () => {
                         </div>
                       </div>
                       
+                      {targetQNum && (
+                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '12px 16px', borderRadius: '8px', marginTop: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.88rem', boxShadow: '0 1px 3px rgba(37,99,235,0.1)' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.2rem' }}>🎯</span>
+                            <span><strong>Navigated from Question Error Report:</strong> Editing <strong>Question {targetQNum}</strong></span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById((targetQNum >= 1 && targetQNum <= 5 && isPaperI) ? 'q-slot-di' : (targetQNum >= 46 && targetQNum <= 50 && isPaperI) ? 'q-slot-rc' : `q-slot-${targetQNum}`);
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }}
+                            style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}
+                          >
+                            Focus Question {targetQNum}
+                          </button>
+                        </div>
+                      )}
                       <div className="ms-questions-slots-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
                         {newSetPaperType === 'Paper I' ? (
                           <>
                             <DataInterpretationGroup
+                              targetQNum={targetQNum}
                               editingSetQuestions={editingSetQuestions}
                               setId={editingSetId}
                               API_BASE_URL={API_BASE_URL}
@@ -5124,6 +5207,8 @@ const ManageSet = () => {
                                   pyqSets={pyqSets}
                                   API_BASE_URL={API_BASE_URL}
                                   year={newSetYear}
+                                  targetQNum={targetQNum}
+                                  targetQId={targetQId}
                                   onSave={(savedData, updatedSet) => {
                                     setEditingSetQuestions(prev => {
                                       const savedList = Array.isArray(savedData) ? savedData : [savedData]
@@ -5154,6 +5239,7 @@ const ManageSet = () => {
                             })}
 
                              <ReadingComprehensionGroup
+                               targetQNum={targetQNum}
                                editingSetQuestions={editingSetQuestions}
                                setId={editingSetId}
                                API_BASE_URL={API_BASE_URL}

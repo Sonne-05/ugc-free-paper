@@ -115,12 +115,59 @@ function resolveCorrectOption(targetIndex, rawItem, rawParsed, answerKeyMap, isP
   return correct;
 }
 
-// Utility function to parse answer key PDF text into a mapping object { [qIndex]: correctOption }
+// Utility function to parse answer key PDF text or JSON into a mapping object { [qIndex]: correctOption }
 function parseAnswerKey(text) {
   const mapping = {};
   if (!text) return mapping;
 
-  // 1. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
+  // 0. Format: Direct JSON String
+  try {
+    const trimmed = text.trim();
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((item, idx) => {
+          const qNum = item.qIndex || item.targetIndex || (idx + 1);
+          let correctNum = item.correct;
+          if (!correctNum && item.letter) {
+            correctNum = { 'A': 1, 'B': 2, 'C': 3, 'D': 4 }[item.letter.toUpperCase()];
+          }
+          if (correctNum) {
+            mapping[qNum] = correctNum;
+            mapping[String(qNum)] = correctNum;
+            if (item.ntaQuestionId) {
+              mapping[`qid:${item.ntaQuestionId}`] = correctNum;
+              mapping[`optnum:qid:${item.ntaQuestionId}`] = correctNum;
+            }
+          }
+        });
+        if (Object.keys(mapping).length >= 10) return mapping;
+      }
+    }
+  } catch (e) {}
+
+  // 1. Format: Auto PDF Solver & CrossMatcher Quick Grid ("Q  1: C", "Q1: C", "1:C", "Q100: D")
+  const gridPattern = /(?:^|\s)Q?\s*(\d{1,3})\s*:\s*([A-D1-4])\b/gi;
+  let gm;
+  const gridPairs = [];
+  while ((gm = gridPattern.exec(text)) !== null) {
+    const qNum = parseInt(gm[1], 10);
+    const ansChar = gm[2].toUpperCase();
+    const map = { 'A': 1, 'B': 2, 'C': 3, 'D': 4, '1': 1, '2': 2, '3': 3, '4': 4 };
+    if (qNum >= 1 && qNum <= 150 && map[ansChar] !== undefined) {
+      gridPairs.push({ qNum, ans: map[ansChar] });
+    }
+  }
+  if (gridPairs.length >= 20) {
+    gridPairs.forEach(p => {
+      mapping[p.qNum] = p.ans;
+      mapping[String(p.qNum)] = p.ans;
+    });
+    console.log(`Detected Quick Grid Answer Key format: mapped ${gridPairs.length} questions.`);
+    return mapping;
+  }
+
+  // 2. Format NTA Official Final Answer Key (Question ID -> Correct Option ID table / list)
   // e.g. "1351 5404", "1352 5406", "25314 41256", "1351 %", "1352 &"
   const ntaPairs = [];
   const lines = text.split('\n');
@@ -281,6 +328,7 @@ function parseAnswerKey(text) {
 
   return mapping;
 }
+
 
 // Define Mongoose Models
 const QuestionSchema = new mongoose.Schema({
@@ -478,10 +526,9 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
 
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
     const groqModels = [
-      'openai/gpt-oss-120b',
-      'openai/gpt-oss-20b',
-      'groq/compound',
-      'groq/compound-mini'
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'gemma2-9b-it'
     ];
 
     for (const groqModel of groqModels) {
@@ -602,7 +649,11 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
   const orKeyInfo = keyPool.getNextOpenRouterKey();
   if (orKeyInfo) {
     const { key: orKey, keyIndex: orKeyIndex } = orKeyInfo;
-    const orModels = ['openai/gpt-oss-20b:free', 'google/gemma-4-31b-it:free', 'openrouter/free'];
+    const orModels = [
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'google/gemini-2.0-flash-exp:free',
+      'meta-llama/llama-3.1-8b-instruct:free'
+    ];
     for (const orModel of orModels) {
       try {
         console.log(`[OpenRouter Fallback] Routing batch to OpenRouter Key #${orKeyIndex + 1} (${orModel})...`);
@@ -1006,24 +1057,36 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
   if (answerKeyBuffer) {
     try {
       if (onProgress) onProgress(6, 'Parsing Answer Key...');
-      const keyParser = new PDFParse({ data: answerKeyBuffer });
-      const parsedKey = await keyParser.getText();
-      answerKeyMap = parseAnswerKey(parsedKey.text);
+      const strVal = answerKeyBuffer.toString('utf8');
+      if (strVal.trim().startsWith('[') || strVal.trim().startsWith('{')) {
+        answerKeyMap = parseAnswerKey(strVal);
+      } else {
+        const keyParser = new PDFParse({ data: answerKeyBuffer });
+        const parsedKey = await keyParser.getText();
+        answerKeyMap = parseAnswerKey(parsedKey.text);
+      }
       console.log(`Mapped ${Object.keys(answerKeyMap).length} answers from Answer Key.`);
     } catch (kErr) {
       console.warn(`Warning: Could not parse answer key buffer: ${kErr.message}`);
     }
   } else if (answerKeyPath && fs.existsSync(answerKeyPath)) {
     try {
-      const kBuf = fs.readFileSync(answerKeyPath);
-      const keyParser = new PDFParse({ data: kBuf });
-      const parsedKey = await keyParser.getText();
-      answerKeyMap = parseAnswerKey(parsedKey.text);
+      if (onProgress) onProgress(6, 'Parsing Answer Key...');
+      if (answerKeyPath.toLowerCase().endsWith('.json')) {
+        const jsonText = fs.readFileSync(answerKeyPath, 'utf8');
+        answerKeyMap = parseAnswerKey(jsonText);
+      } else {
+        const kBuf = fs.readFileSync(answerKeyPath);
+        const keyParser = new PDFParse({ data: kBuf });
+        const parsedKey = await keyParser.getText();
+        answerKeyMap = parseAnswerKey(parsedKey.text);
+      }
       console.log(`Mapped ${Object.keys(answerKeyMap).length} answers from Answer Key.`);
     } catch (kErr) {
       console.warn(`Warning: Could not parse answer key path: ${kErr.message}`);
     }
   }
+
 
   try {
     const targetSet = await PyqSet.findById(TARGET_SET_ID);

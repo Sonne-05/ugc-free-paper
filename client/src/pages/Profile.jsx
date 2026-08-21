@@ -3449,50 +3449,122 @@ const Profile = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {messages.map((msg) => (
-                            <tr key={msg.id} style={{ background: msg.status === 'unread' ? 'rgba(37, 99, 235, 0.03)' : 'transparent' }}>
-                              <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
-                                {new Date(msg.createdAt).toLocaleString()}
-                              </td>
-                              <td style={{ fontSize: '0.88rem' }}><strong>{msg.name}</strong></td>
-                              <td style={{ fontSize: '0.85rem' }}>
-                                <a href={`mailto:${msg.email}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                                  {msg.email}
-                                </a>
-                              </td>
-                              <td style={{ 
-                                maxWidth: '300px', 
-                                whiteSpace: 'pre-wrap', 
-                                fontSize: '0.88rem', 
-                                color: msg.status === 'unread' ? 'var(--text-primary)' : 'var(--text-secondary)'
-                              }}>
-                                {msg.message}
-                              </td>
-                              <td>
-                                <span className={`role-badge role-badge--${msg.status}`}>
-                                  {msg.status}
-                                </span>
-                              </td>
-                              <td>
-                                <div style={{ display: 'flex', gap: '6px' }}>
-                                  <button 
-                                    onClick={() => handleToggleMessageStatus(msg.id, msg.status)}
-                                    className="table-btn table-btn--edit"
-                                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                                  >
-                                    {msg.status === 'unread' ? 'Mark Read' : 'Mark Unread'}
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteMessage(msg.id)}
-                                    className="table-btn table-btn--delete"
-                                    style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                          {messages.map((msg) => {
+                            const isErrorReport = msg.name?.includes('[Error Report]') || msg.message?.includes('[Question Error Report]');
+                            
+                            // Extract Set ID (from "Question PYQ Set: ... (ID: 6a5bce...)" or "ID: 6a5bce...")
+                            const setIdMatch = msg.message?.match(/Question PYQ Set:[^(]*\(ID:\s*([a-f\d]{24})\)/i)
+                              || msg.message?.match(/\(ID:\s*([a-f\d]{24})\)/i)
+                              || msg.message?.match(/\b(?:Set ID|setId):\s*([a-f\d]{24})\b/i);
+
+                            // Extract Question Number (e.g. "Question Number: Question 10" or "Question 10")
+                            const qNumMatch = msg.message?.match(/Question Number:\s*(?:Question\s*)?(\d+)/i)
+                              || msg.message?.match(/\bQuestion\s*(\d+)\b/i);
+
+                            // Extract Question Database ID
+                            const qIdMatch = msg.message?.match(/Question ID:\s*([a-f\d]{24})/i);
+
+                            const targetSetId = setIdMatch ? setIdMatch[1] : null;
+                            const targetQNum = qNumMatch ? qNumMatch[1] : null;
+                            const targetQId = qIdMatch ? qIdMatch[1] : null;
+
+                            const manageSetUrl = targetSetId 
+                              ? `/admin/manage-set/${targetSetId}${targetQNum ? `?qNum=${targetQNum}` : (targetQId ? `?qId=${targetQId}` : '')}`
+                              : null;
+
+                            return (
+                              <tr key={msg.id} style={{ background: msg.status === 'unread' ? 'rgba(37, 99, 235, 0.03)' : 'transparent' }}>
+                                <td style={{ whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                                  {new Date(msg.createdAt).toLocaleString()}
+                                </td>
+                                <td style={{ fontSize: '0.88rem' }}>
+                                  <strong>{msg.name}</strong>
+                                  {isErrorReport && (
+                                    <div style={{ marginTop: '4px' }}>
+                                      <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', fontWeight: '600' }}>
+                                        ⚠️ Question Error
+                                      </span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td style={{ fontSize: '0.85rem' }}>
+                                  <a href={`mailto:${msg.email}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                                    {msg.email}
+                                  </a>
+                                </td>
+                                <td style={{ 
+                                  maxWidth: '360px', 
+                                  whiteSpace: 'pre-wrap', 
+                                  fontSize: '0.88rem', 
+                                  color: msg.status === 'unread' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                                }}>
+                                  {msg.message}
+                                  {manageSetUrl && (
+                                    <div style={{ marginTop: '10px' }}>
+                                      <a
+                                        href={manageSetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          padding: '6px 12px',
+                                          fontSize: '0.8rem',
+                                          background: '#2563eb',
+                                          color: '#ffffff',
+                                          borderRadius: '6px',
+                                          fontWeight: '600',
+                                          textDecoration: 'none',
+                                          boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
+                                        }}
+                                      >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                        Fix Question in Manage Set {targetQNum ? `(Q${targetQNum})` : ''} ↗
+                                      </a>
+                                    </div>
+                                  )}
+                                </td>
+                                <td>
+                                  <span className={`role-badge role-badge--${msg.status}`}>
+                                    {msg.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {manageSetUrl && (
+                                      <a
+                                        href={manageSetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="table-btn table-btn--upload"
+                                        style={{ padding: '4px 8px', fontSize: '0.72rem', textDecoration: 'none', textAlign: 'center', fontWeight: '600' }}
+                                      >
+                                        Fix Q{targetQNum || ''}
+                                      </a>
+                                    )}
+                                    <button 
+                                      onClick={() => handleToggleMessageStatus(msg.id, msg.status)}
+                                      className="table-btn table-btn--edit"
+                                      style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                                    >
+                                      {msg.status === 'unread' ? 'Mark Read' : 'Mark Unread'}
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDeleteMessage(msg.id)}
+                                      className="table-btn table-btn--delete"
+                                      style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

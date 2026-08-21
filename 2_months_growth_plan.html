@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>UGC Free Paper - 60-Day (2-Month) Scaling & SEO Roadmap</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UGC Free Paper - 60-Day (2-Month) Scaling & SEO Roadmap (Interactive Tracker)</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
@@ -15,28 +16,31 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #1e293b;
-      background-color: #f8fafc;
+      background-color: #f1f5f9;
       line-height: 1.6;
-      padding: 40px 20px;
+      padding: 30px 16px;
     }
 
     .container {
-      max-width: 850px;
+      max-width: 900px;
       margin: 0 auto;
       background: #ffffff;
-      padding: 48px 56px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+      padding: 40px 48px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
       border: 1px solid #e2e8f0;
     }
 
+    /* Header */
     .header {
       border-bottom: 2px solid #2563eb;
       padding-bottom: 24px;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
     .header-title h1 {
@@ -49,41 +53,193 @@
     .header-title p {
       font-size: 14px;
       color: #64748b;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
-    .badge {
-      display: inline-block;
-      background: #eff6ff;
-      color: #2563eb;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1px solid #bfdbfe;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .btn-print {
+    .btn {
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
       background: #2563eb;
       color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.2s;
     }
-
-    .btn-print:hover {
+    .btn-primary:hover {
       background: #1d4ed8;
     }
 
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* Sticky Progress Tracker Card */
+    .tracker-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 15px -3px rgba(15, 23, 42, 0.2);
+    }
+
+    .tracker-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .stat-val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .progress-bar-wrap {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      height: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 0%;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    /* Anti-Duplication Search & Filter Toolbar */
+    .toolbar-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+    }
+
+    .search-input-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 36px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s;
+      background: #ffffff;
+      color: #1e293b;
+    }
+
+    .search-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filter-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-pill.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    .filter-pill:hover:not(.active) {
+      background: #f1f5f9;
+    }
+
+    /* Headings */
     h2 {
       font-size: 18px;
       font-weight: 700;
@@ -94,6 +250,7 @@
       gap: 8px;
     }
 
+    /* Table */
     .table-container {
       margin: 16px 0 24px 0;
       overflow-x: auto;
@@ -129,13 +286,19 @@
       color: #2563eb;
     }
 
+    /* Phase Cards */
     .phase-card {
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 20px;
       margin-bottom: 20px;
       background: #ffffff;
-      page-break-inside: avoid;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .phase-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.03);
     }
 
     .phase-card.featured {
@@ -146,13 +309,28 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .phase-title {
       font-size: 16px;
       font-weight: 700;
       color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .phase-progress-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #2563eb;
+      background: #eff6ff;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid #bfdbfe;
     }
 
     .phase-badge {
@@ -170,47 +348,116 @@
       margin-bottom: 12px;
     }
 
+    /* Interactive Subject Tags */
+    .subject-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 12px 0 6px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     .subject-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin: 10px 0;
+      gap: 8px;
+      margin: 8px 0 16px 0;
     }
 
     .subject-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       background: #f8fafc;
       border: 1px solid #cbd5e1;
-      font-size: 12px;
-      padding: 3px 8px;
-      border-radius: 4px;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 6px;
       color: #334155;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
     }
 
+    .subject-tag:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      transform: translateY(-1px);
+    }
+
+    .subject-tag input[type="checkbox"] {
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+      accent-color: #16a34a;
+    }
+
+    /* Completed Subject Tag Style */
+    .subject-tag.completed {
+      background: #ecfdf5;
+      border-color: #86efac;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    .subject-tag.completed .tag-name {
+      text-decoration: line-through;
+      color: #15803d;
+    }
+
+    .subject-tag.hidden {
+      display: none !important;
+    }
+
+    /* Interactive Task List */
     ul.task-list {
       list-style-type: none;
       margin-top: 10px;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 10px;
     }
 
     ul.task-list li {
-      font-size: 13px;
+      font-size: 13.5px;
       color: #334155;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       display: flex;
       align-items: flex-start;
-      gap: 8px;
+      gap: 10px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: background 0.15s;
     }
 
-    ul.task-list li::before {
-      content: "✓";
-      color: #16a34a;
-      font-weight: 700;
+    ul.task-list li:hover {
+      background: #f8fafc;
     }
 
+    ul.task-list li input[type="checkbox"] {
+      margin-top: 3px;
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
+      flex-shrink: 0;
+    }
+
+    ul.task-list li.completed span {
+      text-decoration: line-through;
+      color: #94a3b8;
+    }
+
+    /* Checklist Box (Daily Routine) */
     .checklist-box {
       background: #eff6ff;
       border: 1px dashed #3b82f6;
-      border-radius: 8px;
-      padding: 16px 20px;
+      border-radius: 10px;
+      padding: 20px 24px;
       margin-top: 24px;
     }
 
@@ -218,7 +465,10 @@
       font-size: 15px;
       font-weight: 700;
       color: #1e40af;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .checklist-box ul {
@@ -226,9 +476,65 @@
     }
 
     .checklist-box li {
-      font-size: 13px;
+      font-size: 13.5px;
       color: #1e3a8a;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 4px 6px;
+      border-radius: 6px;
+    }
+
+    .checklist-box li input[type="checkbox"] {
+      margin-top: 3px;
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
+      flex-shrink: 0;
+    }
+
+    .checklist-box li.completed span {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+
+    /* Anti-duplication banner guide */
+    .anti-dup-tip {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12.5px;
+      color: #92400e;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     @media print {
@@ -247,6 +553,19 @@
       }
       .phase-card {
         border: 1px solid #cbd5e1;
+        page-break-inside: avoid;
+      }
+      .tracker-card {
+        background: #1e293b !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .subject-tag.completed {
+        background: #ecfdf5 !important;
+        border-color: #86efac !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
     }
   </style>
@@ -255,19 +574,81 @@
 
   <div class="container">
     
+    <!-- Top Header -->
     <div class="header">
       <div class="header-title">
         <h1>ugcfreepaper.com</h1>
         <p>60-Day Scaling & Comprehensive SEO Roadmap (930+ Pages Target)</p>
       </div>
-      <div class="no-print">
-        <button class="btn-print" onclick="window.print()">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+      <div class="header-actions no-print">
+        <button class="btn btn-secondary" onclick="exportData()" title="Backup your progress to a file">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export Backup
+        </button>
+        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()" title="Restore saved progress">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Import
+        </button>
+        <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
             <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
             <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
           </svg>
-          Print / Save as PDF
+          Print / PDF
         </button>
+        <button class="btn btn-danger" onclick="resetProgress()" title="Reset all checked items">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Interactive Progress Tracker Dashboard -->
+    <div class="tracker-card">
+      <div class="tracker-stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Subjects Completed</div>
+          <div class="stat-val" id="stat-subjects">0 / 83</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Test Sets Estimated</div>
+          <div class="stat-val" id="stat-sets">0 / 830+</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Roadmap Tasks</div>
+          <div class="stat-val" id="stat-tasks">0 / 14</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Overall Completion</div>
+          <div class="stat-val" id="stat-percent">0%</div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-info">
+        <span>Auto-saved locally in browser</span>
+        <span id="progress-summary">0 of 101 total milestones finished</span>
+      </div>
+    </div>
+
+    <!-- Anti-Duplication Search & Filter Toolbar -->
+    <div class="no-print">
+      <div class="anti-dup-tip">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span><strong>Anti-Duplication Tip:</strong> Click any subject tag to mark it <strong>Done (✓)</strong>. Search below before creating or uploading a new subject to ensure it's not already completed!</span>
+      </div>
+
+      <div class="toolbar-box">
+        <div class="search-input-wrap">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search subject (e.g., History, Commerce, Sindhi)..." oninput="handleSearch()">
+        </div>
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">All Subjects</button>
+          <button class="filter-pill" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+          <button class="filter-pill" data-filter="completed" onclick="setFilter('completed')">Completed</button>
+        </div>
       </div>
     </div>
 
@@ -320,165 +701,411 @@
     <h2>📅 Execution Schedule: 4-Phase Sprint</h2>
 
     <!-- Phase 1 -->
-    <div class="phase-card featured">
+    <div class="phase-card featured" id="phase-1-card">
       <div class="phase-header">
-        <span class="phase-title">Phase 1 (Weeks 1–2): Top 15 Core Subjects</span>
+        <div class="phase-title">
+          <span>Phase 1 (Weeks 1–2): Top 15 Core Subjects</span>
+          <span class="phase-progress-tag" id="p1-progress">0/15</span>
+        </div>
         <span class="phase-badge">Days 1–14</span>
       </div>
-      <p class="phase-desc">Focus on highest search volume subjects accounting for >70% of UGC NET candidate traffic.</p>
-      <div class="subject-list">
-        <span class="subject-tag">History</span>
-        <span class="subject-tag">Political Science</span>
-        <span class="subject-tag">Commerce</span>
-        <span class="subject-tag">Economics</span>
-        <span class="subject-tag">Education</span>
-        <span class="subject-tag">Hindi</span>
-        <span class="subject-tag">English</span>
-        <span class="subject-tag">Geography</span>
-        <span class="subject-tag">Management</span>
-        <span class="subject-tag">Computer Science</span>
-        <span class="subject-tag">Psychology</span>
-        <span class="subject-tag">Public Admin</span>
-        <span class="subject-tag">Sanskrit</span>
-        <span class="subject-tag">Law</span>
-        <span class="subject-tag">Sociology</span>
+      <p class="phase-desc">Focus on highest search volume subjects accounting for &gt;70% of UGC NET candidate traffic.</p>
+      
+      <div class="subject-section-title">
+        <span>Click to mark completed:</span>
       </div>
+      <div class="subject-list" id="phase-1-subjects">
+        <label class="subject-tag" data-name="History"><input type="checkbox" id="subj-history" onchange="toggleSubject(this)"><span class="tag-name">History</span></label>
+        <label class="subject-tag" data-name="Political Science"><input type="checkbox" id="subj-polscience" onchange="toggleSubject(this)"><span class="tag-name">Political Science</span></label>
+        <label class="subject-tag" data-name="Commerce"><input type="checkbox" id="subj-commerce" onchange="toggleSubject(this)"><span class="tag-name">Commerce</span></label>
+        <label class="subject-tag" data-name="Economics"><input type="checkbox" id="subj-economics" onchange="toggleSubject(this)"><span class="tag-name">Economics</span></label>
+        <label class="subject-tag" data-name="Education"><input type="checkbox" id="subj-education" onchange="toggleSubject(this)"><span class="tag-name">Education</span></label>
+        <label class="subject-tag" data-name="Hindi"><input type="checkbox" id="subj-hindi" onchange="toggleSubject(this)"><span class="tag-name">Hindi</span></label>
+        <label class="subject-tag" data-name="English"><input type="checkbox" id="subj-english" onchange="toggleSubject(this)"><span class="tag-name">English</span></label>
+        <label class="subject-tag" data-name="Geography"><input type="checkbox" id="subj-geography" onchange="toggleSubject(this)"><span class="tag-name">Geography</span></label>
+        <label class="subject-tag" data-name="Management"><input type="checkbox" id="subj-management" onchange="toggleSubject(this)"><span class="tag-name">Management</span></label>
+        <label class="subject-tag" data-name="Computer Science"><input type="checkbox" id="subj-compsci" onchange="toggleSubject(this)"><span class="tag-name">Computer Science</span></label>
+        <label class="subject-tag" data-name="Psychology"><input type="checkbox" id="subj-psychology" onchange="toggleSubject(this)"><span class="tag-name">Psychology</span></label>
+        <label class="subject-tag" data-name="Public Admin"><input type="checkbox" id="subj-pubadmin" onchange="toggleSubject(this)"><span class="tag-name">Public Admin</span></label>
+        <label class="subject-tag" data-name="Sanskrit"><input type="checkbox" id="subj-sanskrit" onchange="toggleSubject(this)"><span class="tag-name">Sanskrit</span></label>
+        <label class="subject-tag" data-name="Law"><input type="checkbox" id="subj-law" onchange="toggleSubject(this)"><span class="tag-name">Law</span></label>
+        <label class="subject-tag" data-name="Sociology"><input type="checkbox" id="subj-sociology" onchange="toggleSubject(this)"><span class="tag-name">Sociology</span></label>
+      </div>
+
       <ul class="task-list">
-        <li>Batch import 10 mock test sets for each of the 15 subjects (150 tests total).</li>
-        <li>Update sitemap.xml with 15 dedicated subject URLs.</li>
-        <li>Publish 6 keyword-targeted blog posts (Cutoffs, PYQ solutions).</li>
-        <li>Daily 12:30 PM Google Search Console URL inspection requests (10 per day).</li>
+        <li><input type="checkbox" id="task-1-1" onchange="toggleTask(this)"><span>Batch import 10 mock test sets for each of the 15 subjects (150 tests total).</span></li>
+        <li><input type="checkbox" id="task-1-2" onchange="toggleTask(this)"><span>Update sitemap.xml with 15 dedicated subject URLs.</span></li>
+        <li><input type="checkbox" id="task-1-3" onchange="toggleTask(this)"><span>Publish 6 keyword-targeted blog posts (Cutoffs, PYQ solutions).</span></li>
+        <li><input type="checkbox" id="task-1-4" onchange="toggleTask(this)"><span>Daily 12:30 PM Google Search Console URL inspection requests (10 per day).</span></li>
       </ul>
     </div>
 
     <!-- Phase 2 -->
-    <div class="phase-card">
+    <div class="phase-card" id="phase-2-card">
       <div class="phase-header">
-        <span class="phase-title">Phase 2 (Weeks 3–4): Mid-Tier & Regional Languages</span>
+        <div class="phase-title">
+          <span>Phase 2 (Weeks 3–4): Mid-Tier & Regional Languages</span>
+          <span class="phase-progress-tag" id="p2-progress">0/25</span>
+        </div>
         <span class="phase-badge">Days 15–28</span>
       </div>
       <p class="phase-desc">Target 25 high-intent regional and secondary humanities disciplines with near zero competitive material online.</p>
-      <div class="subject-list">
-        <span class="subject-tag">Philosophy</span>
-        <span class="subject-tag">Home Science</span>
-        <span class="subject-tag">Mass Comm</span>
-        <span class="subject-tag">Social Work</span>
-        <span class="subject-tag">Environmental Sci</span>
-        <span class="subject-tag">Physical Education</span>
-        <span class="subject-tag">Library Sci</span>
-        <span class="subject-tag">Bengali</span>
-        <span class="subject-tag">Marathi</span>
-        <span class="subject-tag">Tamil</span>
-        <span class="subject-tag">Telugu</span>
-        <span class="subject-tag">Urdu</span>
-        <span class="subject-tag">Punjabi</span>
-        <span class="subject-tag">Malayalam</span>
-        <span class="subject-tag">Kannada</span>
-        <span class="subject-tag">Gujarati</span>
-        <span class="subject-tag">Odia</span>
-        <span class="subject-tag">Music</span>
-        <span class="subject-tag">Fine Arts</span>
-        <span class="subject-tag">Yoga</span>
-        <span class="subject-tag">Anthropology</span>
-        <span class="subject-tag">Forensic Sci</span>
-        <span class="subject-tag">Electronic Sci</span>
-        <span class="subject-tag">Adult Education</span>
-        <span class="subject-tag">Population Studies</span>
+      
+      <div class="subject-section-title">
+        <span>Click to mark completed:</span>
       </div>
+      <div class="subject-list" id="phase-2-subjects">
+        <label class="subject-tag" data-name="Philosophy"><input type="checkbox" id="subj-philosophy" onchange="toggleSubject(this)"><span class="tag-name">Philosophy</span></label>
+        <label class="subject-tag" data-name="Home Science"><input type="checkbox" id="subj-homesci" onchange="toggleSubject(this)"><span class="tag-name">Home Science</span></label>
+        <label class="subject-tag" data-name="Mass Comm"><input type="checkbox" id="subj-masscomm" onchange="toggleSubject(this)"><span class="tag-name">Mass Comm</span></label>
+        <label class="subject-tag" data-name="Social Work"><input type="checkbox" id="subj-socialwork" onchange="toggleSubject(this)"><span class="tag-name">Social Work</span></label>
+        <label class="subject-tag" data-name="Environmental Sci"><input type="checkbox" id="subj-envsci" onchange="toggleSubject(this)"><span class="tag-name">Environmental Sci</span></label>
+        <label class="subject-tag" data-name="Physical Education"><input type="checkbox" id="subj-physed" onchange="toggleSubject(this)"><span class="tag-name">Physical Education</span></label>
+        <label class="subject-tag" data-name="Library Sci"><input type="checkbox" id="subj-libsci" onchange="toggleSubject(this)"><span class="tag-name">Library Sci</span></label>
+        <label class="subject-tag" data-name="Bengali"><input type="checkbox" id="subj-bengali" onchange="toggleSubject(this)"><span class="tag-name">Bengali</span></label>
+        <label class="subject-tag" data-name="Marathi"><input type="checkbox" id="subj-marathi" onchange="toggleSubject(this)"><span class="tag-name">Marathi</span></label>
+        <label class="subject-tag" data-name="Tamil"><input type="checkbox" id="subj-tamil" onchange="toggleSubject(this)"><span class="tag-name">Tamil</span></label>
+        <label class="subject-tag" data-name="Telugu"><input type="checkbox" id="subj-telugu" onchange="toggleSubject(this)"><span class="tag-name">Telugu</span></label>
+        <label class="subject-tag" data-name="Urdu"><input type="checkbox" id="subj-urdu" onchange="toggleSubject(this)"><span class="tag-name">Urdu</span></label>
+        <label class="subject-tag" data-name="Punjabi"><input type="checkbox" id="subj-punjabi" onchange="toggleSubject(this)"><span class="tag-name">Punjabi</span></label>
+        <label class="subject-tag" data-name="Malayalam"><input type="checkbox" id="subj-malayalam" onchange="toggleSubject(this)"><span class="tag-name">Malayalam</span></label>
+        <label class="subject-tag" data-name="Kannada"><input type="checkbox" id="subj-kannada" onchange="toggleSubject(this)"><span class="tag-name">Kannada</span></label>
+        <label class="subject-tag" data-name="Gujarati"><input type="checkbox" id="subj-gujarati" onchange="toggleSubject(this)"><span class="tag-name">Gujarati</span></label>
+        <label class="subject-tag" data-name="Odia"><input type="checkbox" id="subj-odia" onchange="toggleSubject(this)"><span class="tag-name">Odia</span></label>
+        <label class="subject-tag" data-name="Music"><input type="checkbox" id="subj-music" onchange="toggleSubject(this)"><span class="tag-name">Music</span></label>
+        <label class="subject-tag" data-name="Fine Arts"><input type="checkbox" id="subj-finearts" onchange="toggleSubject(this)"><span class="tag-name">Fine Arts</span></label>
+        <label class="subject-tag" data-name="Yoga"><input type="checkbox" id="subj-yoga" onchange="toggleSubject(this)"><span class="tag-name">Yoga</span></label>
+        <label class="subject-tag" data-name="Anthropology"><input type="checkbox" id="subj-anthro" onchange="toggleSubject(this)"><span class="tag-name">Anthropology</span></label>
+        <label class="subject-tag" data-name="Forensic Sci"><input type="checkbox" id="subj-forensic" onchange="toggleSubject(this)"><span class="tag-name">Forensic Sci</span></label>
+        <label class="subject-tag" data-name="Electronic Sci"><input type="checkbox" id="subj-elecsci" onchange="toggleSubject(this)"><span class="tag-name">Electronic Sci</span></label>
+        <label class="subject-tag" data-name="Adult Education"><input type="checkbox" id="subj-adulted" onchange="toggleSubject(this)"><span class="tag-name">Adult Education</span></label>
+        <label class="subject-tag" data-name="Population Studies"><input type="checkbox" id="subj-popstudies" onchange="toggleSubject(this)"><span class="tag-name">Population Studies</span></label>
+      </div>
+
       <ul class="task-list">
-        <li>Add 10 mock test sets per subject (250 tests total; 400 cumulative).</li>
-        <li>Publish 6 Paper 1 conceptual revision blogs (Indian Logic, Research Aptitude, ICT).</li>
-        <li>Connect all Paper 1 study units with internal links to Paper 2 subjects.</li>
+        <li><input type="checkbox" id="task-2-1" onchange="toggleTask(this)"><span>Add 10 mock test sets per subject (250 tests total; 400 cumulative).</span></li>
+        <li><input type="checkbox" id="task-2-2" onchange="toggleTask(this)"><span>Publish 6 Paper 1 conceptual revision blogs (Indian Logic, Research Aptitude, ICT).</span></li>
+        <li><input type="checkbox" id="task-2-3" onchange="toggleTask(this)"><span>Connect all Paper 1 study units with internal links to Paper 2 subjects.</span></li>
       </ul>
     </div>
 
     <!-- Phase 3 -->
-    <div class="phase-card">
+    <div class="phase-card" id="phase-3-card">
       <div class="phase-header">
-        <span class="phase-title">Phase 3 (Weeks 5–6): Specialized & Interdisciplinary</span>
+        <div class="phase-title">
+          <span>Phase 3 (Weeks 5–6): Specialized & Interdisciplinary</span>
+          <span class="phase-progress-tag" id="p3-progress">0/25</span>
+        </div>
         <span class="phase-badge">Days 29–42</span>
       </div>
       <p class="phase-desc">Dominate long-tail niche subject queries where platforms like Testbook & PW do not maintain dedicated test banks.</p>
-      <div class="subject-list">
-        <span class="subject-tag">Defence Studies</span>
-        <span class="subject-tag">Women Studies</span>
-        <span class="subject-tag">Comparative Religions</span>
-        <span class="subject-tag">Sanskrit Traditional</span>
-        <span class="subject-tag">Prakrit</span>
-        <span class="subject-tag">Arabic</span>
-        <span class="subject-tag">Persian</span>
-        <span class="subject-tag">French</span>
-        <span class="subject-tag">German</span>
-        <span class="subject-tag">Russian</span>
-        <span class="subject-tag">Spanish</span>
-        <span class="subject-tag">Linguistics</span>
-        <span class="subject-tag">Pali</span>
-        <span class="subject-tag">Kashmiri</span>
-        <span class="subject-tag">Konkani</span>
-        <span class="subject-tag">Maithili</span>
-        <span class="subject-tag">Manipuri</span>
-        <span class="subject-tag">Nepali</span>
-        <span class="subject-tag">Assamese</span>
-        <span class="subject-tag">Bodo</span>
-        <span class="subject-tag">Santhali</span>
-        <span class="subject-tag">Dogri</span>
-        <span class="subject-tag">Labour Welfare</span>
-        <span class="subject-tag">Criminology</span>
-        <span class="subject-tag">Arab Culture</span>
+      
+      <div class="subject-section-title">
+        <span>Click to mark completed:</span>
       </div>
+      <div class="subject-list" id="phase-3-subjects">
+        <label class="subject-tag" data-name="Defence Studies"><input type="checkbox" id="subj-defencestudies" onchange="toggleSubject(this)"><span class="tag-name">Defence Studies</span></label>
+        <label class="subject-tag" data-name="Women Studies"><input type="checkbox" id="subj-womenstudies" onchange="toggleSubject(this)"><span class="tag-name">Women Studies</span></label>
+        <label class="subject-tag" data-name="Comparative Religions"><input type="checkbox" id="subj-compreligions" onchange="toggleSubject(this)"><span class="tag-name">Comparative Religions</span></label>
+        <label class="subject-tag" data-name="Sanskrit Traditional"><input type="checkbox" id="subj-sanskrittrad" onchange="toggleSubject(this)"><span class="tag-name">Sanskrit Traditional</span></label>
+        <label class="subject-tag" data-name="Prakrit"><input type="checkbox" id="subj-prakrit" onchange="toggleSubject(this)"><span class="tag-name">Prakrit</span></label>
+        <label class="subject-tag" data-name="Arabic"><input type="checkbox" id="subj-arabic" onchange="toggleSubject(this)"><span class="tag-name">Arabic</span></label>
+        <label class="subject-tag" data-name="Persian"><input type="checkbox" id="subj-persian" onchange="toggleSubject(this)"><span class="tag-name">Persian</span></label>
+        <label class="subject-tag" data-name="French"><input type="checkbox" id="subj-french" onchange="toggleSubject(this)"><span class="tag-name">French</span></label>
+        <label class="subject-tag" data-name="German"><input type="checkbox" id="subj-german" onchange="toggleSubject(this)"><span class="tag-name">German</span></label>
+        <label class="subject-tag" data-name="Russian"><input type="checkbox" id="subj-russian" onchange="toggleSubject(this)"><span class="tag-name">Russian</span></label>
+        <label class="subject-tag" data-name="Spanish"><input type="checkbox" id="subj-spanish" onchange="toggleSubject(this)"><span class="tag-name">Spanish</span></label>
+        <label class="subject-tag" data-name="Linguistics"><input type="checkbox" id="subj-linguistics" onchange="toggleSubject(this)"><span class="tag-name">Linguistics</span></label>
+        <label class="subject-tag" data-name="Pali"><input type="checkbox" id="subj-pali" onchange="toggleSubject(this)"><span class="tag-name">Pali</span></label>
+        <label class="subject-tag" data-name="Kashmiri"><input type="checkbox" id="subj-kashmiri" onchange="toggleSubject(this)"><span class="tag-name">Kashmiri</span></label>
+        <label class="subject-tag" data-name="Konkani"><input type="checkbox" id="subj-konkani" onchange="toggleSubject(this)"><span class="tag-name">Konkani</span></label>
+        <label class="subject-tag" data-name="Maithili"><input type="checkbox" id="subj-maithili" onchange="toggleSubject(this)"><span class="tag-name">Maithili</span></label>
+        <label class="subject-tag" data-name="Manipuri"><input type="checkbox" id="subj-manipuri" onchange="toggleSubject(this)"><span class="tag-name">Manipuri</span></label>
+        <label class="subject-tag" data-name="Nepali"><input type="checkbox" id="subj-nepali" onchange="toggleSubject(this)"><span class="tag-name">Nepali</span></label>
+        <label class="subject-tag" data-name="Assamese"><input type="checkbox" id="subj-assamese" onchange="toggleSubject(this)"><span class="tag-name">Assamese</span></label>
+        <label class="subject-tag" data-name="Bodo"><input type="checkbox" id="subj-bodo" onchange="toggleSubject(this)"><span class="tag-name">Bodo</span></label>
+        <label class="subject-tag" data-name="Santhali"><input type="checkbox" id="subj-santhali" onchange="toggleSubject(this)"><span class="tag-name">Santhali</span></label>
+        <label class="subject-tag" data-name="Dogri"><input type="checkbox" id="subj-dogri" onchange="toggleSubject(this)"><span class="tag-name">Dogri</span></label>
+        <label class="subject-tag" data-name="Labour Welfare"><input type="checkbox" id="subj-labourwelfare" onchange="toggleSubject(this)"><span class="tag-name">Labour Welfare</span></label>
+        <label class="subject-tag" data-name="Criminology"><input type="checkbox" id="subj-criminology" onchange="toggleSubject(this)"><span class="tag-name">Criminology</span></label>
+        <label class="subject-tag" data-name="Arab Culture"><input type="checkbox" id="subj-arabculture" onchange="toggleSubject(this)"><span class="tag-name">Arab Culture</span></label>
+      </div>
+
       <ul class="task-list">
-        <li>Add 10 mock test sets per subject (250 tests total; 650 cumulative).</li>
-        <li>Publish 6 subject-specific preparation strategy articles.</li>
-        <li>Implement FAQPage structured schema across all dynamic subject pages.</li>
+        <li><input type="checkbox" id="task-3-1" onchange="toggleTask(this)"><span>Add 10 mock test sets per subject (250 tests total; 650 cumulative).</span></li>
+        <li><input type="checkbox" id="task-3-2" onchange="toggleTask(this)"><span>Publish 6 subject-specific preparation strategy articles.</span></li>
+        <li><input type="checkbox" id="task-3-3" onchange="toggleTask(this)"><span>Implement FAQPage structured schema across all dynamic subject pages.</span></li>
       </ul>
     </div>
 
     <!-- Phase 4 -->
-    <div class="phase-card">
+    <div class="phase-card" id="phase-4-card">
       <div class="phase-header">
-        <span class="phase-title">Phase 4 (Weeks 7–8): 83 Subjects Completion & Backlinks</span>
+        <div class="phase-title">
+          <span>Phase 4 (Weeks 7–8): 83 Subjects Completion & Backlinks</span>
+          <span class="phase-progress-tag" id="p4-progress">0/18</span>
+        </div>
         <span class="phase-badge">Days 43–60</span>
       </div>
       <p class="phase-desc">Complete all 83 subjects, automate full XML sitemap, and initiate targeted off-page educational backlinks.</p>
-      <div class="subject-list">
-        <span class="subject-tag">Tribal Languages</span>
-        <span class="subject-tag">Comparative Lit</span>
-        <span class="subject-tag">Peace Studies</span>
-        <span class="subject-tag">Folk Lit</span>
-        <span class="subject-tag">Human Rights</span>
-        <span class="subject-tag">Tourism Admin</span>
-        <span class="subject-tag">Archaeology</span>
-        <span class="subject-tag">Museology</span>
-        <span class="subject-tag">Performing Arts</span>
-        <span class="subject-tag">Indian Culture</span>
-        <span class="subject-tag">Chinese</span>
-        <span class="subject-tag">Japanese</span>
-        <span class="subject-tag">Area Studies</span>
-        <span class="subject-tag">International Relations</span>
-        <span class="subject-tag">Social Medicine</span>
-        <span class="subject-tag">Palaeography</span>
-        <span class="subject-tag">Disaster Management</span>
-        <span class="subject-tag">Sindhi (Full Update)</span>
+      
+      <div class="subject-section-title">
+        <span>Click to mark completed:</span>
       </div>
+      <div class="subject-list" id="phase-4-subjects">
+        <label class="subject-tag" data-name="Tribal Languages"><input type="checkbox" id="subj-triballang" onchange="toggleSubject(this)"><span class="tag-name">Tribal Languages</span></label>
+        <label class="subject-tag" data-name="Comparative Lit"><input type="checkbox" id="subj-complit" onchange="toggleSubject(this)"><span class="tag-name">Comparative Lit</span></label>
+        <label class="subject-tag" data-name="Peace Studies"><input type="checkbox" id="subj-peacestudies" onchange="toggleSubject(this)"><span class="tag-name">Peace Studies</span></label>
+        <label class="subject-tag" data-name="Folk Lit"><input type="checkbox" id="subj-folklit" onchange="toggleSubject(this)"><span class="tag-name">Folk Lit</span></label>
+        <label class="subject-tag" data-name="Human Rights"><input type="checkbox" id="subj-humanrights" onchange="toggleSubject(this)"><span class="tag-name">Human Rights</span></label>
+        <label class="subject-tag" data-name="Tourism Admin"><input type="checkbox" id="subj-tourismadmin" onchange="toggleSubject(this)"><span class="tag-name">Tourism Admin</span></label>
+        <label class="subject-tag" data-name="Archaeology"><input type="checkbox" id="subj-archaeology" onchange="toggleSubject(this)"><span class="tag-name">Archaeology</span></label>
+        <label class="subject-tag" data-name="Museology"><input type="checkbox" id="subj-museology" onchange="toggleSubject(this)"><span class="tag-name">Museology</span></label>
+        <label class="subject-tag" data-name="Performing Arts"><input type="checkbox" id="subj-performingarts" onchange="toggleSubject(this)"><span class="tag-name">Performing Arts</span></label>
+        <label class="subject-tag" data-name="Indian Culture"><input type="checkbox" id="subj-indianculture" onchange="toggleSubject(this)"><span class="tag-name">Indian Culture</span></label>
+        <label class="subject-tag" data-name="Chinese"><input type="checkbox" id="subj-chinese" onchange="toggleSubject(this)"><span class="tag-name">Chinese</span></label>
+        <label class="subject-tag" data-name="Japanese"><input type="checkbox" id="subj-japanese" onchange="toggleSubject(this)"><span class="tag-name">Japanese</span></label>
+        <label class="subject-tag" data-name="Area Studies"><input type="checkbox" id="subj-areastudies" onchange="toggleSubject(this)"><span class="tag-name">Area Studies</span></label>
+        <label class="subject-tag" data-name="International Relations"><input type="checkbox" id="subj-intlrelations" onchange="toggleSubject(this)"><span class="tag-name">International Relations</span></label>
+        <label class="subject-tag" data-name="Social Medicine"><input type="checkbox" id="subj-socialmed" onchange="toggleSubject(this)"><span class="tag-name">Social Medicine</span></label>
+        <label class="subject-tag" data-name="Palaeography"><input type="checkbox" id="subj-palaeography" onchange="toggleSubject(this)"><span class="tag-name">Palaeography</span></label>
+        <label class="subject-tag" data-name="Disaster Management"><input type="checkbox" id="subj-disastermgmt" onchange="toggleSubject(this)"><span class="tag-name">Disaster Management</span></label>
+        <label class="subject-tag" data-name="Sindhi (Full Update)"><input type="checkbox" id="subj-sindhifull" onchange="toggleSubject(this)"><span class="tag-name">Sindhi (Full Update)</span></label>
+      </div>
+
       <ul class="task-list">
-        <li>Finalize all 83 subjects × 10 mock tests = <strong>830+ total test papers</strong>.</li>
-        <li>Generate and submit master XML sitemap containing all 930+ dynamic pages.</li>
-        <li>Answer 20 targeted questions on Quora with reference links back to specific test sets.</li>
-        <li>Share subject mock test sets across 15+ student Telegram study groups.</li>
+        <li><input type="checkbox" id="task-4-1" onchange="toggleTask(this)"><span>Finalize all 83 subjects &times; 10 mock tests = <strong>830+ total test papers</strong>.</span></li>
+        <li><input type="checkbox" id="task-4-2" onchange="toggleTask(this)"><span>Generate and submit master XML sitemap containing all 930+ dynamic pages.</span></li>
+        <li><input type="checkbox" id="task-4-3" onchange="toggleTask(this)"><span>Answer 20 targeted questions on Quora with reference links back to specific test sets.</span></li>
+        <li><input type="checkbox" id="task-4-4" onchange="toggleTask(this)"><span>Share subject mock test sets across 15+ student Telegram study groups.</span></li>
       </ul>
     </div>
 
+    <!-- Daily Routine Checklist -->
     <div class="checklist-box">
-      <h3>⚡ Daily Routine (1 Hour / Day)</h3>
+      <h3>
+        <span>⚡ Daily Routine (1 Hour / Day)</span>
+        <span style="font-size:12px; font-weight:600; color:#3b82f6;" id="routine-progress">0/4</span>
+      </h3>
       <ul>
-        <li><strong>Step 1:</strong> Use <code>fast_text_importer.js</code> to upload 1-2 subject question batches.</li>
-        <li><strong>Step 2:</strong> Publish 1 short blog post every 2-3 days targeting a long-tail search phrase.</li>
-        <li><strong>Step 3:</strong> At 12:30 PM IST daily, inspect and request indexing for 10 new URLs.</li>
-        <li><strong>Step 4:</strong> Check PM2 status on Oracle server to ensure zero crash restarts.</li>
+        <li><input type="checkbox" id="routine-1" onchange="toggleTask(this)"><span><strong>Step 1:</strong> Use <code>fast_text_importer.js</code> to upload 1-2 subject question batches.</span></li>
+        <li><input type="checkbox" id="routine-2" onchange="toggleTask(this)"><span><strong>Step 2:</strong> Publish 1 short blog post every 2-3 days targeting a long-tail search phrase.</span></li>
+        <li><input type="checkbox" id="routine-3" onchange="toggleTask(this)"><span><strong>Step 3:</strong> At 12:30 PM IST daily, inspect and request indexing for 10 new URLs.</span></li>
+        <li><input type="checkbox" id="routine-4" onchange="toggleTask(this)"><span><strong>Step 4:</strong> Check PM2 status on Oracle server to ensure zero crash restarts.</span></li>
       </ul>
     </div>
 
   </div>
+
+  <div id="toast" class="toast">Progress saved!</div>
+
+  <script>
+    const STORAGE_KEY = 'ugc_growth_roadmap_tracker_v1';
+    let currentFilter = 'all';
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      updateDashboard();
+    });
+
+    // Save and load state
+    function saveState() {
+      const state = {};
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (cb.id) {
+          state[cb.id] = cb.checked;
+        }
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      showToast('Progress saved');
+    }
+
+    function loadState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const state = JSON.parse(saved);
+        Object.keys(state).forEach(id => {
+          const cb = document.getElementById(id);
+          if (cb) {
+            cb.checked = state[id];
+            if (cb.closest('.subject-tag')) {
+              cb.closest('.subject-tag').classList.toggle('completed', cb.checked);
+            }
+            if (cb.closest('li')) {
+              cb.closest('li').classList.toggle('completed', cb.checked);
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error loading saved state', e);
+      }
+    }
+
+    function toggleSubject(cb) {
+      const tag = cb.closest('.subject-tag');
+      if (tag) {
+        tag.classList.toggle('completed', cb.checked);
+      }
+      saveState();
+      updateDashboard();
+      applyFilters();
+    }
+
+    function toggleTask(cb) {
+      const li = cb.closest('li');
+      if (li) {
+        li.classList.toggle('completed', cb.checked);
+      }
+      saveState();
+      updateDashboard();
+    }
+
+    // Update Progress & Dashboard stats
+    function updateDashboard() {
+      const subjectCheckboxes = document.querySelectorAll('.subject-list input[type="checkbox"]');
+      const totalSubjects = subjectCheckboxes.length;
+      let completedSubjects = 0;
+
+      subjectCheckboxes.forEach(cb => {
+        if (cb.checked) completedSubjects++;
+      });
+
+      // Update Phase-specific counts
+      ['phase-1', 'phase-2', 'phase-3', 'phase-4'].forEach((phaseId, index) => {
+        const list = document.getElementById(`${phaseId}-subjects`);
+        if (list) {
+          const phaseTotal = list.querySelectorAll('input[type="checkbox"]').length;
+          const phaseDone = list.querySelectorAll('input[type="checkbox"]:checked').length;
+          const badge = document.getElementById(`p${index + 1}-progress`);
+          if (badge) badge.textContent = `${phaseDone}/${phaseTotal}`;
+        }
+      });
+
+      // Daily Routine count
+      const routineTotal = document.querySelectorAll('.checklist-box input[type="checkbox"]').length;
+      const routineDone = document.querySelectorAll('.checklist-box input[type="checkbox"]:checked').length;
+      const routineBadge = document.getElementById('routine-progress');
+      if (routineBadge) routineBadge.textContent = `${routineDone}/${routineTotal}`;
+
+      // Overall Tasks count
+      const taskCheckboxes = document.querySelectorAll('.task-list input[type="checkbox"]');
+      const totalTasks = taskCheckboxes.length;
+      let completedTasks = 0;
+      taskCheckboxes.forEach(cb => {
+        if (cb.checked) completedTasks++;
+      });
+
+      // All checkpoints
+      const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+      const totalAll = allCheckboxes.length;
+      const doneAll = document.querySelectorAll('input[type="checkbox"]:checked').length;
+      const percent = totalAll > 0 ? Math.round((doneAll / totalAll) * 100) : 0;
+
+      // Stats UI
+      document.getElementById('stat-subjects').textContent = `${completedSubjects} / ${totalSubjects}`;
+      document.getElementById('stat-sets').textContent = `${completedSubjects * 10} / ${totalSubjects * 10}`;
+      document.getElementById('stat-tasks').textContent = `${completedTasks} / ${totalTasks}`;
+      document.getElementById('stat-percent').textContent = `${percent}%`;
+
+      document.getElementById('progress-fill').style.width = `${percent}%`;
+      document.getElementById('progress-summary').textContent = `${doneAll} of ${totalAll} milestones & checklist items completed`;
+    }
+
+    // Search and filter to prevent duplication
+    function handleSearch() {
+      applyFilters();
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const subjectTags = document.querySelectorAll('.subject-tag');
+
+      subjectTags.forEach(tag => {
+        const name = (tag.dataset.name || tag.textContent).toLowerCase();
+        const isCompleted = tag.classList.contains('completed');
+        const matchesSearch = name.includes(search);
+
+        let matchesFilter = true;
+        if (currentFilter === 'pending' && isCompleted) matchesFilter = false;
+        if (currentFilter === 'completed' && !isCompleted) matchesFilter = false;
+
+        if (matchesSearch && matchesFilter) {
+          tag.classList.remove('hidden');
+        } else {
+          tag.classList.add('hidden');
+        }
+      });
+    }
+
+    // Reset Progress
+    function resetProgress() {
+      if (confirm('Are you sure you want to reset all checklist progress?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+          if (cb.closest('.subject-tag')) cb.closest('.subject-tag').classList.remove('completed');
+          if (cb.closest('li')) cb.closest('li').classList.remove('completed');
+        });
+        updateDashboard();
+        applyFilters();
+        showToast('All progress reset');
+      }
+    }
+
+    // Export & Import backup
+    function exportData() {
+      const saved = localStorage.getItem(STORAGE_KEY) || '{}';
+      const blob = new Blob([saved], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ugc_growth_roadmap_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup downloaded');
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const state = JSON.parse(e.target.result);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          loadState();
+          updateDashboard();
+          applyFilters();
+          showToast('Backup restored successfully!');
+        } catch (err) {
+          alert('Invalid backup JSON file.');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+  </script>
 
 </body>
 </html>
