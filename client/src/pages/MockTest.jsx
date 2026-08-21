@@ -248,6 +248,85 @@ const MockTest = () => {
     return <span dangerouslySetInnerHTML={{ __html: formatted }} />;
   }
 
+  const renderExplanationContent = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') return '';
+
+    const clean = rawText
+      .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
+      .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>')
+      .replace(/\[bar\/([^\]]+)\]/g, '<span style="text-decoration: overline;">$1</span>')
+      .replace(/!=/g, '≠')
+      .replace(/=>/g, '⇒')
+      .replace(/->/g, '→');
+
+    const rawLines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    
+    let html = '';
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (inOl) { html += '</ol>'; inOl = false; }
+    };
+
+    for (let i = 0; i < rawLines.length; i++) {
+      let line = rawLines[i];
+
+      // Markdown bold **text**
+      line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+      // Check if line is a Heading / Section title
+      const plainText = line.replace(/<[^>]*>/g, '').trim();
+      const isHeading = (
+        /^#{1,4}\s+(.*)/.test(line) ||
+        /^(Key Concept[s]?|Step-by-Step Reasoning.*|Why Option.*|Concept Summary|Core Concept|Analysis of Options|Important Note[s]?|Correct Sequence|Summary|Explanation)[:]?$/i.test(plainText)
+      );
+
+      if (isHeading) {
+        closeLists();
+        const headingText = plainText.replace(/^#{1,4}\s+/, '').trim();
+        html += `<div class="exp-section-title"><span class="exp-section-icon">💡</span><strong>${headingText}</strong></div>`;
+        continue;
+      }
+
+      // Check for Bullet point: •, -, *
+      const bulletMatch = line.match(/^[\u2022\-\*]\s*(.*)/);
+      if (bulletMatch) {
+        if (inOl) { html += '</ol>'; inOl = false; }
+        if (!inUl) { html += '<ul class="exp-list exp-list--bullet">'; inUl = true; }
+
+        let content = bulletMatch[1];
+        // Format badges like "D – Knowledge : "
+        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
+
+        html += `<li>${content}</li>`;
+        continue;
+      }
+
+      // Check for Numbered list: 1., 2., 1), etc.
+      const numMatch = line.match(/^(\d+)[\.\)]\s*(.*)/);
+      if (numMatch) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        if (!inOl) { html += '<ol class="exp-list exp-list--numbered">'; inOl = true; }
+
+        let content = numMatch[2];
+        // Format badges like "D – Knowledge : " inside numbered list
+        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
+
+        html += `<li>${content}</li>`;
+        continue;
+      }
+
+      // Normal paragraph
+      closeLists();
+      html += `<p class="exp-paragraph">${line}</p>`;
+    }
+
+    closeLists();
+    return <div className="explanation-formatted-content" dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
   const parseRow = (line) => {
     if (!line) return []
     const trimmed = line.trim()
@@ -767,10 +846,11 @@ Submitted by User: ${userName}
             </p>
           )}
 
-          <p>
-            <strong>Explanation:</strong> {renderTextHtml(currentQ.explanation || (currentQ.correct === 0 ? 'This question was officially dropped. Full marks are awarded to all candidates.' : `Option ${currentQ.correct} is correct. Let's analyze:
+          <div style={{ marginTop: '10px' }}>
+            <strong style={{ display: 'block', marginBottom: '6px', color: '#0f172a' }}>Detailed Explanation:</strong>
+            {renderExplanationContent(currentQ.explanation || (currentQ.correct === 0 ? 'This question was officially dropped. Full marks are awarded to all candidates.' : `Option ${currentQ.correct} is correct. Let's analyze:
             The question tests our understanding of the core concept. By evaluating the given facts, Option ${currentQ.correct} is the logically sound response that matches the question's requirements. The other options do not satisfy the condition or represent incorrect factual claims.`))}
-          </p>
+          </div>
         </div>
       </div>
     );
@@ -1387,15 +1467,13 @@ Submitted by User: ${userName}
                 </div>
 
                 <div className="booklet-explanation-box__body">
-                  <strong>Detailed Explanation:</strong>{' '}
-                  <span>
-                    {renderTextHtml(
-                      q.explanation ||
-                      (q.correct === 0
-                        ? 'This question was officially dropped by NTA. Full marks are awarded to all candidates.'
-                        : `Option ${q.correct} is the correct answer according to official NTA answer key.`)
-                    )}
-                  </span>
+                  <strong style={{ display: 'block', marginBottom: '6px', color: '#0f172a' }}>Detailed Explanation:</strong>
+                  {renderExplanationContent(
+                    q.explanation ||
+                    (q.correct === 0
+                      ? 'This question was officially dropped by NTA. Full marks are awarded to all candidates.'
+                      : `Option ${q.correct} is the correct answer according to official NTA answer key.`)
+                  )}
                 </div>
               </div>
             )}
