@@ -658,15 +658,19 @@ const MathHelperWidget = ({ onClose }) => {
 
 
 const DataInterpretationGroup = ({
-  editingSetQuestions,
+  editingSetQuestions = [],
   setId,
   API_BASE_URL,
   onSave,
   onDeleteGroup,
   year,
-  targetQNum
+  targetQNum,
+  targetQId
 }) => {
-  const isTargetGroup = Boolean((targetQId && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex <= 5)) || (targetQNum && targetQNum >= 1 && targetQNum <= 5));
+  const isTargetGroup = Boolean(
+    (targetQId && Array.isArray(editingSetQuestions) && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex <= 5)) || 
+    (targetQNum && targetQNum >= 1 && targetQNum <= 5)
+  );
   const [isOpen, setIsOpen] = useState(isTargetGroup);
 
   useEffect(() => {
@@ -1299,15 +1303,19 @@ const DataInterpretationGroup = ({
 }
 
 const ReadingComprehensionGroup = ({
-  editingSetQuestions,
+  editingSetQuestions = [],
   setId,
   API_BASE_URL,
   onSave,
   onDeleteGroup,
   year,
-  targetQNum
+  targetQNum,
+  targetQId
 }) => {
-  const isTargetGroup = Boolean((targetQId && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex >= 46 && q.qIndex <= 50)) || (targetQNum && targetQNum >= 46 && targetQNum <= 50));
+  const isTargetGroup = Boolean(
+    (targetQId && Array.isArray(editingSetQuestions) && editingSetQuestions.some(q => String(q.id || q._id) === String(targetQId) && q.qIndex >= 46 && q.qIndex <= 50)) || 
+    (targetQNum && targetQNum >= 46 && targetQNum <= 50)
+  );
   const [isOpen, setIsOpen] = useState(isTargetGroup);
 
   useEffect(() => {
