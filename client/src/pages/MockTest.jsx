@@ -518,6 +518,14 @@ const MockTest = () => {
   })
 
   const [settings, setSettings] = useState(null)
+  const [expandedExplanations, setExpandedExplanations] = useState({})
+
+  const toggleExplanation = (qId) => {
+    setExpandedExplanations(prev => ({
+      ...prev,
+      [qId]: !prev[qId]
+    }))
+  }
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/settings`)
@@ -1440,41 +1448,69 @@ Submitted by User: ${userName}
               })}
             </div>
 
-            {/* Render Explanation in Booklet View when Show Answer Key or Review Mode is active */}
+            {/* Render Explanation in Booklet View with Show/Hide toggle button */}
             {bookletShowKeys && (
-              <div className="booklet-explanation-box">
-                <div className="booklet-explanation-box__header">
-                  <div className="booklet-explanation-box__badges">
-                    <span className="booklet-explanation-badge booklet-explanation-badge--correct">
-                      ✓ Correct: Option {q.correct === 0 ? 'Dropped (Full Marks Awarded)' : `${q.correct} (${['A', 'B', 'C', 'D'][q.correct - 1] || ''})`}
-                    </span>
-                    {isReviewMode && q.userAnswer && (
-                      <span className={`booklet-explanation-badge ${q.correct === 0 || q.userAnswer === q.correct ? 'booklet-explanation-badge--correct' : 'booklet-explanation-badge--incorrect'}`}>
-                        Your Response: Option {q.userAnswer} ({['A', 'B', 'C', 'D'][q.userAnswer - 1] || ''})
-                      </span>
-                    )}
-                    {isReviewMode && !q.userAnswer && (
-                      <span className="booklet-explanation-badge booklet-explanation-badge--unattempted">
-                        Not Attempted
-                      </span>
-                    )}
-                  </div>
-                  {q.unit && (
-                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '500' }}>
-                      {q.unit}
-                    </span>
-                  )}
-                </div>
+              <div style={{ marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="booklet-toggle-exp-btn"
+                  onClick={() => toggleExplanation(q.dbId || q.id || globalIndex)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: expandedExplanations[q.dbId || q.id || globalIndex] ? '#f1f5f9' : '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#334155',
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.88rem' }}>{expandedExplanations[q.dbId || q.id || globalIndex] ? '▲' : '💡'}</span>
+                  <span>{expandedExplanations[q.dbId || q.id || globalIndex] ? 'Hide Explanation' : 'Show Explanation'}</span>
+                </button>
 
-                <div className="booklet-explanation-box__body">
-                  <strong style={{ display: 'block', marginBottom: '6px', color: '#0f172a' }}>Detailed Explanation:</strong>
-                  {renderExplanationContent(
-                    q.explanation ||
-                    (q.correct === 0
-                      ? 'This question was officially dropped by NTA. Full marks are awarded to all candidates.'
-                      : `Option ${q.correct} is the correct answer according to official NTA answer key.`)
-                  )}
-                </div>
+                {expandedExplanations[q.dbId || q.id || globalIndex] && (
+                  <div className="booklet-explanation-box" style={{ marginTop: '8px' }}>
+                    <div className="booklet-explanation-box__header">
+                      <div className="booklet-explanation-box__badges">
+                        <span className="booklet-explanation-badge booklet-explanation-badge--correct">
+                          ✓ Correct: Option {q.correct === 0 ? 'Dropped (Full Marks Awarded)' : `${q.correct} (${['A', 'B', 'C', 'D'][q.correct - 1] || ''})`}
+                        </span>
+                        {isReviewMode && q.userAnswer && (
+                          <span className={`booklet-explanation-badge ${q.correct === 0 || q.userAnswer === q.correct ? 'booklet-explanation-badge--correct' : 'booklet-explanation-badge--incorrect'}`}>
+                            Your Response: Option {q.userAnswer} ({['A', 'B', 'C', 'D'][q.userAnswer - 1] || ''})
+                          </span>
+                        )}
+                        {isReviewMode && !q.userAnswer && (
+                          <span className="booklet-explanation-badge booklet-explanation-badge--unattempted">
+                            Not Attempted
+                          </span>
+                        )}
+                      </div>
+                      {q.unit && (
+                        <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '500' }}>
+                          {q.unit}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="booklet-explanation-box__body">
+                      <strong style={{ display: 'block', marginBottom: '6px', color: '#0f172a' }}>Detailed Explanation:</strong>
+                      {renderExplanationContent(
+                        q.explanation ||
+                        (q.correct === 0
+                          ? 'This question was officially dropped by NTA. Full marks are awarded to all candidates.'
+                          : `Option ${q.correct} is the correct answer according to official NTA answer key.`)
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
