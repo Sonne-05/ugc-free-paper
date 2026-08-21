@@ -3116,12 +3116,6 @@ const ManageSet = () => {
 
   const targetQNum = searchParams.get('qNum') ? parseInt(searchParams.get('qNum'), 10) : null
   const targetQId = searchParams.get('qId') || null
-
-  const targetQuestion = targetQId
-    ? editingSetQuestions.find(q => String(q.id || q._id) === String(targetQId))
-    : (targetQNum ? editingSetQuestions.find(q => q.qIndex === targetQNum) : null);
-
-  const resolvedTargetSlot = targetQuestion ? targetQuestion.qIndex : targetQNum;
   
   const [isAdmin, setIsAdmin] = useState(false)
   const [pyqSets, setPyqSets] = useState([])
@@ -3137,6 +3131,12 @@ const ManageSet = () => {
   
   const [editingSetId, setEditingSetId] = useState(null)
   const [editingSetQuestions, setEditingSetQuestions] = useState([])
+
+  const targetQuestion = (targetQId && editingSetQuestions && editingSetQuestions.length > 0)
+    ? editingSetQuestions.find(q => String(q.id || q._id) === String(targetQId))
+    : (targetQNum && editingSetQuestions && editingSetQuestions.length > 0 ? editingSetQuestions.find(q => q.qIndex === targetQNum) : null);
+
+  const resolvedTargetSlot = targetQuestion ? targetQuestion.qIndex : targetQNum;
   
   const [selectedSetId, setSelectedSetId] = useState('')
   const [importMode, setImportMode] = useState('single')
