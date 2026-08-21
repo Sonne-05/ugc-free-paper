@@ -1859,11 +1859,13 @@
   align-items: center;
   gap: 6px;
   margin: 14px 0 8px 0;
-  padding: 4px 0;
+  padding: 6px 10px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
   color: #0f172a;
   font-size: 0.88rem;
   font-weight: 700;
-  border-bottom: 1px dashed #cbd5e1;
+  border-left: 3px solid #3b82f6;
 }
 
 .exp-section-icon {
@@ -1871,30 +1873,49 @@
 }
 
 .exp-list {
-  margin: 6px 0 12px 0;
-  padding-left: 20px;
+  margin: 8px 0 14px 0;
   line-height: 1.65;
 }
 
 .exp-list--bullet {
-  list-style-type: disc;
+  list-style: none;
+  padding-left: 8px;
+}
+
+.exp-list--bullet li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 8px;
+  color: #334155;
+}
+
+.exp-list--bullet li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  color: #10b981;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 .exp-list--numbered {
   list-style-type: decimal;
-  padding-left: 24px;
-  margin-left: 6px;
-  background-color: rgba(241, 245, 249, 0.65);
+  padding-left: 28px;
+  margin-left: 4px;
+  margin-right: 4px;
+  background-color: rgba(241, 245, 249, 0.7);
   border-radius: 6px;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-right: 12px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-right: 14px;
   border-left: 3px solid #6366f1;
 }
 
-.exp-list li {
+.exp-list--numbered li {
   margin-bottom: 6px;
   color: #334155;
+  padding-left: 4px;
 }
 
 .exp-list li:last-child {
@@ -1905,8 +1926,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 22px;
+  height: 22px;
   background-color: #e0e7ff;
   color: #4338ca;
   font-weight: 700;
@@ -1914,6 +1935,8 @@
   border-radius: 4px;
   margin-right: 6px;
   padding: 0 5px;
+  box-shadow: 0 1px 2px rgba(67, 56, 202, 0.1);
 }
+
 
 

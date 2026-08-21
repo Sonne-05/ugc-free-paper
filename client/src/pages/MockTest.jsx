@@ -251,7 +251,12 @@ const MockTest = () => {
   const renderExplanationContent = (rawText) => {
     if (!rawText || typeof rawText !== 'string') return '';
 
-    const clean = rawText
+    // Normalize HTML breaks and math symbols
+    let clean = rawText
+      .replace(/<br\s*[\/]?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/&bull;/gi, '•')
       .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
       .replace(/_([a-zA-Z0-9\-+∞\(\)]+)/g, '<sub>$1</sub>')
       .replace(/\[bar\/([^\]]+)\]/g, '<span style="text-decoration: overline;">$1</span>')
@@ -276,22 +281,24 @@ const MockTest = () => {
       // Markdown bold **text**
       line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
-      // Check if line is a Heading / Section title
       const plainText = line.replace(/<[^>]*>/g, '').trim();
+
+      // Check if line is a Heading / Section title
       const isHeading = (
         /^#{1,4}\s+(.*)/.test(line) ||
-        /^(Key Concept[s]?|Step-by-Step Reasoning.*|Why Option.*|Concept Summary|Core Concept|Analysis of Options|Important Note[s]?|Correct Sequence|Summary|Explanation)[:]?$/i.test(plainText)
+        /^(Key Concept[s]?|Step-by-Step Reasoning.*|Why Option.*|Concept Summary|Core Concept|Analysis of Options|Important Note[s]?|Correct Sequence|Summary|Explanation|Understanding the Question)[:]?$/i.test(plainText) ||
+        /^(\d+[\.\)]\s*)?(Identify the level|Arrange from lower to higher|Determine the correct|Step\s*\d+)[:]?$/i.test(plainText)
       );
 
       if (isHeading) {
         closeLists();
-        const headingText = plainText.replace(/^#{1,4}\s+/, '').trim();
+        const headingText = plainText.replace(/^#{1,4}\s+/, '').replace(/^(\d+[\.\)]\s*)/, '').trim();
         html += `<div class="exp-section-title"><span class="exp-section-icon">💡</span><strong>${headingText}</strong></div>`;
         continue;
       }
 
-      // Check for Bullet point: •, -, *
-      const bulletMatch = line.match(/^[\u2022\-\*]\s*(.*)/);
+      // Check for Bullet point: •, -, *, &bull;
+      const bulletMatch = line.match(/^[\u2022\u25E6\u2043\u2219\-\*]\s*(.*)/);
       if (bulletMatch) {
         if (inOl) { html += '</ol>'; inOl = false; }
         if (!inUl) { html += '<ul class="exp-list exp-list--bullet">'; inUl = true; }
@@ -300,7 +307,7 @@ const MockTest = () => {
         // Format badges like "D – Knowledge : "
         content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
 
-        html += `<li>${content}</li>`;
+        html += `<li class="exp-list-item exp-list-item--bullet">${content}</li>`;
         continue;
       }
 
@@ -314,7 +321,7 @@ const MockTest = () => {
         // Format badges like "D – Knowledge : " inside numbered list
         content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
 
-        html += `<li>${content}</li>`;
+        html += `<li class="exp-list-item exp-list-item--numbered">${content}</li>`;
         continue;
       }
 
