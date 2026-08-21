@@ -1769,3 +1769,74 @@
     padding-left: 5px !important;
   }
 }
+
+/* Professional Explanation Box in Booklet Mode */
+.booklet-explanation-box {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #10b981;
+  border-radius: 6px;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.booklet-explanation-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.booklet-explanation-box__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.booklet-explanation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.booklet-explanation-badge--correct {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.booklet-explanation-badge--incorrect {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.booklet-explanation-badge--unattempted {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.booklet-explanation-box__body {
+  font-size: 0.84rem;
+  color: #334155;
+}
+
+.booklet-explanation-box__body strong {
+  color: #0f172a;
+}
+

@@ -1220,6 +1220,8 @@ Submitted by User: ${userName}
 
 
 
+    const bookletShowKeys = showAnswerKey || isReviewMode;
+
     // Helper to render a question block
     const renderQuestionBlock = (q, globalIndex) => {
       if (!q) return null;
@@ -1357,12 +1359,50 @@ Submitted by User: ${userName}
                 );
               })}
             </div>
+
+            {/* Render Explanation in Booklet View when Show Answer Key or Review Mode is active */}
+            {bookletShowKeys && (
+              <div className="booklet-explanation-box">
+                <div className="booklet-explanation-box__header">
+                  <div className="booklet-explanation-box__badges">
+                    <span className="booklet-explanation-badge booklet-explanation-badge--correct">
+                      ✓ Correct: Option {q.correct === 0 ? 'Dropped (Full Marks Awarded)' : `${q.correct} (${['A', 'B', 'C', 'D'][q.correct - 1] || ''})`}
+                    </span>
+                    {isReviewMode && q.userAnswer && (
+                      <span className={`booklet-explanation-badge ${q.correct === 0 || q.userAnswer === q.correct ? 'booklet-explanation-badge--correct' : 'booklet-explanation-badge--incorrect'}`}>
+                        Your Response: Option {q.userAnswer} ({['A', 'B', 'C', 'D'][q.userAnswer - 1] || ''})
+                      </span>
+                    )}
+                    {isReviewMode && !q.userAnswer && (
+                      <span className="booklet-explanation-badge booklet-explanation-badge--unattempted">
+                        Not Attempted
+                      </span>
+                    )}
+                  </div>
+                  {q.unit && (
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '500' }}>
+                      {q.unit}
+                    </span>
+                  )}
+                </div>
+
+                <div className="booklet-explanation-box__body">
+                  <strong>Detailed Explanation:</strong>{' '}
+                  <span>
+                    {renderTextHtml(
+                      q.explanation ||
+                      (q.correct === 0
+                        ? 'This question was officially dropped by NTA. Full marks are awarded to all candidates.'
+                        : `Option ${q.correct} is the correct answer according to official NTA answer key.`)
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
     };
-
-    const bookletShowKeys = showAnswerKey;
     const unitNameShort = paperDetails.unitName ? paperDetails.unitName.replace(/Unit\s+\d+:\s+/i, '') : '';
     const currentTitle = paperDetails.isUnitWise 
       ? `PAPER 1 - ${unitNameShort.toUpperCase()} (SESSION ${activeSessionIndex + 1})`
