@@ -254,7 +254,7 @@ const MockTest = () => {
     // Normalize HTML breaks and math symbols
     let clean = rawText
       .replace(/<br\s*[\/]?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
       .replace(/<p[^>]*>/gi, '')
       .replace(/&bull;/gi, '•')
       .replace(/\^([a-zA-Z0-9\-+∞\(\)]+)/g, '<sup>$1</sup>')
@@ -264,8 +264,8 @@ const MockTest = () => {
       .replace(/=>/g, '⇒')
       .replace(/->/g, '→');
 
-    const rawLines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    
+    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
     let html = '';
     let inUl = false;
     let inOl = false;
@@ -275,59 +275,60 @@ const MockTest = () => {
       if (inOl) { html += '</ol>'; inOl = false; }
     };
 
-    for (let i = 0; i < rawLines.length; i++) {
-      let line = rawLines[i];
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
 
-      // Markdown bold **text**
+      // Markdown bold **text** and italic _text_
       line = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      line = line.replace(/_([^_]+)_/g, '<em>$1</em>');
 
-      const plainText = line.replace(/<[^>]*>/g, '').trim();
+      const plain = line.replace(/<[^>]*>/g, '').trim();
 
-      // Check if line is a Heading / Section title
+      // Check if line is a Section Heading
       const isHeading = (
         /^#{1,4}\s+(.*)/.test(line) ||
-        /^(Key Concept[s]?|Step-by-Step Reasoning.*|Why Option.*|Concept Summary|Core Concept|Analysis of Options|Important Note[s]?|Correct Sequence|Summary|Explanation|Understanding the Question)[:]?$/i.test(plainText) ||
-        /^(\d+[\.\)]\s*)?(Identify the level|Arrange from lower to higher|Determine the correct|Step\s*\d+)[:]?$/i.test(plainText)
+        /^(Understanding the Question|Key Concept[s]?|Step-by-Step Reasoning.*|Why Option.*|Concept Summary|Core Concept|Analysis of Options|Important Note[s]?|Correct Sequence|Summary|Explanation|Detailed Explanation)[:]?$/i.test(plain) ||
+        /^(\d+[\.\)]\s*)?(Identify the level|Arrange from lower to higher|Determine the correct|Step\s*\d+)[:]?$/i.test(plain)
       );
 
       if (isHeading) {
         closeLists();
-        const headingText = plainText.replace(/^#{1,4}\s+/, '').replace(/^(\d+[\.\)]\s*)/, '').trim();
-        html += `<div class="exp-section-title"><span class="exp-section-icon">💡</span><strong>${headingText}</strong></div>`;
+        const headingText = plain.replace(/^#{1,4}\s+/, '').replace(/^(\d+[\.\)]\s*)/, '').trim();
+        html += `<h5 class="exp-pro-heading"><span class="exp-pro-heading__accent"></span>${headingText}</h5>`;
         continue;
       }
 
-      // Check for Bullet point: •, -, *, &bull;
-      const bulletMatch = line.match(/^[\u2022\u25E6\u2043\u2219\-\*]\s*(.*)/);
+      // Check for Bullet item: •, -, *
+      const bulletMatch = line.match(/^[\u2022\u25E6\u2043\u2219\-\*][\s\t]*(.*)/);
       if (bulletMatch) {
         if (inOl) { html += '</ol>'; inOl = false; }
-        if (!inUl) { html += '<ul class="exp-list exp-list--bullet">'; inUl = true; }
+        if (!inUl) { html += '<ul class="exp-pro-ul">'; inUl = true; }
 
-        let content = bulletMatch[1];
-        // Format badges like "D – Knowledge : "
-        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
+        let content = bulletMatch[1].trim();
+        // Format option keys like "D – Knowledge : "
+        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:\n]+)[\:\-]\s*/i, '<span class="exp-pro-opt-tag">$1</span> <strong class="exp-pro-opt-name">$2:</strong> ');
 
-        html += `<li class="exp-list-item exp-list-item--bullet">${content}</li>`;
+        html += `<li class="exp-pro-li-bullet">${content}</li>`;
         continue;
       }
 
-      // Check for Numbered list: 1., 2., 1), etc.
-      const numMatch = line.match(/^(\d+)[\.\)]\s*(.*)/);
+      // Check for Numbered item: 1., 2., 1), etc.
+      const numMatch = line.match(/^(\d+)[\.\)][\s\t]*(.*)/);
       if (numMatch) {
         if (inUl) { html += '</ul>'; inUl = false; }
-        if (!inOl) { html += '<ol class="exp-list exp-list--numbered">'; inOl = true; }
+        if (!inOl) { html += '<ol class="exp-pro-ol">'; inOl = true; }
 
-        let content = numMatch[2];
-        // Format badges like "D – Knowledge : " inside numbered list
-        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:]+)[\:\-]\s*/i, '<span class="exp-item-badge">$1</span> <strong>$2:</strong> ');
+        let content = numMatch[2].trim();
+        // Format option keys like "D – Knowledge : "
+        content = content.replace(/^([A-E1-4])\s*[\u2013\-\:]\s*([^:\n]+)[\:\-]\s*/i, '<span class="exp-pro-opt-tag">$1</span> <strong class="exp-pro-opt-name">$2:</strong> ');
 
-        html += `<li class="exp-list-item exp-list-item--numbered">${content}</li>`;
+        html += `<li class="exp-pro-li-numbered">${content}</li>`;
         continue;
       }
 
       // Normal paragraph
       closeLists();
-      html += `<p class="exp-paragraph">${line}</p>`;
+      html += `<p class="exp-pro-p">${line}</p>`;
     }
 
     closeLists();
