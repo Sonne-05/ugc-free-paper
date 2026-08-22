@@ -24,11 +24,11 @@ const scriptPath = path.join(__dirname, 'auto_pdf_solver.py');
 console.log(`🚀 Launching Auto PDF Solver on: ${pdfPath}`);
 if (extraArgs.length > 0) console.log(`   Options: ${extraArgs.join(' ')}`);
 
-const spawnArgs = ['run', '--with', 'pymupdf,requests', 'python', scriptPath, pdfPath, ...extraArgs];
+const spawnArgs = ['run', '--with', 'pymupdf,requests', 'python', `"${scriptPath}"`, `"${pdfPath}"`, ...extraArgs.map(a => `"${a}"`)];
 
 const child = spawn('uv', spawnArgs, {
   stdio: 'inherit',
-  shell: process.platform === 'win32'
+  shell: true
 });
 
 child.on('close', code => {

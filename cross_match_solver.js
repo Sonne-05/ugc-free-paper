@@ -28,11 +28,11 @@ console.log(`   Target : ${targetPdf}`);
 console.log(`   Source : ${sourcePdf}`);
 if (extraArgs.length > 0) console.log(`   Options: ${extraArgs.join(' ')}`);
 
-const spawnArgs = ['run', '--with', 'pymupdf', 'python', scriptPath, targetPdf, sourcePdf, ...extraArgs];
+const spawnArgs = ['run', '--with', 'pymupdf', 'python', `"${scriptPath}"`, `"${targetPdf}"`, `"${sourcePdf}"`, ...extraArgs.map(a => `"${a}"`)];
 
 const child = spawn('uv', spawnArgs, {
   stdio: 'inherit',
-  shell: process.platform === 'win32'
+  shell: true
 });
 
 child.on('close', code => {
