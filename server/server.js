@@ -3229,26 +3229,34 @@ app.post('/api/users/:id/progress', async (req, res) => {
 // Submit contact message
 app.post('/api/contact', async (req, res) => {
   try {
-    const { name, email, message } = req.body;
-    if (!name || !email || !message) {
-      return res.status(400).json({ message: 'Name, email, and message are required.' });
+    const { name, email, message, isReport } = req.body;
+    const finalEmail = (email && email.trim()) ? email.trim() : 'student-report@ugcfreepaper.com';
+    const finalName = (name && name.trim()) ? name.trim() : 'Student';
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: 'Message is required.' });
     }
 
-    const newMessage = new ContactMessage({ name, email, message });
+    const newMessage = new ContactMessage({ name: finalName, email: finalEmail, message });
     await newMessage.save();
 
-    if (process.env.RESEND_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS)) {
+    const isErrorReport = isReport || 
+      (finalName && finalName.includes('[Error Report]')) || 
+      (message && message.includes('[Question Error Report]'));
+
+    // Only send email for general contact messages, NEVER for question error reports
+    if (!isErrorReport && (process.env.RESEND_API_KEY || (process.env.EMAIL_USER && process.env.EMAIL_PASS))) {
       sendEmail({
         from: process.env.RESEND_API_KEY ? `UGC Free Paper Contact Form <onboarding@resend.dev>` : `"UGC Free Paper Contact Form" <${process.env.EMAIL_USER}>`,
         to: process.env.EMAIL_USER || 'support@ugcfreepaper.com', // Send to administrator
-        replyTo: email,
-        subject: `New Contact Form Message from ${name}`,
-        text: `You have received a new contact message:\n\nName: ${name}\nEmail: ${email}\nMessage:\n${message}\n\nThis message has also been saved to your dashboard database.`,
+        replyTo: finalEmail,
+        subject: `New Contact Form Message from ${finalName}`,
+        text: `You have received a new contact message:\n\nName: ${finalName}\nEmail: ${finalEmail}\nMessage:\n${message}\n\nThis message has also been saved to your dashboard database.`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <h2 style="color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-top: 0;">New Contact Form Message</h2>
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            <p><strong>Name:</strong> ${finalName}</p>
+            <p><strong>Email:</strong> <a href="mailto:${finalEmail}">${finalEmail}</a></p>
             <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-top: 15px;">
               <p style="margin: 0; white-space: pre-wrap;">${message}</p>
             </div>
@@ -3260,8 +3268,6 @@ app.post('/api/contact', async (req, res) => {
       }).catch(err => {
         console.error('Failed to send contact notification email:', err);
       });
-    } else {
-      console.warn('Email dispatch credentials not set. Skipping contact email notification.');
     }
 
     res.status(201).json({ success: true, message: 'Message saved successfully!' });

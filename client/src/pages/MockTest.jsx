@@ -628,8 +628,8 @@ const MockTest = () => {
   }, [showReportModal, activeQuestionIndex, questionsState]);
 
   const handleSubmitReport = () => {
-    if (!reportEmail) {
-      alert("Please provide your email address.");
+    if (!reportQuestionId) {
+      alert("Please select a question to report.");
       return;
     }
     
@@ -654,7 +654,7 @@ Question PYQ Set: ${qSet}
 Question ID: ${reportQuestionId}
 Issue Category: ${reportIssue}
 ${qDetails}
-Submitted by User: ${userName}
+Submitted by User: ${userName || 'Student'}
 `;
 
     fetch(`${API_BASE_URL}/api/contact`, {
@@ -663,9 +663,10 @@ Submitted by User: ${userName}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        name: `[Error Report] ${userName}`,
-        email: reportEmail,
-        message: messageText
+        name: `[Error Report] ${userName || 'Student'}`,
+        email: (user && user.email) ? user.email : 'student-report@ugcfreepaper.com',
+        message: messageText,
+        isReport: true
       })
     })
       .then(res => {
@@ -693,28 +694,8 @@ Submitted by User: ${userName}
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '15px', color: '#1e293b' }}>
             Report Question Error
           </h3>
-          
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-              Your Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="email@example.com"
-              value={reportEmail}
-              onChange={(e) => setReportEmail(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: '1px solid #cbd5e1',
-                fontSize: '0.85rem'
-              }}
-            />
-          </div>
 
-          <div style={{ marginBottom: '12px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
               Select Question
             </label>
@@ -778,7 +759,7 @@ Submitted by User: ${userName}
               type="button" 
               className="modal-btn modal-btn--confirm" 
               onClick={handleSubmitReport}
-              disabled={isSubmittingReport || !reportEmail}
+              disabled={isSubmittingReport || !reportQuestionId}
               style={{ backgroundColor: '#ef4444' }}
             >
               {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
