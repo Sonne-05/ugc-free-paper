@@ -1611,21 +1611,29 @@ async function solveWithGeminiModels(questionContext) {
     });
   }
 
-  const solverSystemPrompt = `You are a world-class academic solver for UGC NET examination.
-TASK: Carefully analyze and solve the question against standard UGC NET official syllabus and answer keys. Identify which Option (1, 2, 3, or 4) is the single definitively correct answer. If the question has factual discrepancies or is invalid/dropped by NTA, output Option 0 (Dropped).
-CRITICAL: Be 100% consistent, deterministic, and factually accurate.
-STRICT OUTPUT FORMAT:
-Output ONLY one line containing:
-[[CORRECT_OPTION: X]]
-(where X is 1, 2, 3, 4, or 0). Do not output any explanation, markdown, or commentary.`;
+  const solverSystemPrompt = `You are the official UGC NET Examination Evaluator and Answer Key Subject Matter Expert.
+Your objective is 100% FACTUAL ACCURACY based strictly on the official UGC NET syllabus, standard academic textbooks, and verified NTA answer keys.
 
-  // Priority Models: Gemini 2.5 Flash & Gemini 2.5 Pro with fallbacks
+SOLVING PROTOCOL:
+1. Carefully examine the question, passage, assertions, statements, lists, and options.
+2. Step-by-step verification:
+   - For Matching Questions: Explicitly link List I (A, B, C, D) to List II (1, 2, 3, 4) item-by-item.
+   - For Multi-statement Questions: Determine whether each statement (A, B, C, D, E) is TRUE or FALSE individually.
+   - For Assertion & Reason: Check if (A) is true/false, check if (R) is true/false, and verify if (R) correctly explains (A).
+3. Conclude decisively with the exact correct option number (1, 2, 3, 4) or 0 if the question has factual discrepancies/dropped.
+
+STRICT FINAL OUTPUT FORMAT:
+Provide 2-3 concise lines of verification reasoning, and end with:
+[[CORRECT_OPTION: X]]
+(where X is 1, 2, 3, 4, or 0).`;
+
+  // Priority Models: Gemini 2.5 Pro (Deepest reasoning) & Gemini 2.5 Flash (Fast high-accuracy)
   const geminiModels = [
-    'gemini-2.5-flash',
     'gemini-2.5-pro',
+    'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-flash',
     'gemini-1.5-pro',
+    'gemini-1.5-flash',
     'gemini-flash-latest'
   ];
 
@@ -1642,7 +1650,7 @@ Output ONLY one line containing:
       for (const model of geminiModels) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 7000);
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
           const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: 'POST',
             headers: {
@@ -1657,7 +1665,7 @@ Output ONLY one line containing:
                 seed: 42,
                 topK: 1,
                 topP: 1.0,
-                maxOutputTokens: 30
+                maxOutputTokens: 350
               }
             }),
             signal: controller.signal
@@ -1667,12 +1675,21 @@ Output ONLY one line containing:
           if (response.ok) {
             const data = await response.json();
             const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
-            if (match) {
-              const opt = parseInt(match[1], 10);
+            const matches = [...reply.matchAll(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/gi)];
+            if (matches.length > 0) {
+              const opt = parseInt(matches[matches.length - 1][1], 10);
               if (opt >= 0 && opt <= 4) {
                 geminiExplainIndex = (keyIdx + 1) % totalKeys;
                 return { correctOption: opt, modelUsed: model, provider: 'gemini' };
+              }
+            } else {
+              const fallbackMatch = reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
+              if (fallbackMatch) {
+                const opt = parseInt(fallbackMatch[1], 10);
+                if (opt >= 0 && opt <= 4) {
+                  geminiExplainIndex = (keyIdx + 1) % totalKeys;
+                  return { correctOption: opt, modelUsed: model, provider: 'gemini' };
+                }
               }
             }
           } else if (response.status === 429) {
@@ -1686,7 +1703,7 @@ Output ONLY one line containing:
 
   // Backup fallback: Groq LPU models if Gemini keys are in cooldown
   if (groqKeys.length > 0) {
-    const fastGroqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+    const fastGroqModels = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
     const now = Date.now();
     for (let attempt = 0; attempt < Math.min(groqKeys.length, 5); attempt++) {
       const keyIdx = (groqExplainIndex + attempt) % groqKeys.length;
@@ -1696,7 +1713,7 @@ Output ONLY one line containing:
       for (const model of fastGroqModels) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
           const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -1712,7 +1729,7 @@ Output ONLY one line containing:
               temperature: 0.0,
               seed: 42,
               top_p: 1.0,
-              max_tokens: 30
+              max_tokens: 350
             }),
             signal: controller.signal
           });
@@ -1721,12 +1738,21 @@ Output ONLY one line containing:
           if (response.ok) {
             const data = await response.json();
             const reply = data.choices?.[0]?.message?.content || '';
-            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
-            if (match) {
-              const opt = parseInt(match[1], 10);
+            const matches = [...reply.matchAll(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/gi)];
+            if (matches.length > 0) {
+              const opt = parseInt(matches[matches.length - 1][1], 10);
               if (opt >= 0 && opt <= 4) {
                 groqExplainIndex = (keyIdx + 1) % groqKeys.length;
                 return { correctOption: opt, modelUsed: model, provider: 'groq' };
+              }
+            } else {
+              const fallbackMatch = reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
+              if (fallbackMatch) {
+                const opt = parseInt(fallbackMatch[1], 10);
+                if (opt >= 0 && opt <= 4) {
+                  groqExplainIndex = (keyIdx + 1) % groqKeys.length;
+                  return { correctOption: opt, modelUsed: model, provider: 'groq' };
+                }
               }
             }
           } else if (response.status === 429) {
