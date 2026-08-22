@@ -327,7 +327,7 @@ def call_gemini_batch(batch):
     return None
 
 def solve_all_questions(questions):
-    print(f"\n[2/4] Solving {len(questions)} questions using Dual-Model Consensus (Groq + Gemini)...")
+    print(f"\n[2/4] Solving {len(questions)} questions using Primary Model (Gemini 2.5 Pro/Flash) + Fallback (Groq)...")
     solved_answers = []
     
     BATCH_SIZE = 5
@@ -340,33 +340,49 @@ def solve_all_questions(questions):
         
         print(f"  -> Batch {b_idx+1}/{total_batches} (Q{q_indices[0]}..Q{q_indices[-1]})...", end="", flush=True)
         
-        ans1 = call_groq_batch(batch)
-        ans2 = call_gemini_batch(batch)
+        # 1. Primary Model: Gemini (Gemini 2.5 Pro / Flash)
+        ans_gemini = call_gemini_batch(batch)
+        
+        # 2. Fallback to Groq if Gemini missed any question or failed
+        ans_groq = None
+        needs_fallback = False
+        if not ans_gemini or len(ans_gemini) < len(batch):
+            needs_fallback = True
+        else:
+            for q in batch:
+                match = next((x for x in ans_gemini if x.get("qIndex") == q["qIndex"]), None)
+                if not match or not match.get("correct"):
+                    needs_fallback = True
+                    break
+                    
+        if needs_fallback:
+            ans_groq = call_groq_batch(batch)
         
         for q in batch:
             qi = q["qIndex"]
-            r1 = next((x for x in (ans1 or []) if x.get("qIndex") == qi), None)
-            r2 = next((x for x in (ans2 or []) if x.get("qIndex") == qi), None)
+            r_gem = next((x for x in (ans_gemini or []) if x.get("qIndex") == qi), None)
+            r_grq = next((x for x in (ans_groq or []) if x.get("qIndex") == qi), None)
             
-            c1 = r1.get("correct") if r1 else None
-            c2 = r2.get("correct") if r2 else None
+            c_gem = r_gem.get("correct") if r_gem else None
+            c_grq = r_grq.get("correct") if r_grq else None
             
-            try: c1 = int(c1) if c1 is not None else None
-            except: c1 = None
-            try: c2 = int(c2) if c2 is not None else None
-            except: c2 = None
+            try: c_gem = int(c_gem) if c_gem is not None else None
+            except: c_gem = None
+            try: c_grq = int(c_grq) if c_grq is not None else None
+            except: c_grq = None
             
-            reason = (r1.get("reason") if r1 else "") or (r2.get("reason") if r2 else "") or "Verified academic concept."
+            reason = (r_gem.get("reason") if r_gem else "") or (r_grq.get("reason") if r_grq else "") or "Verified academic concept."
             
-            if c1 and c2 and c1 == c2:
-                final_correct = c1
-                confidence = "High (100% Agreement)"
-            elif c1:
-                final_correct = c1
-                confidence = "High (Groq Model)"
-            elif c2:
-                final_correct = c2
-                confidence = "High (Gemini Model)"
+            # Primary evaluation: Gemini takes precedence
+            if c_gem and c_grq and c_gem == c_grq:
+                final_correct = c_gem
+                confidence = "High (Gemini + Groq Agreement)"
+            elif c_gem:
+                final_correct = c_gem
+                confidence = "High (Gemini 2.5 Pro/Flash)"
+            elif c_grq:
+                final_correct = c_grq
+                confidence = "High (Groq Fallback)"
             else:
                 final_correct = 1
                 confidence = "Default"
