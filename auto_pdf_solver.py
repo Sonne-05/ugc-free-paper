@@ -507,7 +507,7 @@ def generate_pdf_report(pdf_source_path, solved_answers, output_pdf_path, is_p2_
     
     page.draw_rect(pymupdf.Rect(70, 495, W-70, 497), color=(0.4, 0.6, 0.9), fill=(0.4, 0.6, 0.9))
     page.insert_text((70, 530), f"Generated on:  {time.strftime('%d-%m-%Y %H:%M:%S')}", fontsize=9, color=(0.75, 0.85, 1.0), fontname="helv")
-    page.insert_text((70, 555), "Format:  10x10 Quick Reference Grid + Complete Question Breakdown", fontsize=9, color=(0.75, 0.85, 1.0), fontname="helv")
+    page.insert_text((70, 555), "Format:  10x10 Quick Reference Answer Grid", fontsize=9, color=(0.75, 0.85, 1.0), fontname="helv")
     
     # ── Page 2: Quick Reference 10x10 Grid ──
     page2 = pdf.new_page(width=W, height=H)
@@ -543,55 +543,6 @@ def generate_pdf_report(pdf_source_path, solved_answers, output_pdf_path, is_p2_
         
     page2.draw_rect(pymupdf.Rect(0, H-30, W, H), color=DARK_BLUE, fill=DARK_BLUE)
     page2.insert_text((20, H-12), "Generated via Auto PDF Solver Pipeline", fontsize=7.5, color=(0.8, 0.88, 1.0), fontname="helv")
-    
-    # ── Pages 3+: Detailed Table (20 questions per page) ──
-    ROWS_PER_PAGE = 20
-    for start in range(0, len(solved_answers), ROWS_PER_PAGE):
-        chunk = solved_answers[start:start + ROWS_PER_PAGE]
-        page_t = pdf.new_page(width=W, height=H)
-        page_t.draw_rect(pymupdf.Rect(0, 0, W, H), color=LIGHT_BG, fill=LIGHT_BG)
-        
-        page_t.draw_rect(pymupdf.Rect(0, 0, W, 50), color=DARK_BLUE, fill=DARK_BLUE)
-        page_t.insert_text((20, 22), f"DETAILED ANSWER EXPLANATION TABLE  |  Questions {chunk[0]['qIndex']}–{chunk[-1]['qIndex']}", fontsize=10, color=WHITE, fontname="helv")
-        page_t.insert_text((20, 40), f"{clean_title}  ({sub_title})", fontsize=8, color=(0.8, 0.88, 1.0), fontname="helv")
-        
-        table_top = 65
-        col_x = [20, 65, 125, 410, 480]
-        col_w = [45, 60, 285, 70, 95]
-        headers = ["Q.No", "QID", "Question Summary", "Ans", "Reason / Notes"]
-        
-        for hdr, cx, cw in zip(headers, col_x, col_w):
-            page_t.draw_rect(pymupdf.Rect(cx, table_top, cx+cw-2, table_top+20), color=DARK_BLUE, fill=DARK_BLUE)
-            page_t.insert_text((cx+4, table_top+14), hdr, fontsize=8, color=WHITE, fontname="helv")
-            
-        ROW_H = 34
-        for ri, ans in enumerate(chunk):
-            ry = table_top + 20 + ri * ROW_H
-            ltr = ans["letter"]
-            bg, tc = ANS_COLORS.get(ltr, (WHITE, DARK_TEXT))
-            row_bg = WHITE if ri % 2 == 0 else (0.95, 0.96, 0.99)
-            
-            page_t.draw_rect(pymupdf.Rect(col_x[0], ry, col_x[0]+col_w[0]-2, ry+ROW_H-1), color=(0.8,0.85,0.95), fill=row_bg)
-            page_t.insert_text((col_x[0]+6, ry+20), str(ans["qIndex"]), fontsize=9, color=DARK_TEXT, fontname="helv")
-            
-            page_t.draw_rect(pymupdf.Rect(col_x[1], ry, col_x[1]+col_w[1]-2, ry+ROW_H-1), color=(0.8,0.85,0.95), fill=row_bg)
-            page_t.insert_text((col_x[1]+4, ry+20), str(ans["ntaQuestionId"]), fontsize=8, color=(0.3,0.3,0.4), fontname="helv")
-            
-            clean_q = re.sub(r'[\r\n\t]+', ' ', ans["questionText"]).strip()
-            q_summary = (clean_q[:65] + "...") if len(clean_q) > 65 else clean_q
-            page_t.draw_rect(pymupdf.Rect(col_x[2], ry, col_x[2]+col_w[2]-2, ry+ROW_H-1), color=(0.8,0.85,0.95), fill=row_bg)
-            page_t.insert_text((col_x[2]+4, ry+20), q_summary, fontsize=7.5, color=DARK_TEXT, fontname="helv")
-            
-            page_t.draw_rect(pymupdf.Rect(col_x[3], ry, col_x[3]+col_w[3]-2, ry+ROW_H-1), color=(0.8,0.85,0.95), fill=bg)
-            page_t.insert_text((col_x[3]+10, ry+21), f"Opt {ans['correct']} ({ltr})", fontsize=8.5, color=tc, fontname="helv")
-            
-            clean_r = re.sub(r'[\r\n\t]+', ' ', ans["reason"]).strip()
-            r_text = (clean_r[:28] + "...") if len(clean_r) > 28 else clean_r
-            page_t.draw_rect(pymupdf.Rect(col_x[4], ry, col_x[4]+col_w[4]-2, ry+ROW_H-1), color=(0.8,0.85,0.95), fill=row_bg)
-            page_t.insert_text((col_x[4]+4, ry+20), r_text, fontsize=7, color=(0.2,0.4,0.3), fontname="helv")
-            
-        page_t.draw_rect(pymupdf.Rect(0, H-30, W, H), color=DARK_BLUE, fill=DARK_BLUE)
-        page_t.insert_text((20, H-12), f"Questions {chunk[0]['qIndex']}–{chunk[-1]['qIndex']} of {len(solved_answers)}", fontsize=7.5, color=(0.8, 0.88, 1.0), fontname="helv")
 
     pdf.save(output_pdf_path)
     page_count = len(pdf)
