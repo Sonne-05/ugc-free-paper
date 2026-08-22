@@ -22,25 +22,52 @@ const { executeFastImport } = require('./fast_text_importer');
 const fs = require('fs');
 const { getCache, setCache, delCache, delCachePattern } = require('./config/redis');
 
-// Fallback: read Gemini keys directly from .env file (dotenv/dotenvx may not parse AQ.Ab8RN6... keys correctly)
-function loadGeminiKeysFromEnvFile() {
+// Load all Gemini keys from .env file and environment variables (supports GEMINI_API_KEY, GEMINI_API_KEY_1..20, GEMINI_KEY_1..20, GEMINI_API_KEY2)
+function getAllGeminiKeys() {
+  const keys = new Set();
+  
+  // 1. Read directly from .env file
   try {
     const envPath = path.join(__dirname, '.env');
-    const content = fs.readFileSync(envPath, 'utf8');
-    const line = content.split('\n').find(l => l.startsWith('GEMINI_API_KEY='));
-    if (!line) return [];
-    const raw = line.substring('GEMINI_API_KEY='.length);
-    const keys = raw.split(',').map(k => k.trim()).filter(Boolean);
-    return keys;
-  } catch { return []; }
-}
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        if (
+          trimmed.startsWith('GEMINI_API_KEY=') || 
+          trimmed.startsWith('GEMINI_API_KEY2=') || 
+          /^GEMINI_(?:API_)?KEY_\d+=/i.test(trimmed)
+        ) {
+          const raw = trimmed.substring(trimmed.indexOf('=') + 1).replace(/^["']|["']$/g, '').trim();
+          raw.split(',').forEach(k => {
+            const cleanKey = k.replace(/^["']|["']$/g, '').trim();
+            if (cleanKey) keys.add(cleanKey);
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Error reading .env for Gemini keys:', e.message);
+  }
 
-function getAllGeminiKeys() {
-  const fileKeys = loadGeminiKeysFromEnvFile();
-  if (fileKeys.length > 0) return fileKeys;
-  const envKeys = (process.env.GEMINI_API_KEY || '').split(',').map(k => k.trim()).filter(Boolean);
-  const envKeys2 = (process.env.GEMINI_API_KEY2 || '').split(',').map(k => k.trim()).filter(Boolean);
-  return [...envKeys, ...envKeys2].filter(Boolean);
+  // 2. Read from process.env
+  (process.env.GEMINI_API_KEY || '').split(',').forEach(k => {
+    const cleanKey = k.replace(/^["']|["']$/g, '').trim();
+    if (cleanKey) keys.add(cleanKey);
+  });
+  (process.env.GEMINI_API_KEY2 || '').split(',').forEach(k => {
+    const cleanKey = k.replace(/^["']|["']$/g, '').trim();
+    if (cleanKey) keys.add(cleanKey);
+  });
+  for (let i = 1; i <= 20; i++) {
+    const k1 = process.env[`GEMINI_API_KEY_${i}`];
+    if (k1 && k1.trim()) keys.add(k1.trim().replace(/^["']|["']$/g, ''));
+    const k2 = process.env[`GEMINI_KEY_${i}`];
+    if (k2 && k2.trim()) keys.add(k2.trim().replace(/^["']|["']$/g, ''));
+  }
+
+  return Array.from(keys);
 }
 
 const app = express();
@@ -1527,9 +1554,12 @@ function getAllGroqKeys() {
 }
 
 // =========================================================================
-// STAGE 1: ULTRA-FAST AI SOLVER (Sub-Second Option Classifier)
+// STAGE 1: ULTRA-FAST AI SOLVER (Gemini 2.5 Pro & Gemini 2.5 Flash + Rotation)
 // =========================================================================
-async function solveQuestionFast(questionContext, groqKeys, geminiKeys, openRouterKeys) {
+async function solveWithGeminiModels(questionContext) {
+  const geminiKeys = getAllGeminiKeys();
+  const groqKeys = getAllGroqKeys();
+
   const {
     text,
     options,
@@ -1545,7 +1575,7 @@ async function solveQuestionFast(questionContext, groqKeys, geminiKeys, openRout
     year
   } = questionContext;
 
-  let problem = `UGC NET Question Analysis:\n`;
+  let problem = `UGC NET Examination Question:\n`;
   if (year) problem += `Year/Set: ${year}\n`;
   if (passage) problem += `Passage/Context:\n${passage}\n\n`;
   if (assertion) problem += `Assertion (A): ${assertion}\n`;
@@ -1589,11 +1619,76 @@ Output ONLY one line containing:
 [[CORRECT_OPTION: X]]
 (where X is 1, 2, 3, 4, or 0). Do not output any explanation, markdown, or commentary.`;
 
-  // 1. Try Groq LPU direct (Ultra fast, sub-second response)
+  // Priority Models: Gemini 2.5 Flash & Gemini 2.5 Pro with fallbacks
+  const geminiModels = [
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-flash-latest'
+  ];
+
+  if (geminiKeys.length > 0) {
+    const totalKeys = geminiKeys.length;
+    const now = Date.now();
+
+    for (let i = 0; i < totalKeys; i++) {
+      const keyIdx = (geminiExplainIndex + i) % totalKeys;
+      const key = geminiKeys[keyIdx];
+
+      if (now < (geminiKeyCooldowns.get(key) || 0)) continue;
+
+      for (const model of geminiModels) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: problem }] }],
+              systemInstruction: { parts: [{ text: solverSystemPrompt }] },
+              generationConfig: {
+                temperature: 0.0,
+                seed: 42,
+                topK: 1,
+                topP: 1.0,
+                maxOutputTokens: 30
+              }
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
+            if (match) {
+              const opt = parseInt(match[1], 10);
+              if (opt >= 0 && opt <= 4) {
+                geminiExplainIndex = (keyIdx + 1) % totalKeys;
+                return { correctOption: opt, modelUsed: model, provider: 'gemini' };
+              }
+            }
+          } else if (response.status === 429) {
+            geminiKeyCooldowns.set(key, Date.now() + 30000);
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  // Backup fallback: Groq LPU models if Gemini keys are in cooldown
   if (groqKeys.length > 0) {
     const fastGroqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
     const now = Date.now();
-    for (let attempt = 0; attempt < Math.min(groqKeys.length, 3); attempt++) {
+    for (let attempt = 0; attempt < Math.min(groqKeys.length, 5); attempt++) {
       const keyIdx = (groqExplainIndex + attempt) % groqKeys.length;
       const key = groqKeys[keyIdx];
       if (now < (groqKeyCooldowns.get(key) || 0)) continue;
@@ -1629,57 +1724,14 @@ Output ONLY one line containing:
             const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
             if (match) {
               const opt = parseInt(match[1], 10);
-              if (opt >= 0 && opt <= 4) return opt;
-            }
-          }
-        } catch (e) {
-          // ignore & try next model
-        }
-      }
-    }
-  }
-
-  // 2. Try Gemini Flash Lite (Fast fallback)
-  if (geminiKeys.length > 0) {
-    const candidateModels = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
-    for (let attempt = 0; attempt < Math.min(geminiKeys.length, 3); attempt++) {
-      const keyIdx = (geminiExplainIndex + attempt) % geminiKeys.length;
-      const key = geminiKeys[keyIdx];
-      if (Date.now() < (geminiKeyCooldowns.get(key) || 0)) continue;
-
-      for (const model of candidateModels) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': key
-            },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: problem }] }],
-              systemInstruction: { parts: [{ text: solverSystemPrompt }] },
-              generationConfig: {
-                temperature: 0.0,
-                seed: 42,
-                topK: 1,
-                topP: 1.0,
-                maxOutputTokens: 30
+              if (opt >= 0 && opt <= 4) {
+                groqExplainIndex = (keyIdx + 1) % groqKeys.length;
+                return { correctOption: opt, modelUsed: model, provider: 'groq' };
               }
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (response.ok) {
-            const data = await response.json();
-            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
-            if (match) {
-              const opt = parseInt(match[1], 10);
-              if (opt >= 0 && opt <= 4) return opt;
             }
+          } else if (response.status === 429) {
+            groqKeyCooldowns.set(key, Date.now() + 30000);
+            break;
           }
         } catch (e) {}
       }
@@ -1688,6 +1740,42 @@ Output ONLY one line containing:
 
   return null;
 }
+
+async function solveQuestionFast(questionContext) {
+  const result = await solveWithGeminiModels(questionContext);
+  return result ? result.correctOption : null;
+}
+
+// Fast AI Question Solver endpoint (Solves question & returns correct option immediately without generating explanation)
+app.post('/api/questions/solve', async (req, res) => {
+  const { questionContext } = req.body;
+  if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
+    return res.status(400).json({ success: false, message: 'Missing questionContext or question text' });
+  }
+
+  try {
+    const result = await solveWithGeminiModels(questionContext);
+    if (result && typeof result.correctOption === 'number') {
+      return res.json({
+        success: true,
+        correctOption: result.correctOption,
+        model: result.modelUsed,
+        provider: result.provider
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: 'Could not determine correct option for this question.'
+      });
+    }
+  } catch (err) {
+    console.error('Solve question API error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to solve question'
+    });
+  }
+});
 
 // Generate detailed explanation with High Accuracy & Instant Speed (2-Stage Solver + Explainer Cascade)
 app.post('/api/questions/explain', async (req, res) => {

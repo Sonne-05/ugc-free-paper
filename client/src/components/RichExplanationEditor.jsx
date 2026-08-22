@@ -26,6 +26,7 @@ const formats = [
 const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placeholder = 'Write detailed explanation...', questionContext }) => {
   const [showHtml, setShowHtml] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSolving, setIsSolving] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [autoSelectedBadge, setAutoSelectedBadge] = useState(null);
 
@@ -36,6 +37,41 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
     }, 1000);
     return () => clearInterval(timer);
   }, [cooldownSeconds]);
+
+  // Fast AI Solver: Solves question using Gemini 2.5 and auto-selects option without generating explanation
+  const handleAiSolve = async () => {
+    if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
+      alert('Please fill in the question text first before auto-solving.');
+      return;
+    }
+
+    setIsSolving(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/questions/solve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ questionContext })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to auto-solve question');
+      }
+
+      const optionNum = data.correctOption;
+      setAutoSelectedBadge(optionNum);
+      if (onCorrectChange && typeof onCorrectChange === 'function') {
+        onCorrectChange(optionNum);
+      }
+    } catch (error) {
+      console.error('AI Auto-Solve Error:', error);
+      alert(`Error auto-solving: ${error.message}`);
+    } finally {
+      setIsSolving(false);
+    }
+  };
 
   const processAccumulatedText = (text) => {
     if (!text) return '';
@@ -269,11 +305,11 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
                 </button>
               )}
 
-              {/* Button 2: Auto-Solve & Explain (Independently solves and updates dropdown) */}
+              {/* Button 2: Auto-Solve & Select Option (Solves question & updates dropdown without generating explanation) */}
               <button
                 type="button"
-                onClick={() => handleAiExplain(false)}
-                disabled={isGenerating || cooldownSeconds > 0}
+                onClick={handleAiSolve}
+                disabled={isSolving || isGenerating || cooldownSeconds > 0}
                 style={{
                   background: cooldownSeconds > 0 
                     ? '#cbd5e1' 
@@ -284,18 +320,18 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
                   padding: '4px 10px',
                   fontSize: '0.75rem',
                   fontWeight: '600',
-                  cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
+                  cursor: (cooldownSeconds > 0 || isSolving || isGenerating) ? 'not-allowed' : 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
                   transition: 'all 0.2s',
-                  opacity: isGenerating ? 0.7 : 1,
+                  opacity: (isSolving || isGenerating) ? 0.7 : 1,
                   boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 3px rgba(79, 70, 229, 0.2)'
                 }}
-                title="AI independently solves the question, auto-selects the correct option in dropdown, and generates explanation"
+                title="AI solves the question using Gemini 2.5 and automatically selects the correct option in dropdown"
               >
-                <span>{isGenerating ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '✨')}</span>
-                <span>{isGenerating ? 'Solving & Explaining...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Auto-Solve')}</span>
+                <span>{isSolving ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '⚡')}</span>
+                <span>{isSolving ? 'Solving...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Auto-Solve')}</span>
               </button>
             </>
           )}
