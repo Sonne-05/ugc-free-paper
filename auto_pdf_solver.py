@@ -22,6 +22,13 @@ import json
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Force unbuffered output so progress prints in real-time
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(line_buffering=True)
+
 import pymupdf
 import requests
 
