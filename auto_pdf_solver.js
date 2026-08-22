@@ -28,8 +28,6 @@ const spawnArgs = ['run', '--with', 'pymupdf,requests', 'python', scriptPath, pd
 
 const child = spawn('uv', spawnArgs, {
   stdio: 'inherit',
-  shell: process.platform === 'win32' ? 'cmd.exe' : false,
-  windowsVerbatimArguments: false,
   env: { ...process.env, PYTHONUNBUFFERED: '1' }
 });
 

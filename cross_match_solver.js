@@ -28,11 +28,11 @@ console.log(`   Target : ${targetPdf}`);
 console.log(`   Source : ${sourcePdf}`);
 if (extraArgs.length > 0) console.log(`   Options: ${extraArgs.join(' ')}`);
 
-const spawnArgs = ['run', '--with', 'pymupdf', 'python', `"${scriptPath}"`, `"${targetPdf}"`, `"${sourcePdf}"`, ...extraArgs.map(a => `"${a}"`)];
+const spawnArgs = ['run', '--with', 'pymupdf', 'python', scriptPath, targetPdf, sourcePdf, ...extraArgs];
 
 const child = spawn('uv', spawnArgs, {
   stdio: 'inherit',
-  shell: true
+  env: { ...process.env, PYTHONUNBUFFERED: '1' }
 });
 
 child.on('close', code => {

@@ -354,7 +354,7 @@ def solve_all_questions(questions, checkpoint_path=None):
                         if isinstance(item, dict) and "qIndex" in item:
                             checkpoint_map[item["qIndex"]] = item
             if checkpoint_map:
-                print(f"  -> 💾 RESUMING from checkpoint: {len(checkpoint_map)}/{len(questions)} questions already completed!")
+                print(f"  -> [CHECKPOINT] RESUMING: {len(checkpoint_map)}/{len(questions)} questions already completed!")
         except Exception as e:
             print(f"  -> [WARN] Could not read checkpoint: {e}")
 
