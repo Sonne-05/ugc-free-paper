@@ -20,6 +20,8 @@ import os
 import re
 import json
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import pymupdf
 import requests
 
@@ -57,22 +59,25 @@ print(f"[INIT] Loaded {len(gemini_keys)} Gemini API Keys & {len(groq_keys)} Groq
 
 gemini_idx = 0
 groq_idx = 0
+key_lock = threading.Lock()
 
 def get_next_gemini_key():
     global gemini_idx
-    if not gemini_keys:
-        return None
-    key = gemini_keys[gemini_idx % len(gemini_keys)]
-    gemini_idx += 1
-    return key
+    with key_lock:
+        if not gemini_keys:
+            return None
+        key = gemini_keys[gemini_idx % len(gemini_keys)]
+        gemini_idx += 1
+        return key
 
 def get_next_groq_key():
     global groq_idx
-    if not groq_keys:
-        return None
-    key = groq_keys[groq_idx % len(groq_keys)]
-    groq_idx += 1
-    return key
+    with key_lock:
+        if not groq_keys:
+            return None
+        key = groq_keys[groq_idx % len(groq_keys)]
+        groq_idx += 1
+        return key
 
 # ── 2. Smart Paper 2 Isolation & PDF Parsing ─────────────────────────────────
 def isolate_paper2_questions(all_extracted):
@@ -327,10 +332,12 @@ def call_gemini_batch(batch):
     return None
 
 def solve_all_questions(questions, checkpoint_path=None):
-    print(f"\n[2/4] Solving {len(questions)} questions using Primary Model (Gemini 2.5 Pro/Flash) + Fallback (Groq)...")
+    print(f"\n[2/4] Solving {len(questions)} questions using Multi-Threaded Parallel Engine (Gemini 2.5 + Groq)...")
     
     # ── Load existing checkpoint if available ──
     checkpoint_map = {}
+    checkpoint_lock = threading.Lock()
+    
     if checkpoint_path and os.path.exists(checkpoint_path):
         try:
             with open(checkpoint_path, "r", encoding="utf-8") as f:
@@ -350,16 +357,17 @@ def solve_all_questions(questions, checkpoint_path=None):
         print(f"  -> All {len(questions)} questions already resolved from checkpoint!")
     else:
         BATCH_SIZE = 5
-        total_batches = (len(remaining_questions) + BATCH_SIZE - 1) // BATCH_SIZE
+        batches = [remaining_questions[i:i + BATCH_SIZE] for i in range(0, len(remaining_questions), BATCH_SIZE)]
+        total_batches = len(batches)
         LETTERS = {1: 'A', 2: 'B', 3: 'C', 4: 'D'}
+        completed_batches = 0
+        progress_lock = threading.Lock()
 
-        for b_idx in range(total_batches):
-            batch = remaining_questions[b_idx * BATCH_SIZE : (b_idx + 1) * BATCH_SIZE]
+        def worker(batch, b_idx):
+            nonlocal completed_batches
             q_indices = [q["qIndex"] for q in batch]
             
-            print(f"  -> Batch {b_idx+1}/{total_batches} (Q{q_indices[0]}..Q{q_indices[-1]})...", end="", flush=True)
-            
-            # 1. Primary Model: Gemini (Gemini 2.5 Pro / Flash)
+            # 1. Primary Model: Gemini
             ans_gemini = call_gemini_batch(batch)
             
             # 2. Fallback to Groq if Gemini missed any question or failed
@@ -377,6 +385,7 @@ def solve_all_questions(questions, checkpoint_path=None):
             if needs_fallback:
                 ans_groq = call_groq_batch(batch)
             
+            batch_results = {}
             for q in batch:
                 qi = q["qIndex"]
                 r_gem = next((x for x in (ans_gemini or []) if x.get("qIndex") == qi), None)
@@ -408,7 +417,7 @@ def solve_all_questions(questions, checkpoint_path=None):
                     
                 letter = LETTERS.get(final_correct, 'A')
                 
-                checkpoint_map[qi] = {
+                batch_results[qi] = {
                     "qIndex": qi,
                     "ntaQuestionId": q.get("ntaQuestionId", str(qi)),
                     "questionText": q.get("text", "")[:120],
@@ -417,17 +426,27 @@ def solve_all_questions(questions, checkpoint_path=None):
                     "confidence": confidence,
                     "reason": reason
                 }
-                
-            # ── Immediately save checkpoint to disk after each batch ──
-            if checkpoint_path:
-                try:
-                    with open(checkpoint_path, "w", encoding="utf-8") as cf:
-                        json.dump(list(checkpoint_map.values()), cf, indent=2, ensure_ascii=False)
-                except Exception:
-                    pass
-                
-            print(" [SAVED TO CHECKPOINT]")
-            time.sleep(0.2)
+
+            with checkpoint_lock:
+                checkpoint_map.update(batch_results)
+                if checkpoint_path:
+                    try:
+                        with open(checkpoint_path, "w", encoding="utf-8") as cf:
+                            json.dump(list(checkpoint_map.values()), cf, indent=2, ensure_ascii=False)
+                    except Exception:
+                        pass
+            
+            with progress_lock:
+                completed_batches += 1
+                print(f"  -> [Progress {completed_batches}/{total_batches}] Solved Q{q_indices[0]}..Q{q_indices[-1]} | Total: {len(checkpoint_map)}/{len(questions)}")
+
+        max_workers = min(6, total_batches) if total_batches > 0 else 1
+        print(f"  -> Launching {max_workers} Parallel Worker Threads across API Key Pool...")
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(worker, b, idx) for idx, b in enumerate(batches)]
+            for f in as_completed(futures):
+                f.result()
         
     # Sort solved answers in original question order
     solved_answers = [checkpoint_map[q["qIndex"]] for q in questions if q["qIndex"] in checkpoint_map]
