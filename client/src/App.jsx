@@ -173,8 +173,11 @@ function App() {
         }
       }
 
-      // Send pageview on route change
-      if (window.gtag) {
+      // Send pageview on route change (excluding admin routes and logged-in admins to only track real visitors)
+      const isAdminRoute = location.pathname.startsWith('/admin');
+      const isAdminUser = localStorage.getItem('userRole') === 'admin';
+
+      if (window.gtag && !isAdminRoute && !isAdminUser) {
         window.gtag('event', 'page_view', {
           page_path: location.pathname + location.search,
           page_title: document.title,
