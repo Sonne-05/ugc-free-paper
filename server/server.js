@@ -1526,7 +1526,170 @@ function getAllGroqKeys() {
   return Array.from(keys);
 }
 
-// Generate detailed explanation with High Accuracy & Instant Speed (Groq 120B/27B LPU Primary, Gemini Fallback)
+// =========================================================================
+// STAGE 1: ULTRA-FAST AI SOLVER (Sub-Second Option Classifier)
+// =========================================================================
+async function solveQuestionFast(questionContext, groqKeys, geminiKeys, openRouterKeys) {
+  const {
+    text,
+    options,
+    statements,
+    list1,
+    list2,
+    list1Header,
+    list2Header,
+    passage,
+    assertion,
+    reason,
+    subPrompt,
+    year
+  } = questionContext;
+
+  let problem = `UGC NET Question Analysis:\n`;
+  if (year) problem += `Year/Set: ${year}\n`;
+  if (passage) problem += `Passage/Context:\n${passage}\n\n`;
+  if (assertion) problem += `Assertion (A): ${assertion}\n`;
+  if (reason) problem += `Reason (R): ${reason}\n`;
+
+  if (statements && Array.isArray(statements) && statements.some(s => s && s.trim())) {
+    statements.forEach((stmt, idx) => {
+      if (stmt && stmt.trim()) problem += `Statement ${idx + 1}: ${stmt}\n`;
+    });
+  }
+
+  if (list1 && Array.isArray(list1) && list1.some(l => l && l.trim())) {
+    problem += `${list1Header || 'List I'}:\n`;
+    list1.forEach((item, idx) => {
+      if (item && item.trim()) problem += `${String.fromCharCode(65 + idx)}. ${item}\n`;
+    });
+  }
+
+  if (list2 && Array.isArray(list2) && list2.some(l => l && l.trim())) {
+    problem += `${list2Header || 'List II'}:\n`;
+    list2.forEach((item, idx) => {
+      if (item && item.trim()) problem += `${idx + 1}. ${item}\n`;
+    });
+  }
+
+  problem += `Question:\n${text}\n\n`;
+  if (subPrompt) problem += `Instruction: ${subPrompt}\n\n`;
+
+  if (options && Array.isArray(options) && options.some(o => o && o.trim())) {
+    problem += `Options:\n`;
+    options.forEach((opt, idx) => {
+      if (opt && opt.trim()) problem += `${idx + 1}. ${opt}\n`;
+    });
+  }
+
+  const solverSystemPrompt = `You are a world-class academic solver for UGC NET examination.
+TASK: Carefully analyze and solve the question against standard UGC NET official syllabus and answer keys. Identify which Option (1, 2, 3, or 4) is the single definitively correct answer. If the question has factual discrepancies or is invalid/dropped by NTA, output Option 0 (Dropped).
+CRITICAL: Be 100% consistent, deterministic, and factually accurate.
+STRICT OUTPUT FORMAT:
+Output ONLY one line containing:
+[[CORRECT_OPTION: X]]
+(where X is 1, 2, 3, 4, or 0). Do not output any explanation, markdown, or commentary.`;
+
+  // 1. Try Groq LPU direct (Ultra fast, sub-second response)
+  if (groqKeys.length > 0) {
+    const fastGroqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+    const now = Date.now();
+    for (let attempt = 0; attempt < Math.min(groqKeys.length, 3); attempt++) {
+      const keyIdx = (groqExplainIndex + attempt) % groqKeys.length;
+      const key = groqKeys[keyIdx];
+      if (now < (groqKeyCooldowns.get(key) || 0)) continue;
+
+      for (const model of fastGroqModels) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: solverSystemPrompt },
+                { role: 'user', content: problem }
+              ],
+              temperature: 0.0,
+              seed: 42,
+              top_p: 1.0,
+              max_tokens: 30
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            const reply = data.choices?.[0]?.message?.content || '';
+            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
+            if (match) {
+              const opt = parseInt(match[1], 10);
+              if (opt >= 0 && opt <= 4) return opt;
+            }
+          }
+        } catch (e) {
+          // ignore & try next model
+        }
+      }
+    }
+  }
+
+  // 2. Try Gemini Flash Lite (Fast fallback)
+  if (geminiKeys.length > 0) {
+    const candidateModels = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+    for (let attempt = 0; attempt < Math.min(geminiKeys.length, 3); attempt++) {
+      const keyIdx = (geminiExplainIndex + attempt) % geminiKeys.length;
+      const key = geminiKeys[keyIdx];
+      if (Date.now() < (geminiKeyCooldowns.get(key) || 0)) continue;
+
+      for (const model of candidateModels) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: problem }] }],
+              systemInstruction: { parts: [{ text: solverSystemPrompt }] },
+              generationConfig: {
+                temperature: 0.0,
+                seed: 42,
+                topK: 1,
+                topP: 1.0,
+                maxOutputTokens: 30
+              }
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const data = await response.json();
+            const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const match = reply.match(/\[\[CORRECT(?:_OPTION|_ANSWER)?:\s*([0-4])\s*\]\]/i) || reply.match(/(?:Option|Ans(?:wer)?[:\s]*)\s*([0-4])/i) || reply.match(/\b([0-4])\b/);
+            if (match) {
+              const opt = parseInt(match[1], 10);
+              if (opt >= 0 && opt <= 4) return opt;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  return null;
+}
+
+// Generate detailed explanation with High Accuracy & Instant Speed (2-Stage Solver + Explainer Cascade)
 app.post('/api/questions/explain', async (req, res) => {
   const { questionContext } = req.body;
   if (!questionContext) {
@@ -1561,7 +1724,31 @@ app.post('/api/questions/explain', async (req, res) => {
       year
     } = questionContext;
 
-    // Build the user prompt
+    // Start SSE stream immediately
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // =========================================================================
+    // STAGE 1: RAPID INDEPENDENT SOLVER (<500ms)
+    // =========================================================================
+    let solvedOption = await solveQuestionFast(questionContext, groqKeys, geminiKeys, openRouterKeys);
+
+    // If solvedOption was found, immediately write it so frontend updates dropdown in real time
+    if (solvedOption !== null && solvedOption >= 0 && solvedOption <= 4) {
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `[[CORRECT_OPTION: ${solvedOption}]]\n\n` } }] })}\n\n`);
+    } else {
+      // Fall back to pre-selected if fast solver couldn't classify
+      const hasPreselectedOption = typeof correct !== 'undefined' && correct !== null && correct !== '' && Number(correct) >= 1 && Number(correct) <= 4;
+      solvedOption = hasPreselectedOption ? Number(correct) : (correct === 0 || correct === '0' ? 0 : null);
+      if (solvedOption !== null) {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `[[CORRECT_OPTION: ${solvedOption}]]\n\n` } }] })}\n\n`);
+      }
+    }
+
+    // =========================================================================
+    // STAGE 2: ACADEMIC EXPLAINER PROMPT
+    // =========================================================================
     let userPrompt = `Generate a detailed explanation for this UGC NET question.\n\n`;
     if (year) {
       userPrompt += `Year/Exam Set: ${year} PYQ\n`;
@@ -1625,34 +1812,27 @@ app.post('/api/questions/explain', async (req, res) => {
       userPrompt += `\n`;
     }
 
-    // Check if the user/system has already selected a specific correct option (Option 1, 2, 3, 4 or 0 for Dropped)
-    const hasPreselectedOption = typeof correct !== 'undefined' && correct !== null && correct !== '' && Number(correct) >= 1 && Number(correct) <= 4;
-    const selectedOptionNum = hasPreselectedOption ? Number(correct) : (correct === 0 || correct === '0' ? 0 : null);
-
-    if (selectedOptionNum !== null && selectedOptionNum >= 1 && selectedOptionNum <= 4) {
-      userPrompt += `SPECIFIED CORRECT ANSWER: Option ${selectedOptionNum}\n`;
-      userPrompt += `TASK INSTRUCTION: The officially verified correct answer is Option ${selectedOptionNum}. You MUST generate a comprehensive academic explanation proving why Option ${selectedOptionNum} is correct, and explain why each of the other options is incorrect.\n\n`;
-    } else if (selectedOptionNum === 0) {
+    if (solvedOption !== null && solvedOption >= 1 && solvedOption <= 4) {
+      userPrompt += `SPECIFIED CORRECT ANSWER: Option ${solvedOption}\n`;
+      userPrompt += `TASK INSTRUCTION: The verified correct answer is Option ${solvedOption}. You MUST generate a comprehensive academic explanation proving why Option ${solvedOption} is correct, and explain why each of the other options is incorrect.\n\n`;
+    } else if (solvedOption === 0) {
       userPrompt += `SPECIFIED STATUS: Dropped Question / Discrepancy\n`;
       userPrompt += `TASK INSTRUCTION: This question is dropped/invalid. Explain the discrepancies and review the options.\n\n`;
     }
 
     let systemPrompt = '';
-    if (selectedOptionNum !== null && selectedOptionNum >= 1 && selectedOptionNum <= 4) {
+    if (solvedOption !== null && solvedOption >= 1 && solvedOption <= 4) {
       systemPrompt = `You are a world-class academic educator and solver specializing in UGC NET exam preparation.
 
-TASK & SOLVING FORMAT:
-The verified correct option is OPTION ${selectedOptionNum}. You MUST explain why Option ${selectedOptionNum} is the correct answer.
+TASK & EXPLANATION FORMAT:
+The verified correct option is OPTION ${solvedOption}. You MUST explain why Option ${solvedOption} is the correct answer.
 
-Step 1: Output the confirmed correct option number on its own line:
-[[CORRECT_OPTION: ${selectedOptionNum}]]
-
-Step 2: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering to the following structure:
+Output clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li>) adhering strictly to the following structure:
 
 <p><strong>Key Concept & Context:</strong> A thorough 3–5 sentence overview explaining the central concept, theory, book/author, or definition relevant to the question. Include historical background, who introduced it, when, and why it matters for the exam.</p>
 
-<h4>Why Option ${selectedOptionNum} is Correct:</h4>
-<p>A detailed, factually accurate explanation (at least 4–6 sentences) justifying why Option ${selectedOptionNum} is the correct answer. Include direct proofs, historical dates, original publications, specific facts, examples, or conceptual arguments that make this option definitively correct.</p>
+<h4>Why Option ${solvedOption} is Correct:</h4>
+<p>A detailed, factually accurate explanation (at least 4–6 sentences) justifying why Option ${solvedOption} is the correct answer. Include direct proofs, historical dates, original publications, specific facts, examples, or conceptual arguments that make this option definitively correct.</p>
 
 <h4>Why Other Options are Incorrect:</h4>
 <ul>
@@ -1665,7 +1845,7 @@ Step 2: Directly follow with clean semantic HTML (<p>, <strong>, <h4>, <ul>, <li
 <p>A concise 2–3 sentence summary of the most important facts, tricks, or mnemonics a student should remember about this topic to answer similar questions in the UGC NET exam.</p>
 
 CRITICAL RULES:
-- You MUST follow Option ${selectedOptionNum} as the correct answer.
+- You MUST follow Option ${solvedOption} as the correct answer.
 - Output only clean semantic HTML. Do NOT wrap output in markdown code blocks like \`\`\`html.
 - Do NOT include filler/greetings (e.g. "Here is the explanation", "In this question...").
 - You MUST explicitly explain every other incorrect option individually in the bullet list.
@@ -1767,6 +1947,9 @@ CRITICAL RULES:
                 systemInstruction: { parts: [{ text: systemPrompt }] },
                 generationConfig: { 
                   temperature: 0.0,
+                  seed: 42,
+                  topK: 1,
+                  topP: 1.0,
                   maxOutputTokens: 4096
                 }
               }),
@@ -1775,9 +1958,11 @@ CRITICAL RULES:
             clearTimeout(timeoutId);
 
             if (geminiResponse.ok) {
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
+              if (!res.headersSent) {
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+              }
 
               const reader = geminiResponse.body;
               if (reader) {
@@ -1873,6 +2058,7 @@ CRITICAL RULES:
                 ],
                 temperature: 0.0,
                 seed: 42,
+                top_p: 1.0,
                 max_tokens: 4096
               }),
               signal: controller.signal
@@ -1880,9 +2066,11 @@ CRITICAL RULES:
             clearTimeout(timeoutId);
 
             if (groqResponse.ok) {
-              res.setHeader('Content-Type', 'text/event-stream');
-              res.setHeader('Cache-Control', 'no-cache');
-              res.setHeader('Connection', 'keep-alive');
+              if (!res.headersSent) {
+                res.setHeader('Content-Type', 'text/event-stream');
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('Connection', 'keep-alive');
+              }
 
               const reader = groqResponse.body;
               if (reader) {
@@ -1968,6 +2156,7 @@ CRITICAL RULES:
             ],
             temperature: 0.0,
             seed: 42,
+            top_p: 1.0,
             max_tokens: 4096
           }),
           signal: controller.signal
@@ -1975,9 +2164,11 @@ CRITICAL RULES:
         clearTimeout(timeoutId);
 
         if (openRouterResponse && openRouterResponse.ok) {
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
+          if (!res.headersSent) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+          }
 
           const reader = openRouterResponse.body;
           if (reader) {
