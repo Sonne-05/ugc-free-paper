@@ -326,82 +326,111 @@ def call_gemini_batch(batch):
                 continue
     return None
 
-def solve_all_questions(questions):
+def solve_all_questions(questions, checkpoint_path=None):
     print(f"\n[2/4] Solving {len(questions)} questions using Primary Model (Gemini 2.5 Pro/Flash) + Fallback (Groq)...")
-    solved_answers = []
     
-    BATCH_SIZE = 5
-    total_batches = (len(questions) + BATCH_SIZE - 1) // BATCH_SIZE
-    LETTERS = {1: 'A', 2: 'B', 3: 'C', 4: 'D'}
+    # ── Load existing checkpoint if available ──
+    checkpoint_map = {}
+    if checkpoint_path and os.path.exists(checkpoint_path):
+        try:
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
+                saved_list = json.load(f)
+                if isinstance(saved_list, list):
+                    for item in saved_list:
+                        if isinstance(item, dict) and "qIndex" in item:
+                            checkpoint_map[item["qIndex"]] = item
+            if checkpoint_map:
+                print(f"  -> 💾 RESUMING from checkpoint: {len(checkpoint_map)}/{len(questions)} questions already completed!")
+        except Exception as e:
+            print(f"  -> [WARN] Could not read checkpoint: {e}")
 
-    for b_idx in range(total_batches):
-        batch = questions[b_idx * BATCH_SIZE : (b_idx + 1) * BATCH_SIZE]
-        q_indices = [q["qIndex"] for q in batch]
-        
-        print(f"  -> Batch {b_idx+1}/{total_batches} (Q{q_indices[0]}..Q{q_indices[-1]})...", end="", flush=True)
-        
-        # 1. Primary Model: Gemini (Gemini 2.5 Pro / Flash)
-        ans_gemini = call_gemini_batch(batch)
-        
-        # 2. Fallback to Groq if Gemini missed any question or failed
-        ans_groq = None
-        needs_fallback = False
-        if not ans_gemini or len(ans_gemini) < len(batch):
-            needs_fallback = True
-        else:
-            for q in batch:
-                match = next((x for x in ans_gemini if x.get("qIndex") == q["qIndex"]), None)
-                if not match or not match.get("correct"):
-                    needs_fallback = True
-                    break
-                    
-        if needs_fallback:
-            ans_groq = call_groq_batch(batch)
-        
-        for q in batch:
-            qi = q["qIndex"]
-            r_gem = next((x for x in (ans_gemini or []) if x.get("qIndex") == qi), None)
-            r_grq = next((x for x in (ans_groq or []) if x.get("qIndex") == qi), None)
+    remaining_questions = [q for q in questions if q["qIndex"] not in checkpoint_map]
+    
+    if not remaining_questions:
+        print(f"  -> All {len(questions)} questions already resolved from checkpoint!")
+    else:
+        BATCH_SIZE = 5
+        total_batches = (len(remaining_questions) + BATCH_SIZE - 1) // BATCH_SIZE
+        LETTERS = {1: 'A', 2: 'B', 3: 'C', 4: 'D'}
+
+        for b_idx in range(total_batches):
+            batch = remaining_questions[b_idx * BATCH_SIZE : (b_idx + 1) * BATCH_SIZE]
+            q_indices = [q["qIndex"] for q in batch]
             
-            c_gem = r_gem.get("correct") if r_gem else None
-            c_grq = r_grq.get("correct") if r_grq else None
+            print(f"  -> Batch {b_idx+1}/{total_batches} (Q{q_indices[0]}..Q{q_indices[-1]})...", end="", flush=True)
             
-            try: c_gem = int(c_gem) if c_gem is not None else None
-            except: c_gem = None
-            try: c_grq = int(c_grq) if c_grq is not None else None
-            except: c_grq = None
+            # 1. Primary Model: Gemini (Gemini 2.5 Pro / Flash)
+            ans_gemini = call_gemini_batch(batch)
             
-            reason = (r_gem.get("reason") if r_gem else "") or (r_grq.get("reason") if r_grq else "") or "Verified academic concept."
-            
-            # Primary evaluation: Gemini takes precedence
-            if c_gem and c_grq and c_gem == c_grq:
-                final_correct = c_gem
-                confidence = "High (Gemini + Groq Agreement)"
-            elif c_gem:
-                final_correct = c_gem
-                confidence = "High (Gemini 2.5 Pro/Flash)"
-            elif c_grq:
-                final_correct = c_grq
-                confidence = "High (Groq Fallback)"
+            # 2. Fallback to Groq if Gemini missed any question or failed
+            ans_groq = None
+            needs_fallback = False
+            if not ans_gemini or len(ans_gemini) < len(batch):
+                needs_fallback = True
             else:
-                final_correct = 1
-                confidence = "Default"
+                for q in batch:
+                    match = next((x for x in ans_gemini if x.get("qIndex") == q["qIndex"]), None)
+                    if not match or not match.get("correct"):
+                        needs_fallback = True
+                        break
+                        
+            if needs_fallback:
+                ans_groq = call_groq_batch(batch)
+            
+            for q in batch:
+                qi = q["qIndex"]
+                r_gem = next((x for x in (ans_gemini or []) if x.get("qIndex") == qi), None)
+                r_grq = next((x for x in (ans_groq or []) if x.get("qIndex") == qi), None)
                 
-            letter = LETTERS.get(final_correct, 'A')
-            
-            solved_answers.append({
-                "qIndex": qi,
-                "ntaQuestionId": q.get("ntaQuestionId", str(qi)),
-                "questionText": q.get("text", "")[:120],
-                "correct": final_correct,
-                "letter": letter,
-                "confidence": confidence,
-                "reason": reason
-            })
-            
-        print(" [DONE]")
-        time.sleep(0.2)
+                c_gem = r_gem.get("correct") if r_gem else None
+                c_grq = r_grq.get("correct") if r_grq else None
+                
+                try: c_gem = int(c_gem) if c_gem is not None else None
+                except: c_gem = None
+                try: c_grq = int(c_grq) if c_grq is not None else None
+                except: c_grq = None
+                
+                reason = (r_gem.get("reason") if r_gem else "") or (r_grq.get("reason") if r_grq else "") or "Verified academic concept."
+                
+                # Primary evaluation: Gemini takes precedence
+                if c_gem and c_grq and c_gem == c_grq:
+                    final_correct = c_gem
+                    confidence = "High (Gemini + Groq Agreement)"
+                elif c_gem:
+                    final_correct = c_gem
+                    confidence = "High (Gemini 2.5 Pro/Flash)"
+                elif c_grq:
+                    final_correct = c_grq
+                    confidence = "High (Groq Fallback)"
+                else:
+                    final_correct = 1
+                    confidence = "Default"
+                    
+                letter = LETTERS.get(final_correct, 'A')
+                
+                checkpoint_map[qi] = {
+                    "qIndex": qi,
+                    "ntaQuestionId": q.get("ntaQuestionId", str(qi)),
+                    "questionText": q.get("text", "")[:120],
+                    "correct": final_correct,
+                    "letter": letter,
+                    "confidence": confidence,
+                    "reason": reason
+                }
+                
+            # ── Immediately save checkpoint to disk after each batch ──
+            if checkpoint_path:
+                try:
+                    with open(checkpoint_path, "w", encoding="utf-8") as cf:
+                        json.dump(list(checkpoint_map.values()), cf, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+                
+            print(" [SAVED TO CHECKPOINT]")
+            time.sleep(0.2)
         
+    # Sort solved answers in original question order
+    solved_answers = [checkpoint_map[q["qIndex"]] for q in questions if q["qIndex"] in checkpoint_map]
     print(f"  -> All {len(solved_answers)} questions solved successfully!")
     return solved_answers
 
@@ -565,6 +594,7 @@ def main():
     out_json = os.path.join(base_dir, f"{base_name}{suffix}.json")
     
     start_time = time.time()
+    checkpoint_file = os.path.join(base_dir, f".{base_name}.checkpoint.json")
     
     # 1. Parse
     questions = parse_pdf_questions(pdf_path, paper2_only=paper2_only)
@@ -572,8 +602,8 @@ def main():
         print("Error: Could not extract any questions from the PDF.")
         sys.exit(1)
         
-    # 2. Solve
-    solved = solve_all_questions(questions)
+    # 2. Solve (with automatic checkpoint saving and resume)
+    solved = solve_all_questions(questions, checkpoint_path=checkpoint_file)
     
     # 3. Export JSON
     with open(out_json, "w", encoding="utf-8") as f:
@@ -583,6 +613,13 @@ def main():
     # 4. Generate PDF
     generate_pdf_report(pdf_path, solved, out_pdf, is_p2_only=paper2_only)
     
+    # 5. Clean up temporary checkpoint file upon 100% completion
+    if os.path.exists(checkpoint_file):
+        try:
+            os.remove(checkpoint_file)
+        except Exception:
+            pass
+            
     elapsed = time.time() - start_time
     print(f"\n" + "="*60)
     print(f"[SUCCESS] Completed in {elapsed:.1f} seconds!")
