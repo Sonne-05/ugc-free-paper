@@ -488,12 +488,36 @@ function setupKeyPool() {
       if (keyIndex >= 0 && keyIndex < this.groqCooldowns.length) {
         this.groqCooldowns[keyIndex] = Date.now() + (seconds * 1000) + 1000;
       }
+    },
+
+    getNextOpenRouterKey() {
+      if (!this.openRouterKeys || this.openRouterKeys.length === 0) return null;
+      const now = Date.now();
+      for (let attempt = 0; attempt < this.openRouterKeys.length; attempt++) {
+        const idx = (this.openRouterIndex + attempt) % this.openRouterKeys.length;
+        if (this.openRouterCooldowns[idx] <= now) {
+          this.openRouterIndex = (idx + 1) % this.openRouterKeys.length;
+          return { key: this.openRouterKeys[idx], keyIndex: idx };
+        }
+      }
+      return null;
+    },
+
+    coolDownOpenRouterKey(keyIndex, seconds) {
+      if (keyIndex >= 0 && keyIndex < this.openRouterCooldowns.length) {
+        this.openRouterCooldowns[keyIndex] = Date.now() + (seconds * 1000) + 1000;
+      }
     }
   };
 }
 
 function cleanJsonString(str) {
+  if (!str) return '{}';
   let cleaned = str.trim();
+  // Strip <think>...</think> reasoning blocks from Qwen / DeepSeek / reasoning models
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // Strip markdown code fences ```json ... ```
+  cleaned = cleaned.replace(/```(?:json)?([\s\S]*?)```/gi, '$1').trim();
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   }
@@ -507,6 +531,16 @@ function cleanRawPdfBlock(str) {
   return str
     .replace(/file:\/\/\/[^\n]+/gi, '')
     .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+    .replace(/Question\s*Number\s*:\s*\d+/gi, '')
+    .replace(/Question\s*Id\s*:\s*\d+/gi, '')
+    .replace(/Question\s*Type\s*:\s*\w+/gi, '')
+    .replace(/Option\s*Shuffling\s*:\s*\w+/gi, '')
+    .replace(/Display\s*Question\s*Number\s*:\s*\w+/gi, '')
+    .replace(/(?:Is\s*)?Question\s*Mandatory\s*:\s*\w+/gi, '')
+    .replace(/Single\s*Line\s*Question\s*Option\s*:\s*\w+/gi, '')
+    .replace(/Option\s*Orientation\s*:\s*\w+/gi, '')
+    .replace(/Correct\s*Marks\s*:\s*\d+/gi, '')
+    .replace(/Wrong\s*Marks\s*:\s*\d+/gi, '')
     .replace(/\b\d{1,3}\/\d{1,3}\b/g, '')
     .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4},?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?/gi, '')
     .replace(/\b\d{1,3}_[A-Za-z0-9_\-]+\.html\b/gi, '')
@@ -519,16 +553,16 @@ function cleanRawPdfBlock(str) {
 
 // Call AI using Groq (Primary) across all Groq keys, with fallback to Gemini (Secondary) and back to Groq
 async function callAiStructuring(prompt, keyPool, retryCount = 0) {
-  // 1. Try all active Groq keys with Llama 3.3 70B and Llama 3.1 8B
+  // 1. Try all active Groq keys with supported models (GPT OSS 120B, GPT OSS 20B, Qwen 3.6 27B)
   for (let gAttempt = 0; gAttempt < (keyPool.groqKeys.length || 1); gAttempt++) {
     const groqInfo = keyPool.getNextGroqKey();
     if (!groqInfo) break;
 
     const { key: groqKey, keyIndex: groqKeyIndex } = groqInfo;
     const groqModels = [
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'gemma2-9b-it'
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3.6-27b'
     ];
 
     for (const groqModel of groqModels) {
@@ -547,11 +581,10 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
                 role: 'system',
                 content: 'You are a high-precision zero-hallucination UGC NET exam parser. Your core mandate is 100% STRICT VERBATIM FIDELITY: extract the exact original text of questions, statements, lists, and options without paraphrasing, rewriting, summarizing, omitting words, or adding invented text, underscores, or filler. Always output valid JSON under the root key "questions".'
               },
-              { role: 'user', content: prompt + '\nRespond ONLY with JSON.' }
+              { role: 'user', content: prompt + '\nRespond ONLY with JSON object {"questions": [...]}. Do not output thoughts or reasoning.' }
             ],
             temperature: 0.05,
-            response_format: { type: 'json_object' },
-            max_tokens: 4096
+            max_tokens: 3000
           })
         });
 
@@ -562,6 +595,20 @@ async function callAiStructuring(prompt, keyPool, retryCount = 0) {
           return parsed.questions || (Array.isArray(parsed) ? parsed : []);
         } else {
           const groqErrText = await groqRes.text();
+          let groqErrJson = null;
+          try { groqErrJson = JSON.parse(groqErrText); } catch (e) {}
+
+          // Auto-recover if Groq 400 validation error has failed_generation
+          if (groqRes.status === 400 && groqErrJson?.error?.failed_generation) {
+            try {
+              const recovered = cleanJsonString(groqErrJson.error.failed_generation);
+              const parsed = JSON.parse(recovered);
+              if (parsed.questions || Array.isArray(parsed)) {
+                return parsed.questions || (Array.isArray(parsed) ? parsed : []);
+              }
+            } catch (recErr) {}
+          }
+
           if (groqRes.status === 413) {
             console.warn(`[Groq 413] Prompt too large for Groq model. Routing to Gemini fallback with large context...`);
             break;
@@ -777,15 +824,15 @@ function harvestMultipleStatementData(rawText, targetLang = 'English') {
   for (let line of optLines) {
     if (targetLang === 'English' && /^[0-9\.\(\)\s\-]*[\u0900-\u097F]/.test(line) && !/\b(?:only|and|[A-Ea-e])\b/i.test(line)) continue;
 
-    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\)|\(?([A-Da-d])\)?[\.\:\-\s]|\(([A-Da-d])\))\s*(.+)$/);
+    const optMatch = line.match(/^(?:\(?([1-4])\)?[\.\:\-\s]|\(([1-4])\)|\(t([1-4l])\)|\(?([A-Da-d])\)?[\.\:\-\s](?![A-Ea-e]\s*,|[A-Ea-e]\s+and))\s*(.+)$/i);
     if (optMatch) {
       let optNum;
-      const numChar = optMatch[1] || optMatch[2];
-      const letterChar = optMatch[3] || optMatch[4];
+      const numChar = optMatch[1] || optMatch[2] || (optMatch[3] === 'l' ? '1' : optMatch[3]);
+      const letterChar = optMatch[4];
       if (numChar) {
         optNum = parseInt(numChar, 10);
       } else if (letterChar) {
-        optNum = letterToNum[letterChar];
+        optNum = letterToNum[letterChar.toUpperCase()];
       }
 
       let optText = optMatch[5].replace(/\[Option ID[\s\S]*$/, '').trim();
@@ -918,6 +965,10 @@ function cleanQuestionPromptText(rawQText, targetLang = 'English') {
     .replace(/Question\s*Id\s*:\s*\d+/gi, '')
     .replace(/Question\s*Type\s*:\s*\w+/gi, '')
     .replace(/Option\s*Shuffling\s*:\s*\w+/gi, '')
+    .replace(/Display\s*Question\s*Number\s*:\s*\w+/gi, '')
+    .replace(/(?:Is\s*)?Question\s*Mandatory\s*:\s*\w+/gi, '')
+    .replace(/Single\s*Line\s*Question\s*Option\s*:\s*\w+/gi, '')
+    .replace(/Option\s*Orientation\s*:\s*\w+/gi, '')
     .replace(/Correct\s*Marks\s*:\s*\d+/gi, '')
     .replace(/Wrong\s*Marks\s*:\s*\d+/gi, '')
     .replace(/^(?:--\s*)?\d*\s*of\s*\d+\s*--/gi, '')
@@ -1042,7 +1093,7 @@ Questions to process:\n\n`;
 
   batch.forEach(q => {
     prompt += `--- QUESTION ${q.qIndex} (Raw ID: ${q.qId}) ---\n`;
-    prompt += q.text + '\n\n';
+    prompt += (cleanRawPdfBlock(q.text) || q.text) + '\n\n';
   });
 
   return prompt;
@@ -1655,7 +1706,24 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       }
 
       options = options.map((opt, i) => {
-        let str = String(opt || `Option ${i + 1}`).replace(/^\(?[1-4A-Da-d]\)?[\.:\-–\s]*/, '').trim();
+        let str = String(opt || `Option ${i + 1}`).trim();
+        str = str.replace(/^(?:Option\s*[1-4]|\(?[1-4]\)?[\.\:\-–\s]+)/i, '').trim();
+        if (/^\([A-Da-d]\)\s+(?![A-Ea-e]\b|,)/.test(str)) {
+          str = str.replace(/^\([A-Da-d]\)\s+/, '').trim();
+        }
+
+        // Auto-fix leading commas from OCR (e.g. ", B, C only" -> "A, B, C only", ",C,B, D" -> "A, C, B, D", ",A,B, E,D" -> "C, A, B, E, D")
+        if (str.startsWith('<A')) {
+          str = 'A' + str.substring(2);
+        }
+        if (/^,\s*[B-E]/i.test(str)) {
+          str = 'A, ' + str.replace(/^,\s*/, '');
+        } else if (/^,\s*A/i.test(str)) {
+          str = 'C, ' + str.replace(/^,\s*/, '');
+        } else if (str.startsWith(',')) {
+          str = str.replace(/^,\s*/, '');
+        }
+
         if (LANGUAGE === 'English') {
           str = cleanLanguageText(str, 'English');
         }
@@ -1725,11 +1793,12 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
     const batches = [];
     const pendingQuestions = cleanQuestions.filter(q => !processedIndices.has(q.qIndex));
 
-    for (let i = 0; i < pendingQuestions.length; i += 4) {
-      batches.push(pendingQuestions.slice(i, i + 4));
+    const BATCH_SIZE = 2; // 2 questions per batch keeps context compact and avoids Groq 413 limits
+    for (let i = 0; i < pendingQuestions.length; i += BATCH_SIZE) {
+      batches.push(pendingQuestions.slice(i, i + BATCH_SIZE));
     }
 
-    console.log(`\n[3/4] Processing ${batches.length} remaining batches using Groq Llama 3.3 (Primary) with Multi-Gemini Fallback (${keyPool.geminiKeys.length} Gemini keys)...`);
+    console.log(`\n[3/4] Processing ${batches.length} remaining batches using Groq Models (Primary) with Multi-Gemini Fallback (${keyPool.geminiKeys.length} Gemini keys)...`);
 
     const CONCURRENCY_LIMIT = 2;
     let completedBatchCount = 0;
@@ -1738,6 +1807,7 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
       const startQ = batch[0].qIndex;
       const endQ = batch[batch.length - 1].qIndex;
       const totalQs = cleanQuestions.length || 100;
+      console.log(`⏳ [Batch ${batchIndex + 1}/${batches.length}] Processing Q${startQ} - Q${endQ}...`);
       const prompt = buildPrompt(batch, compPassages, answerKeyMap, isPaperII, LANGUAGE);
       let batchResults = [];
 
@@ -1778,6 +1848,8 @@ async function executeFastImport({ fileBuffer, filePath, setId, answerKeyBuffer,
 
       completedBatchCount++;
       const finishedPercent = Math.round(15 + ((completedBatchCount / batches.length) * 78));
+      const overallPercent = Math.round((completedQuestions.length / totalQs) * 100);
+      console.log(`✅ [Batch ${batchIndex + 1}/${batches.length}] Done Q${startQ}-Q${endQ} | Progress: ${completedQuestions.length}/${totalQs} (${overallPercent}%)`);
       if (onProgress) onProgress(finishedPercent, `Completed Questions ${startQ} - ${endQ} (${completedQuestions.length}/${totalQs})`);
 
       // Save Checkpoint safely

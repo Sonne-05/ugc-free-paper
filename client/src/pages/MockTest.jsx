@@ -2686,252 +2686,122 @@ Submitted by User: ${userName || 'Student'}
 
       {/* STEP 5: RESULTS SCREEN */}
       {step === STEP_RESULTS && testResult && (
-        <div className="results-container" style={{
-          height: 'calc(100vh - 70px)', 
-          backgroundColor: '#f8fafc',
-          padding: '20px',
-          boxSizing: 'border-box',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'hidden'
-        }}>
-          <div className="results-report-card" style={{
-            width: '100%',
-            maxWidth: '1100px',
-            height: '100%',
-            maxHeight: '620px',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            {/* Header Banner - Sleeker, thinner */}
-            <div style={{
-              background: 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)',
-              padding: '15px 30px',
-              color: '#ffffff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxSizing: 'border-box',
-              flexShrink: 0
-            }}>
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: '800', margin: '0 0 2px 0', color: '#ffffff' }}>Test Submission Report</h2>
-                <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: 0 }}>{paperDetails.title}</p>
+        <div className="results-container">
+          <div className="results-report-card">
+            {/* Header Banner */}
+            <div className="results-header-banner">
+              <div className="results-header-info">
+                <div className="results-header-title-row">
+                  <h2>Test Submission Report</h2>
+                  <span className="results-status-badge">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Completed
+                  </span>
+                </div>
+                <p className="results-header-subtitle">{paperDetails.title}</p>
               </div>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                padding: '4px 10px',
-                borderRadius: '99px',
-                fontSize: '0.72rem',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
+              <div className="results-header-tag">
                 Practice Report
               </div>
             </div>
 
-            {/* Split Content Pane */}
-            <div className="results-split-pane" style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: '360px 1fr',
-              gap: '24px',
-              padding: '24px',
-              overflow: 'hidden',
-              boxSizing: 'border-box'
-            }}>
-              {/* Left Pane: Stats, Score, Actions */}
-              <div className="results-left-pane" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                borderRight: '1px solid #f1f5f9',
-                paddingRight: '24px',
-                boxSizing: 'border-box',
-                overflow: 'hidden'
-              }}>
-                {/* Score circle & Stats Row */}
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  {/* Circular Score */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '15px',
-                    width: '120px',
-                    boxSizing: 'border-box',
-                    flexShrink: 0
-                  }}>
-                    <div style={{
-                      width: '75px',
-                      height: '75px',
-                      borderRadius: '50%',
-                      background: '#e0e7ff',
-                      border: '4px solid #4f46e5',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      marginBottom: '8px'
-                    }}>
-                      <span style={{ fontSize: '1.35rem', fontWeight: '850', color: '#312e81', lineHeight: '1' }}>{testResult.score}</span>
-                      <span style={{ fontSize: '0.62rem', color: '#4f46e5', fontWeight: '700', marginTop: '2px' }}>Marks</span>
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600' }}>
-                      Out of {testResult.maxScore}
-                    </div>
-                  </div>
-
-                  {/* Core Stats Grid */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: '#f0fdf4', borderRadius: '6px', fontSize: '0.8rem' }}>
-                      <span style={{ color: '#166534', fontWeight: '600' }}>Correct</span>
-                      <strong style={{ color: '#166534' }}>{testResult.correct}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: '#fef2f2', borderRadius: '6px', fontSize: '0.8rem' }}>
-                      <span style={{ color: '#991b1b', fontWeight: '600' }}>Incorrect</span>
-                      <strong style={{ color: '#991b1b' }}>{testResult.incorrect}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 12px', background: '#f8fafc', borderRadius: '6px', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
-                      <span style={{ color: '#475569', fontWeight: '600' }}>Unattempted</span>
-                      <strong style={{ color: '#475569' }}>{testResult.totalQuestions - testResult.answered - testResult.markedAnswered}</strong>
-                    </div>
-                  </div>
+            {/* KPI Stat Cards Grid */}
+            <div className="results-kpi-grid">
+              {/* Score KPI */}
+              <div className="results-kpi-card results-kpi-card--primary">
+                <div className="results-kpi-icon-wrap" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                 </div>
-
-                {/* Extra Insights */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ background: '#e0f2fe', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
-                      <svg style={{ width: '16px', height: '16px', color: '#0284c7' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                    </div>
-                    <div style={{ textAlign: 'left', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600' }}>Accuracy Rate</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a' }}>
-                        {testResult.correct + testResult.incorrect > 0 
-                          ? Math.round((testResult.correct / (testResult.correct + testResult.incorrect)) * 100) 
-                          : 0}%
-                      </span>
-                    </div>
+                <div className="results-kpi-body">
+                  <div className="results-kpi-label">Final Score</div>
+                  <div className="results-kpi-val-row">
+                    <span className="results-kpi-val">{testResult.score}</span>
+                    <span className="results-kpi-max">/ {testResult.maxScore}</span>
                   </div>
-                  
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ background: '#f5f3ff', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
-                      <svg style={{ width: '16px', height: '16px', color: '#7c3aed' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    </div>
-                    <div style={{ textAlign: 'left', flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600' }}>Attempt Rate</span>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a' }}>
-                        {Math.round(((testResult.correct + testResult.incorrect) / testResult.totalQuestions) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions Stack */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
-                  <button 
-                    style={{
-                      backgroundColor: '#4f46e5',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '12px 20px',
-                      fontWeight: '700',
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 10px rgba(79, 70, 229, 0.2)',
-                      width: '100%',
-                      outline: 'none'
-                    }}
-                    onClick={() => {
-                      setIsReviewMode(true)
-                      setStep(STEP_TEST)
-                      setActiveQuestionIndex(0)
-                      if (questionsState.length > 0) {
-                        setSelectedOption(questionsState[0].userAnswer)
-                      }
-                    }}
-                  >
-                    Detailed Explanation & Review
-                  </button>
-                  
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#ffffff',
-                        color: '#475569',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        padding: '10px',
-                        fontWeight: '600',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        outline: 'none'
-                      }}
-                      onClick={() => {
-                        setStep(STEP_INSTRUCTIONS_1)
-                        setDeclarationChecked(false)
-                        setDefaultLanguage('')
-                        setTimerSeconds(initialTimerSeconds)
-                      }}
-                    >
-                      Re-take Test
-                    </button>
-                    <button 
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#ffffff',
-                        color: '#475569',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        padding: '10px',
-                        fontWeight: '600',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        outline: 'none'
-                      }}
-                      onClick={() => navigate(-1)}
-                    >
-                      Back to PYQs
-                    </button>
+                  <div className="results-kpi-subtext">
+                    <span className="results-kpi-pill results-kpi-pill--score">
+                      {testResult.maxScore > 0 ? Math.round((testResult.score / testResult.maxScore) * 100) : 0}% Marks
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Right Pane: Unit breakdown */}
-              <div className="results-right-pane" style={{
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                boxSizing: 'border-box'
-              }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: '800', margin: '0 0 15px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  <svg style={{ width: '16px', height: '16px', color: '#4f46e5' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-                  Unit Performance Breakdown
-                </h3>
-                
-                {/* Scrollable list inside the pane */}
-                <div style={{
-                  flex: 1,
-                  overflowY: 'auto',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  paddingRight: '6px',
-                  boxSizing: 'border-box'
-                }}>
+              {/* Accuracy KPI */}
+              <div className="results-kpi-card">
+                <div className="results-kpi-icon-wrap" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div className="results-kpi-body">
+                  <div className="results-kpi-label">Accuracy Rate</div>
+                  <div className="results-kpi-val-row">
+                    <span className="results-kpi-val">
+                      {testResult.correct + testResult.incorrect > 0 
+                        ? Math.round((testResult.correct / (testResult.correct + testResult.incorrect)) * 100) 
+                        : 0}%
+                    </span>
+                  </div>
+                  <div className="results-kpi-subtext">
+                    {testResult.correct} correct of {testResult.correct + testResult.incorrect} attempted
+                  </div>
+                </div>
+              </div>
+
+              {/* Attempt Rate KPI */}
+              <div className="results-kpi-card">
+                <div className="results-kpi-icon-wrap" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div className="results-kpi-body">
+                  <div className="results-kpi-label">Attempt Rate</div>
+                  <div className="results-kpi-val-row">
+                    <span className="results-kpi-val">
+                      {testResult.totalQuestions > 0 ? Math.round(((testResult.correct + testResult.incorrect) / testResult.totalQuestions) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="results-kpi-subtext">
+                    {testResult.correct + testResult.incorrect} of {testResult.totalQuestions} questions
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Breakdown KPI */}
+              <div className="results-kpi-card">
+                <div className="results-kpi-icon-wrap" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <div className="results-kpi-body">
+                  <div className="results-kpi-label">Response Stats</div>
+                  <div className="results-mini-stats-grid">
+                    <div className="results-mini-stat results-mini-stat--correct">
+                      <span>Correct</span>
+                      <strong>{testResult.correct}</strong>
+                    </div>
+                    <div className="results-mini-stat results-mini-stat--incorrect">
+                      <span>Incorrect</span>
+                      <strong>{testResult.incorrect}</strong>
+                    </div>
+                    <div className="results-mini-stat results-mini-stat--skipped">
+                      <span>Skipped</span>
+                      <strong>{testResult.totalQuestions - testResult.answered - testResult.markedAnswered}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Split Main Content Area */}
+            <div className="results-split-pane">
+              {/* Left Column: Unit Breakdown & Action CTA */}
+              <div className="results-left-pane">
+                <div className="results-section-header">
+                  <div className="results-section-title-wrap">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#4f46e5' }}><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    <h3>Unit Performance Breakdown</h3>
+                  </div>
+                  <span className="results-section-subtitle">Topic-wise score and mastery indicators</span>
+                </div>
+
+                <div className="results-units-list">
                   {(() => {
                     const unitsData = {};
                     questionsState.forEach((q, index) => {
@@ -2953,46 +2823,25 @@ Submitted by User: ${userName || 'Student'}
                     return Object.entries(unitsData).map(([name, data]) => {
                       const successRate = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
                       return (
-                        <div key={name} style={{ 
-                          background: '#ffffff', 
-                          border: '1px solid #e2e8f0', 
-                          borderRadius: '8px', 
-                          padding: '10px 14px', 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          gap: '15px',
-                          boxSizing: 'border-box'
-                        }}>
-                          {/* Unit name */}
-                          <div style={{ flex: '0 0 160px', boxSizing: 'border-box' }}>
-                            <div style={{ fontSize: '0.78rem', fontWeight: '750', color: '#334155', lineHeight: '1.2' }}>{name}</div>
+                        <div key={name} className="results-unit-row">
+                          <div className="results-unit-name-box">
+                            <div className="results-unit-name">{name}</div>
                           </div>
                           
-                          {/* Progress bar */}
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', boxSizing: 'border-box' }}>
-                            <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
+                          <div className="results-unit-progress-box">
+                            <div className="results-unit-bar">
                               <div style={{ width: `${(data.correct / data.total) * 100}%`, background: '#22c55e', height: '100%' }}></div>
                               <div style={{ width: `${(data.incorrect / data.total) * 100}%`, background: '#ef4444', height: '100%' }}></div>
-                              <div style={{ width: `${(data.unattempted / data.total) * 100}%`, background: '#94a3b8', height: '100%' }}></div>
+                              <div style={{ width: `${(data.unattempted / data.total) * 100}%`, background: '#cbd5e1', height: '100%' }}></div>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b' }}>
+                            <div className="results-unit-sub-counts">
                               <span>Correct: <strong style={{color: '#16a34a'}}>{data.correct}</strong></span>
                               <span>Incorrect: <strong style={{color: '#dc2626'}}>{data.incorrect}</strong></span>
-                              <span>Total: <strong>{data.total}</strong></span>
+                              <span>Unattempted: <strong>{data.unattempted}</strong></span>
                             </div>
                           </div>
 
-                          <div style={{ 
-                            fontSize: '0.75rem', 
-                            fontWeight: '800', 
-                            color: successRate >= 50 ? '#16a34a' : '#ea580c', 
-                            background: successRate >= 50 ? '#f0fdf4' : '#fff7ed', 
-                            padding: '3px 8px', 
-                            borderRadius: '99px',
-                            minWidth: '60px',
-                            textAlign: 'center',
-                            flexShrink: 0
-                          }}>
+                          <div className={`results-unit-score-badge ${successRate >= 50 ? 'results-unit-score-badge--good' : 'results-unit-score-badge--low'}`}>
                             {successRate}% Score
                           </div>
                         </div>
@@ -3000,7 +2849,79 @@ Submitted by User: ${userName || 'Student'}
                     });
                   })()}
                 </div>
+
+                {/* Primary & Secondary Action CTAs */}
+                <div className="results-actions-card">
+                  <button 
+                    className="results-btn-primary"
+                    onClick={() => {
+                      setIsReviewMode(true)
+                      setStep(STEP_TEST)
+                      setActiveQuestionIndex(0)
+                      if (questionsState.length > 0) {
+                        setSelectedOption(questionsState[0].userAnswer)
+                      }
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    Detailed Explanation & Review
+                  </button>
+                  
+                  <div className="results-actions-secondary-row">
+                    <button 
+                      className="results-btn-secondary"
+                      onClick={() => {
+                        setStep(STEP_INSTRUCTIONS_1)
+                        setDeclarationChecked(false)
+                        setDefaultLanguage('')
+                        setTimerSeconds(initialTimerSeconds)
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                      Re-take Test
+                    </button>
+                    <button 
+                      className="results-btn-secondary"
+                      onClick={() => navigate(-1)}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                      Back to PYQs
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {/* Right Column: Sidebar Ad & Smart Advice */}
+              <div className="results-right-pane">
+                {/* Clean Rectangle Ad Card */}
+                <div className="results-ad-sidebar-card">
+                  <div className="results-ad-sidebar-label">Advertisement</div>
+                  <div className="results-ad-sidebar-content">
+                    <AdSensePlaceholder type="display" format="rectangle" config={settings} />
+                  </div>
+                </div>
+
+                {/* Smart Learning Tip Card */}
+                <div className="results-insight-box">
+                  <div className="results-insight-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: '#eab308' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <strong>Performance Tip</strong>
+                  </div>
+                  <p>
+                    {testResult.incorrect > 0 
+                      ? `You have ${testResult.incorrect} incorrect question${testResult.incorrect > 1 ? 's' : ''}. Open "Detailed Explanation & Review" to see full step-by-step reasoning and prevent similar mistakes in the real exam.`
+                      : 'Outstanding job! You scored 100% correct on your attempted questions. Keep up the high consistency!'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Leaderboard Responsive Ad Banner */}
+          <div className="results-bottom-ad-card">
+            <div className="results-bottom-ad-label">Advertisement</div>
+            <div className="results-bottom-ad-content">
+              <AdSensePlaceholder type="display" format="horizontal" config={settings} />
             </div>
           </div>
         </div>
