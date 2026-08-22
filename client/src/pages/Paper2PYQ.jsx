@@ -224,7 +224,7 @@ const Paper2PYQ = () => {
         cycle: cleanedCycle,
         desktopTitle: desktopTitle,
         questions: set.questionsCount,
-        seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle || 'Official Shift'})`,
+        seoTitle: `UGC NET ${set.year} ${activeSubject} Paper 2 Solved Question Paper (${cleanedCycle || desktopTitle || 'Official Shift'}) - Free CBT Practice`,
         title: set.title
       })
     })
@@ -344,13 +344,13 @@ const Paper2PYQ = () => {
               {
                 '@type': 'ListItem',
                 position: 2,
-                name: 'Paper 2 Subjects',
+                name: 'UGC NET Paper 2 Previous Year Questions',
                 item: 'https://ugcfreepaper.com/paper2'
               },
               {
                 '@type': 'ListItem',
                 position: 3,
-                name: `UGC NET Paper 2 ${activeSubject} PYQs`,
+                name: `UGC NET ${activeSubject} Paper 2 Solved PYQs`,
                 item: `https://ugcfreepaper.com/paper2?subject=${encodeURIComponent(activeSubject)}`
               }
             ] : [
@@ -363,8 +363,94 @@ const Paper2PYQ = () => {
               {
                 '@type': 'ListItem',
                 position: 2,
-                name: 'Paper 2 Core Subjects',
+                name: 'UGC NET Paper 2 Previous Year Questions',
                 item: 'https://ugcfreepaper.com/paper2'
+              }
+            ]
+          })
+        }}
+      />
+
+      {/* FAQPage Schema — enables Google FAQ accordion rich snippet */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: activeSubject ? [
+              {
+                '@type': 'Question',
+                name: `How many questions are in UGC NET ${activeSubject} Paper 2?`,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: `UGC NET ${activeSubject} Paper 2 consists of 100 compulsory questions for 200 marks. The exam duration is 3 hours and there is no negative marking.`
+                }
+              },
+              {
+                '@type': 'Question',
+                name: `Where can I practice UGC NET ${activeSubject} Paper 2 PYQs free online?`,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: `UGC Free Paper provides free online practice of all UGC NET ${activeSubject} Paper 2 previous year question papers (2020–2025) in the authentic NTA CBT simulator with verified solutions — no registration or subscription required.`
+                }
+              },
+              {
+                '@type': 'Question',
+                name: `Which years of UGC NET ${activeSubject} Paper 2 are available?`,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: `Solved previous year question papers from 2020 to 2025 are available for UGC NET ${activeSubject} Paper 2, covering all exam cycles including June and December sessions with shift-wise papers.`
+                }
+              },
+              {
+                '@type': 'Question',
+                name: `Are UGC NET ${activeSubject} Paper 2 solutions explained?`,
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: `Yes. Every answer on UGC Free Paper includes a step-by-step academic explanation with source references, key concepts, and verified rationale to help you understand not just what the answer is, but why it is correct.`
+                }
+              }
+            ] : [
+              {
+                '@type': 'Question',
+                name: 'How many questions are in UGC NET Paper 2?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'UGC NET Paper 2 consists of 100 compulsory questions for 200 marks. The exam duration is 3 hours and there is no negative marking. Paper 2 is subject-specific and tests in-depth domain knowledge.'
+                }
+              },
+              {
+                '@type': 'Question',
+                name: 'Can I practice UGC NET Paper 2 PYQs for free online?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Yes. UGC Free Paper provides completely free online practice of UGC NET Paper 2 previous year question papers (2020–2025) in the authentic NTA CBT format with verified academic solutions. No subscription or registration is required.'
+                }
+              },
+              {
+                '@type': 'Question',
+                name: 'Which subjects are available for UGC NET Paper 2 practice?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'UGC Free Paper currently offers free CBT practice for Sociology, Sindhi, and Political Science Paper 2 with all shift-wise papers from 2020 to 2025. More subjects are being added regularly across all 83 UGC NET disciplines.'
+                }
+              },
+              {
+                '@type': 'Question',
+                name: 'What is the syllabus of UGC NET Paper 2?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'UGC NET Paper 2 syllabus is subject-specific and set by NTA based on the undergraduate and postgraduate curriculum of each discipline. It covers core concepts, research methodology, and advanced theoretical frameworks of the chosen subject.'
+                }
+              },
+              {
+                '@type': 'Question',
+                name: 'How is UGC NET Paper 2 different from Paper 1?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'UGC NET Paper 1 is common to all candidates and tests general teaching and research aptitude (50 questions, 100 marks). Paper 2 is subject-specific and tests in-depth domain knowledge of the chosen discipline (100 questions, 200 marks). Together they determine JRF and Assistant Professor eligibility.'
+                }
               }
             ]
           })
@@ -414,13 +500,25 @@ const Paper2PYQ = () => {
 
             <div className="pyq-page__layout">
               <div className="pyq-page__main-content">
-                {/* SEO Intro */}
-                <section className="pyq-page__intro">
-                  <h2>Master UGC NET Paper 2 {activeSubject} with Real PYQs</h2>
+                {/* SEO Intro Block */}
+                <div className="p2-intro-block">
                   <p>
-                    Paper 2 {activeSubject} tests your depth of knowledge in advanced subject curriculum, core concepts, research methodologies, and theoretical frameworks. Regularly solving official {activeSubject} previous years' question papers allows you to analyze question patterns and maximize your JRF qualification rate.
+                    <strong>UGC NET {activeSubject} Paper 2</strong> is your specialized domain examination consisting of <strong>100 questions for 200 marks</strong>. It accounts for 66.6% of your final UGC NET score with zero negative marking.
                   </p>
-                </section>
+                  <p>
+                    Practice all official {activeSubject} shift papers (2020–2025) in our realistic <strong>NTA CBT Simulator</strong>. Review verified answer keys, detailed theoretical explanations, and high-yield concepts — <strong>100% free with no login required</strong>.
+                  </p>
+                  <div className="p2-intro-highlights">
+                    <span className="p2-intro-chip">✓ 100 {activeSubject} Questions</span>
+                    <span className="p2-intro-chip">✓ 200 Marks Total</span>
+                    <span className="p2-intro-chip">✓ 2020–2025 All Shifts</span>
+                    <span className="p2-intro-chip">✓ Real NTA Test Palette</span>
+                    <span className="p2-intro-chip">✓ Verified Solutions</span>
+                  </div>
+                  <p className="p2-intro-also">
+                    Also practice: <Link to="/paper1" className="p2-intro-link">Paper 1 General Aptitude PYQs (50Q • 100 Marks)</Link> &nbsp;|&nbsp; <Link to="/paper2" className="p2-intro-link">All 83 Paper 2 Subjects Directory</Link>
+                  </p>
+                </div>
 
                 {/* Mobile/Tablet suggested blogs */}
                 <div className="pyq-page__suggested-blogs-mobile">
@@ -543,6 +641,57 @@ const Paper2PYQ = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Subject FAQ Section — matches FAQPage schema for Google rich snippet */}
+                <section className="p2-faq-section">
+                  <h2 className="p2-faq-title">Frequently Asked Questions — UGC NET {activeSubject} Paper 2</h2>
+                  <div className="p2-faq-list">
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">How many questions and marks are in UGC NET {activeSubject} Paper 2?</summary>
+                      <p className="p2-faq-a">UGC NET {activeSubject} Paper 2 contains <strong>100 compulsory questions carrying 200 marks</strong> (2 marks each). All questions are objective MCQs based on the official NTA postgraduate curriculum with no negative marking.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">How do solving {activeSubject} PYQs help in scoring JRF?</summary>
+                      <p className="p2-faq-a">Practicing official shift papers from 2020 to 2025 helps you identify high-frequency thinkers, theories, matching pairs, and assertion-reason types specific to {activeSubject}. Most top qualifiers report solving at least 5 years of PYQs multiple times.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">Can I practice UGC NET {activeSubject} Paper 2 on mobile?</summary>
+                      <p className="p2-faq-a">Yes! UGC Free Paper is fully optimized for mobile devices, tablets, and desktop computers. You can solve full 100-question papers with real-time timers anytime, anywhere.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">Is this {activeSubject} mock test series 100% free?</summary>
+                      <p className="p2-faq-a">Yes! All previous year solved papers, mock tests, and explanations for UGC NET {activeSubject} Paper 2 on UGC Free Paper are 100% free with no subscription or hidden charges.</p>
+                    </details>
+                  </div>
+                </section>
+
+                {/* Internal Crosslinks */}
+                <section className="p2-crosslinks-section">
+                  <h3 className="p2-crosslinks-title">Related Study Resources</h3>
+                  <div className="p2-crosslinks-grid">
+                    <Link to="/paper1" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">📄</div>
+                      <div>
+                        <strong>UGC NET Paper 1 PYQs</strong>
+                        <p>Practice 2020–2025 general aptitude shift papers (50 Questions, 100 Marks)</p>
+                      </div>
+                    </Link>
+                    <Link to="/paper1-unit-pyq" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">📚</div>
+                      <div>
+                        <strong>Paper 1 Unit-Wise MCQs</strong>
+                        <p>Isolate your weak areas in Teaching, Research, DI &amp; ICT</p>
+                      </div>
+                    </Link>
+                    <Link to="/paper2" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">🌐</div>
+                      <div>
+                        <strong>All 83 Paper 2 Subjects</strong>
+                        <p>Explore solved question banks and test simulators for other subjects</p>
+                      </div>
+                    </Link>
+                  </div>
+                </section>
               </div>
 
               <div className="pyq-page__sidebar">
@@ -565,11 +714,35 @@ const Paper2PYQ = () => {
           /* ========================================================================= */
           <>
             <div className="p2-hub-header">
-              <div className="p2-hub-badge">UGC NET PAPER 2 SPECIALIZATION</div>
-              <h1 className="pyq-page__title">Explore Paper 2 Core Subjects</h1>
+              <div className="p2-hub-badge">UGC NET PAPER 2 SUBJECT-WISE PYQ PRACTICE</div>
+              <h1 className="pyq-page__title">UGC NET Paper 2 Previous Year Questions &amp; Free CBT Mock Tests (2020–2025)</h1>
               <p className="pyq-page__subtitle">
-                Select your specialized discipline to practice authentic 100-question previous year papers (2020–2025), comprehensive question banks, and simulated CBT mock exams.
+                Practice subject-wise UGC NET Paper 2 solved question papers in the authentic NTA CBT simulator — free, no registration required.
               </p>
+
+              {/* SEO Intro Block */}
+              <div className="p2-intro-block">
+                <p>
+                  UGC NET Paper 2 tests your in-depth subject knowledge across 83 specialized disciplines selected by NTA.
+                  Each paper consists of <strong>100 compulsory questions for 200 marks</strong> with a 3-hour time limit — no negative marking.
+                  Paper 2 constitutes two-thirds of your total UGC NET score, making it the most decisive factor for JRF qualification and Assistant Professor eligibility.
+                </p>
+                <p>
+                  On <strong>UGC Free Paper</strong>, you can practice all shift-wise question papers from 2020 to 2025
+                  in the exact NTA CBT interface — same color palette, question palette, and countdown timer as the real exam.
+                  Every answer includes a step-by-step academic explanation with verified rationale. <strong>Completely free. No subscription. No login required to browse.</strong>
+                </p>
+                <div className="p2-intro-highlights">
+                  <span className="p2-intro-chip">✓ 100 Questions • 200 Marks</span>
+                  <span className="p2-intro-chip">✓ 2020–2025 All Cycles</span>
+                  <span className="p2-intro-chip">✓ Authentic NTA CBT Mode</span>
+                  <span className="p2-intro-chip">✓ Verified Academic Solutions</span>
+                  <span className="p2-intro-chip">✓ Free — No Subscription</span>
+                </div>
+                <p className="p2-intro-also">
+                  Also practice: <Link to="/paper1" className="p2-intro-link">Paper 1 General Aptitude PYQs (50Q • 100 Marks)</Link> &nbsp;|&nbsp; <Link to="/paper1-unit-pyq" className="p2-intro-link">Paper 1 Unit-Wise Practice (All 10 Units)</Link>
+                </p>
+              </div>
             </div>
 
             {/* Quick Search Bar */}
@@ -605,8 +778,8 @@ const Paper2PYQ = () => {
                 <section className="p2-active-section">
                   <div className="p2-section-title-row">
                     <div>
-                      <h2 className="p2-section-heading">Available Paper 2 Disciplines</h2>
-                      <p className="p2-section-sub">Full 100-question shift-wise solved papers with NTA test simulator & verified academic explanations.</p>
+                      <h2 className="p2-section-heading">UGC NET Paper 2 Subject-Wise Solved PYQs &amp; Free CBT Mock Tests</h2>
+                      <p className="p2-section-sub">Full 100-question shift-wise solved papers in the NTA CBT simulator with verified academic explanations — free, no login needed.</p>
                     </div>
                     <span className="p2-active-count-badge">
                       {availableSubjectsList.length} Active {availableSubjectsList.length === 1 ? 'Subject' : 'Subjects'}
@@ -767,6 +940,62 @@ const Paper2PYQ = () => {
                     </div>
                   </div>
                 </section>
+
+                {/* FAQ Section — matches FAQPage schema for Google rich snippet */}
+                <section className="p2-faq-section">
+                  <h2 className="p2-faq-title">Frequently Asked Questions — UGC NET Paper 2</h2>
+                  <div className="p2-faq-list">
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">How many questions are in UGC NET Paper 2?</summary>
+                      <p className="p2-faq-a">UGC NET Paper 2 consists of <strong>100 compulsory questions for 200 marks</strong>. The exam duration is 3 hours and there is no negative marking. Paper 2 is subject-specific and tests in-depth domain knowledge of the chosen discipline.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">Can I practice UGC NET Paper 2 PYQs for free online?</summary>
+                      <p className="p2-faq-a">Yes. UGC Free Paper provides completely free online practice of UGC NET Paper 2 previous year question papers (2020–2025) in the authentic NTA CBT format with verified academic solutions. No subscription or registration is required to browse and attempt papers.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">Which subjects are available for UGC NET Paper 2 practice?</summary>
+                      <p className="p2-faq-a">UGC Free Paper currently offers free CBT practice for <strong>Sociology, Sindhi, and Political Science</strong> Paper 2 with all shift-wise papers from 2020 to 2025. More subjects from all 83 UGC NET disciplines are being added regularly.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">What is the syllabus of UGC NET Paper 2?</summary>
+                      <p className="p2-faq-a">UGC NET Paper 2 syllabus is subject-specific and set by NTA based on the undergraduate and postgraduate curriculum of each discipline. It covers core concepts, research methodology, and advanced theoretical frameworks of the chosen subject. Refer to the official NTA notification for the complete unit-wise syllabus PDF.</p>
+                    </details>
+                    <details className="p2-faq-item">
+                      <summary className="p2-faq-q">How is UGC NET Paper 2 different from Paper 1?</summary>
+                      <p className="p2-faq-a">UGC NET Paper 1 is common to all candidates and tests general teaching and research aptitude (50 questions, 100 marks). Paper 2 is subject-specific and tests in-depth domain knowledge of your chosen discipline (100 questions, 200 marks). Together they determine your JRF and Assistant Professor eligibility.</p>
+                    </details>
+                  </div>
+                </section>
+
+                {/* Internal Crosslinks */}
+                <section className="p2-crosslinks-section">
+                  <h3 className="p2-crosslinks-title">Also Practice</h3>
+                  <div className="p2-crosslinks-grid">
+                    <Link to="/paper1" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">📄</div>
+                      <div>
+                        <strong>UGC NET Paper 1 PYQs</strong>
+                        <p>Year-wise solved question papers (2020–2025) — 50 Questions, 100 Marks</p>
+                      </div>
+                    </Link>
+                    <Link to="/paper1-unit-pyq" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">📚</div>
+                      <div>
+                        <strong>Paper 1 Unit-Wise Practice</strong>
+                        <p>Topic-specific question banks for all 10 Paper 1 units — Teaching Aptitude, ICT, Research & more</p>
+                      </div>
+                    </Link>
+                    <Link to="/paper1-notes" className="p2-crosslink-card">
+                      <div className="p2-crosslink-icon">📝</div>
+                      <div>
+                        <strong>Paper 1 Study Notes</strong>
+                        <p>Free revision notes, concept summaries, and short study guides for all 10 units</p>
+                      </div>
+                    </Link>
+                  </div>
+                </section>
+
               </div>
 
               {/* Sidebar */}

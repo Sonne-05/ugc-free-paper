@@ -3345,10 +3345,125 @@ const Profile = () => {
                       <input 
                         type="text" 
                         required 
-                        placeholder="e.g. Shift 1 or June Exam" 
+                        placeholder="e.g. 21 August Shift 1, June Shift 2, Dec Shift 1" 
                         value={newSetSubtitle}
                         onChange={(e) => setNewSetSubtitle(e.target.value)}
                       />
+                      
+                      {/* Quick SEO Shift Suggestions */}
+                      <div className="admin-seo-chips-wrapper" style={{ marginTop: '8px' }}>
+                        <span className="admin-seo-chips-label" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          ⚡ Quick SEO Shift Templates (Click to fill):
+                        </span>
+                        <div className="admin-seo-chips-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                          {[
+                            'June Shift 1',
+                            'June Shift 2',
+                            'Dec Shift 1',
+                            'Dec Shift 2',
+                            '21-Aug Shift 1',
+                            '27-Aug Shift 2',
+                            '02-Sep Shift 1',
+                            '03-Sep Shift 2',
+                            'Re-Exam Shift 1'
+                          ].map((chip) => (
+                            <button
+                              key={chip}
+                              type="button"
+                              className="admin-seo-chip-btn"
+                              onClick={() => setNewSetSubtitle(chip)}
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: newSetSubtitle === chip ? '#2563eb' : '#f8fafc',
+                                color: newSetSubtitle === chip ? '#ffffff' : '#334155',
+                                cursor: 'pointer',
+                                fontWeight: 500
+                              }}
+                            >
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LIVE SMART SEO PREVIEW & SUGGESTION BOX */}
+                    <div 
+                      className="admin-seo-preview-box"
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '14px 16px',
+                        marginBottom: '16px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          🎯 Live SEO Title Preview &amp; Ranking Suggester
+                        </span>
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          fontWeight: 600, 
+                          background: newSetYear && newSetSubtitle ? '#dcfce7' : '#fef3c7', 
+                          color: newSetYear && newSetSubtitle ? '#15803d' : '#b45309',
+                          padding: '2px 8px',
+                          borderRadius: '999px'
+                        }}>
+                          {newSetYear && newSetSubtitle ? '● 100% SEO Ready' : '● Incomplete SEO Details'}
+                        </span>
+                      </div>
+
+                      {/* Google Search Mockup */}
+                      <div style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{ fontSize: '0.72rem', color: '#475569', marginBottom: '2px' }}>
+                          https://ugcfreepaper.com &rsaquo; mocktest &rsaquo; {newSetYear || '2024'} &rsaquo; {newSetPaperType === 'Paper II' ? (newSetSubject || 'sociology').toLowerCase() : 'paper1'}
+                        </div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1a0dab', lineHeight: 1.3, marginBottom: '4px' }}>
+                          {`UGC NET ${newSetYear || '2024'} ${newSetPaperType === 'Paper II' ? (newSetSubject || 'Sociology') + ' Paper 2' : 'Paper 1'} Solved Question Paper (${newSetSubtitle || 'Shift 1'}) - Free CBT Practice`}
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#4d5156', lineHeight: 1.4 }}>
+                          Practice UGC NET {newSetYear || '2024'} {newSetPaperType === 'Paper II' ? (newSetSubject || 'Sociology') + ' Paper 2' : 'Paper 1'} solved previous year paper ({newSetSubtitle || 'Shift 1'}) with authentic NTA CBT simulator, answer keys &amp; verified explanations on UGC Free Paper.
+                        </div>
+                      </div>
+
+                      {/* Target Keywords matched by this set */}
+                      <div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748b' }}>
+                          Keywords this set will rank for on Google:
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                          {[
+                            `UGC NET ${newSetYear || '2024'} ${newSetPaperType === 'Paper II' ? newSetSubject || 'Sociology' : 'Paper 1'} PYQ`,
+                            `UGC NET ${newSetPaperType === 'Paper II' ? newSetSubject || 'Sociology' : 'Paper 1'} solved paper ${newSetYear || '2024'}`,
+                            `UGC NET ${newSetPaperType === 'Paper II' ? newSetSubject || 'Sociology' : 'Paper 1'} ${newSetSubtitle || 'Shift 1'} mock test`,
+                            `NTA CBT ${newSetPaperType === 'Paper II' ? newSetSubject || 'Sociology' : 'Paper 1'} online test free`
+                          ].map((kw) => (
+                            <span 
+                              key={kw} 
+                              style={{ 
+                                fontSize: '0.7rem', 
+                                background: '#e0f2fe', 
+                                color: '#0369a1', 
+                                padding: '2px 6px', 
+                                borderRadius: '4px', 
+                                fontWeight: 500 
+                              }}
+                            >
+                              🔍 {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="form-field" style={{ marginBottom: '16px' }}>

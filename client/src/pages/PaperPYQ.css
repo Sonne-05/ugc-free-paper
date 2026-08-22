@@ -1355,3 +1355,204 @@
   }
 }
 
+/* ========================================================================= */
+/* SEO Content Blocks, FAQ Accordions & Internal Crosslinks                  */
+/* ========================================================================= */
+.p2-intro-block {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-top: 16px;
+  margin-bottom: 24px;
+  text-align: left;
+  line-height: 1.65;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.p2-intro-block p {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #475569);
+}
+
+.p2-intro-block p strong {
+  color: var(--text, #0f172a);
+}
+
+.p2-intro-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.p2-intro-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+}
+
+.p2-intro-also {
+  font-size: 0.88rem !important;
+  margin-bottom: 0 !important;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border, #e2e8f0);
+}
+
+.p2-intro-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.p2-intro-link:hover {
+  text-decoration: underline;
+}
+
+/* FAQ Section */
+.p2-faq-section {
+  margin-top: 40px;
+  margin-bottom: 32px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.p2-faq-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+
+.p2-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.p2-faq-item {
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--bg, #f8fafc);
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.p2-faq-item[open] {
+  background: var(--bg-card, #ffffff);
+  border-color: #93c5fd;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.06);
+}
+
+.p2-faq-q {
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: var(--text, #0f172a);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.p2-faq-q::-webkit-details-marker {
+  display: none;
+}
+
+.p2-faq-q::after {
+  content: '＋';
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2563eb;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.p2-faq-item[open] .p2-faq-q::after {
+  content: '−';
+}
+
+.p2-faq-a {
+  margin-top: 10px;
+  margin-bottom: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #475569);
+}
+
+/* Crosslinks Section */
+.p2-crosslinks-section {
+  margin-top: 24px;
+  margin-bottom: 32px;
+}
+
+.p2-crosslinks-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text, #0f172a);
+  margin-bottom: 16px;
+}
+
+.p2-crosslinks-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .p2-crosslinks-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.p2-crosslink-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.p2-crosslink-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.p2-crosslink-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.p2-crosslink-card strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text, #0f172a);
+  margin-bottom: 4px;
+}
+
+.p2-crosslink-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #64748b);
+}
+
+
