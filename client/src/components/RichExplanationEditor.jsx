@@ -81,22 +81,29 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
     return cleaned;
   };
 
-  const handleAiExplain = async () => {
+  const handleAiExplain = async (forceSelected = false) => {
     if (!questionContext || !questionContext.text || !questionContext.text.trim()) {
       alert('Please fill in the question text first before generating an explanation.');
       return;
     }
 
     setIsGenerating(true);
-    setAutoSelectedBadge(null);
+    if (!forceSelected) {
+      setAutoSelectedBadge(null);
+    }
     onChange(''); // Clear existing explanation
     try {
+      const payloadContext = {
+        ...questionContext,
+        forceSelected: Boolean(forceSelected)
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/questions/explain`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ questionContext })
+        body: JSON.stringify({ questionContext: payloadContext })
       });
 
       if (!response.ok) {
@@ -195,17 +202,19 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
       {/* Editor Header Bar with HTML Toggle & AI generate */}
       <div style={{
         display: 'flex',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         alignItems: 'center',
         padding: '6px 12px',
         background: '#f8fafc',
         borderBottom: '1px solid #e2e8f0',
         fontSize: '0.8rem',
         fontWeight: '600',
-        color: '#475569'
+        color: '#475569',
+        flexWrap: 'wrap',
+        gap: '6px'
       }}>
         <span>Explanation Editor (MS Word Style)</span>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           {autoSelectedBadge !== null && (
             <span style={{
               background: '#dcfce7',
@@ -228,33 +237,67 @@ const RichExplanationEditor = ({ value = '', onChange, onCorrectChange, placehol
             </span>
           )}
           {questionContext && (
-            <button
-              type="button"
-              onClick={handleAiExplain}
-              disabled={isGenerating || cooldownSeconds > 0}
-              style={{
-                background: cooldownSeconds > 0 
-                  ? '#cbd5e1' 
-                  : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                color: cooldownSeconds > 0 ? '#64748b' : '#ffffff',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '4px 10px',
-                fontSize: '0.75rem',
-                fontWeight: '600',
-                cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s',
-                opacity: isGenerating ? 0.7 : 1,
-                boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 3px rgba(79, 70, 229, 0.2)'
-              }}
-              title={cooldownSeconds > 0 ? `Rate limit cooldown active. Please wait ${cooldownSeconds}s` : "Solve question using AI model, set correct option, and generate explanation"}
-            >
-              <span>{isGenerating ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '✨')}</span>
-              <span>{isGenerating ? 'Solving & Explaining...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Explain')}</span>
-            </button>
+            <>
+              {/* Button 1: Explain Selected Option (Locks user manual selection) */}
+              {(questionContext.correct !== undefined && questionContext.correct !== null && questionContext.correct !== '') && (
+                <button
+                  type="button"
+                  onClick={() => handleAiExplain(true)}
+                  disabled={isGenerating || cooldownSeconds > 0}
+                  style={{
+                    background: cooldownSeconds > 0 
+                      ? '#cbd5e1' 
+                      : '#0284c7',
+                    color: cooldownSeconds > 0 ? '#64748b' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.2s',
+                    opacity: isGenerating ? 0.7 : 1,
+                    boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 2px rgba(2, 132, 199, 0.2)'
+                  }}
+                  title={`Locks Option ${questionContext.correct === 0 || questionContext.correct === '0' ? 'Dropped' : questionContext.correct} and generates an explanation strictly proving this option`}
+                >
+                  <span>🎯</span>
+                  <span>{isGenerating ? 'Explaining...' : `Explain Opt ${questionContext.correct === 0 || questionContext.correct === '0' ? 'Dropped' : questionContext.correct}`}</span>
+                </button>
+              )}
+
+              {/* Button 2: Auto-Solve & Explain (Independently solves and updates dropdown) */}
+              <button
+                type="button"
+                onClick={() => handleAiExplain(false)}
+                disabled={isGenerating || cooldownSeconds > 0}
+                style={{
+                  background: cooldownSeconds > 0 
+                    ? '#cbd5e1' 
+                    : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                  color: cooldownSeconds > 0 ? '#64748b' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.2s',
+                  opacity: isGenerating ? 0.7 : 1,
+                  boxShadow: cooldownSeconds > 0 ? 'none' : '0 1px 3px rgba(79, 70, 229, 0.2)'
+                }}
+                title="AI independently solves the question, auto-selects the correct option in dropdown, and generates explanation"
+              >
+                <span>{isGenerating ? '⏳' : (cooldownSeconds > 0 ? '⏳' : '✨')}</span>
+                <span>{isGenerating ? 'Solving & Explaining...' : (cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : 'AI Auto-Solve')}</span>
+              </button>
+            </>
           )}
           <button
             type="button"

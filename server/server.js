@@ -1721,7 +1721,8 @@ app.post('/api/questions/explain', async (req, res) => {
       assertion,
       reason,
       subPrompt,
-      year
+      year,
+      forceSelected
     } = questionContext;
 
     // Start SSE stream immediately
@@ -1729,20 +1730,28 @@ app.post('/api/questions/explain', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // =========================================================================
-    // STAGE 1: RAPID INDEPENDENT SOLVER (<500ms)
-    // =========================================================================
-    let solvedOption = await solveQuestionFast(questionContext, groqKeys, geminiKeys, openRouterKeys);
+    let solvedOption = null;
 
-    // If solvedOption was found, immediately write it so frontend updates dropdown in real time
-    if (solvedOption !== null && solvedOption >= 0 && solvedOption <= 4) {
+    if (forceSelected && (typeof correct !== 'undefined' && correct !== null && correct !== '')) {
+      // User explicitly locked this specific option - skip stage 1 solver completely
+      solvedOption = Number(correct);
       res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `[[CORRECT_OPTION: ${solvedOption}]]\n\n` } }] })}\n\n`);
     } else {
-      // Fall back to pre-selected if fast solver couldn't classify
-      const hasPreselectedOption = typeof correct !== 'undefined' && correct !== null && correct !== '' && Number(correct) >= 1 && Number(correct) <= 4;
-      solvedOption = hasPreselectedOption ? Number(correct) : (correct === 0 || correct === '0' ? 0 : null);
-      if (solvedOption !== null) {
+      // =========================================================================
+      // STAGE 1: RAPID INDEPENDENT SOLVER (<500ms)
+      // =========================================================================
+      solvedOption = await solveQuestionFast(questionContext, groqKeys, geminiKeys, openRouterKeys);
+
+      // If solvedOption was found, immediately write it so frontend updates dropdown in real time
+      if (solvedOption !== null && solvedOption >= 0 && solvedOption <= 4) {
         res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `[[CORRECT_OPTION: ${solvedOption}]]\n\n` } }] })}\n\n`);
+      } else {
+        // Fall back to pre-selected if fast solver couldn't classify
+        const hasPreselectedOption = typeof correct !== 'undefined' && correct !== null && correct !== '' && Number(correct) >= 1 && Number(correct) <= 4;
+        solvedOption = hasPreselectedOption ? Number(correct) : (correct === 0 || correct === '0' ? 0 : null);
+        if (solvedOption !== null) {
+          res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: `[[CORRECT_OPTION: ${solvedOption}]]\n\n` } }] })}\n\n`);
+        }
       }
     }
 
