@@ -635,16 +635,21 @@ const MockTest = () => {
     
     setIsSubmittingReport(true);
 
-    const selectedQ = questionsState.find(q => (q.dbId || q.id).toString() === reportQuestionId.toString());
-    const qDetails = selectedQ 
-      ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
-      : '';
+    try {
+      const selectedQ = questionsState.find(q => (q && (q.dbId || q.id) ? (q.dbId || q.id).toString() === reportQuestionId.toString() : false));
+      const qDetails = selectedQ 
+        ? `Question Text: ${selectedQ.question ? selectedQ.question.replace(/<[^>]*>/g, '') : '(No text)'}\n`
+        : '';
 
-    const qNo = selectedQ ? `Question ${selectedQ.id}` : 'N/A';
-    const qYear = selectedQ ? (selectedQ.year || 'N/A') : 'N/A';
-    const qSet = selectedQ ? `${selectedQ.setTitle || 'N/A'} (ID: ${selectedQ.setId || 'N/A'})` : 'N/A';
+      const qNo = selectedQ ? `Question ${selectedQ.id || ''}` : 'N/A';
+      const qYear = selectedQ ? (selectedQ.year || 'N/A') : 'N/A';
+      const qSet = selectedQ ? `${selectedQ.setTitle || 'N/A'} (ID: ${selectedQ.setId || 'N/A'})` : 'N/A';
 
-    const messageText = `[Question Error Report]
+      const userEmail = (typeof localStorage !== 'undefined' && localStorage.getItem('userEmail')) 
+        ? localStorage.getItem('userEmail') 
+        : 'student-report@ugcfreepaper.com';
+
+      const messageText = `[Question Error Report]
 Unit: ${paperDetails.unitName || 'Paper 1'}
 Active Session: Session ${activeSessionIndex + 1}
 Question Number: ${qNo}
@@ -657,34 +662,39 @@ ${qDetails}
 Submitted by User: ${userName || 'Student'}
 `;
 
-    fetch(`${API_BASE_URL}/api/contact`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: `[Error Report] ${userName || 'Student'}`,
-        email: (user && user.email) ? user.email : 'student-report@ugcfreepaper.com',
-        message: messageText,
-        isReport: true
+      fetch(`${API_BASE_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: `[Error Report] ${userName || 'Student'}`,
+          email: userEmail,
+          message: messageText,
+          isReport: true
+        })
       })
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('API failed');
-        return res.json();
-      })
-      .then(() => {
-        alert("Thank you! The error report has been submitted to the administrator.");
-        setShowReportModal(false);
-      })
-      .catch(err => {
-        console.error("Failed to submit error report:", err);
-        alert("Failed to submit the report. Please check your internet connection.");
-      })
-      .finally(() => {
-        setIsSubmittingReport(false);
-      });
-  }
+        .then(res => {
+          if (!res.ok) throw new Error('API failed');
+          return res.json();
+        })
+        .then(() => {
+          alert("Thank you! The error report has been submitted to the administrator.");
+          setShowReportModal(false);
+        })
+        .catch(err => {
+          console.error("Failed to submit error report:", err);
+          alert("Failed to submit the report. Please check your internet connection.");
+        })
+        .finally(() => {
+          setIsSubmittingReport(false);
+        });
+    } catch (err) {
+      console.error("Failed to prepare error report:", err);
+      setIsSubmittingReport(false);
+      alert("Failed to submit the report. Please try again.");
+    }
+  };
 
   const renderReportModal = () => {
     if (!showReportModal) return null;
